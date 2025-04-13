@@ -1,0 +1,20 @@
+Metadata-Version: 2.4
+Name: spatial_manifolds
+Version: 0.0.1
+Summary: Spatial manifolds in the MEC, research package.
+Requires-Python: ==3.11.*
+Description-Content-Type: text/markdown
+Requires-Dist: einops>=0.8.1
+Requires-Dist: pyarrow>=19.0.1
+Requires-Dist: seaborn>=0.13.2
+Requires-Dist: spikeinterface>=0.102.1
+Requires-Dist: statsmodels>=0.14.4
+Requires-Dist: zetapy>=3.0.7
+Requires-Dist: pynwb>=3.0.0
+Requires-Dist: ruff>=0.9.9
+Requires-Dist: ipdb>=0.13.13
+Requires-Dist: pyqt5>=5.15.11
+Requires-Dist: ratinabox>=1.15.3
+Requires-Dist: pynapple>=0.8.4
+Requires-Dist: scikit-image>=0.25.2
+Requires-Dist: opencv-python-headless>=4.11.0.86

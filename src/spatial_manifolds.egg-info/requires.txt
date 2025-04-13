@@ -1,0 +1,14 @@
+einops>=0.8.1
+pyarrow>=19.0.1
+seaborn>=0.13.2
+spikeinterface>=0.102.1
+statsmodels>=0.14.4
+zetapy>=3.0.7
+pynwb>=3.0.0
+ruff>=0.9.9
+ipdb>=0.13.13
+pyqt5>=5.15.11
+ratinabox>=1.15.3
+pynapple>=0.8.4
+scikit-image>=0.25.2
+opencv-python-headless>=4.11.0.86

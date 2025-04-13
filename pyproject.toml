@@ -1,0 +1,49 @@
+[project]
+name = "spatial_manifolds"
+version = "0.0.1"
+description = "Spatial manifolds in the MEC, research package."
+readme = "READMj.md"
+requires-python = "==3.11.*"
+dependencies = [
+    "einops>=0.8.1",
+    "pyarrow>=19.0.1",
+    "seaborn>=0.13.2",
+    "spikeinterface>=0.102.1",
+    "statsmodels>=0.14.4",
+    "zetapy>=3.0.7",
+    "pynwb>=3.0.0",
+    "ruff>=0.9.9",
+    "ipdb>=0.13.13",
+    "pyqt5>=5.15.11",
+    "ratinabox>=1.15.3",
+    "pynapple>=0.8.4",
+    "scikit-image>=0.25.2",
+    "opencv-python-headless>=4.11.0.86",
+]
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+fixable = ["ALL"]
+unfixable = ["F401"]
+[tool.ruff]
+line-length = 79
+[tool.ruff.format]
+quote-style = "single"
+docstring-code-format = true
