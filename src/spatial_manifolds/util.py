@@ -56,7 +56,7 @@ def gaussian_filter_nan(X, sigma, mode='reflect'):
     VV = gaussian_filter(V, sigma=sigma, mode=mode)
 
     W = 0 * X.copy() + 1
-    W[np.isnan(X)] = 0
+    W[np.isnan(X)] = 0 
     WW = gaussian_filter(W, sigma=sigma, mode=mode)
     Y = VV / WW
     Y[np.isnan(X)] = np.nan
