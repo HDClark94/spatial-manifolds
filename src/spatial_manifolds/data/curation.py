@@ -14,8 +14,7 @@ def curate_clusters(clusters):
             message='divide by zero encountered in scalar divide',
         )
     return clusters[
-        (clusters['amplitude_cutoff'] < 0.1)
-        & (clusters['isi_violations_ratio'] < 0.5)
+        (clusters['isi_violations_ratio'] < 0.5)
         & (clusters['presence_ratio'] > 0.9)
         & (clusters['firing_rate'] > 0.5)
         & (clusters['snr'] > 1)

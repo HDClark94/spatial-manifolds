@@ -1,24 +1,39 @@
 import pynapple as nap
+from pathlib import Path
 
 from spatial_manifolds.data.curation import curate_clusters
 
-
-def load_session(args, curate=True):
+def load_session(args) -> tuple[nap.NWBFile, Path, nap.TsGroup]:
     session_path = (
         args.storage
-        / 'sessions'
         / f'M{args.mouse}'
-        / f'D{args.day}'
+        / f'D{args.day:0>2}'
         / args.session_type
     )
     session_file = (
-        session_path / f'M{args.mouse}D{args.day}{args.session_type}.nwb'
+        session_path
+        / f'sub-{args.mouse}_day-{args.day:0>2}_ses-{args.session_type}_beh.nwb'
     )
-    clusters_file = session_path / f'{args.sorter}.npz'
     assert session_file.exists(), f'Could not find {session_file}.'
-    assert clusters_file.exists(), f'Could not find {clusters_file}.'
-    return (
-        nap.load_file(session_file, lazy_loading=False),
-        session_path,
-        curate_clusters(nap.load_file(clusters_file)),
-    )
+    if hasattr(args, 'sorter'):
+        clusters_file = (
+            session_path
+            / f'sub-{args.mouse}_day-{args.day:0>2}_ses-{args.session_type}_srt-{args.sorter}_clusters.npz'
+        )
+        if clusters_file.exists():
+            return (
+            nap.load_file(session_file, lazy_loading=False),
+            session_path,
+            curate_clusters(nap.load_file(clusters_file))
+            )
+        else:
+            return (
+            nap.load_file(session_file, lazy_loading=False),
+            session_path,
+            )
+    else:
+        return (
+            nap.load_file(session_file, lazy_loading=False),
+            session_path,
+        )
+
