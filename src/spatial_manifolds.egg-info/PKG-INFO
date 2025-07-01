@@ -7,7 +7,7 @@ Description-Content-Type: text/markdown
 Requires-Dist: einops>=0.8.1
 Requires-Dist: pyarrow>=19.0.1
 Requires-Dist: seaborn>=0.13.2
-Requires-Dist: spikeinterface>=0.102.1
+Requires-Dist: spikeinterface>=0.102.2
 Requires-Dist: statsmodels>=0.14.4
 Requires-Dist: zetapy>=3.0.7
 Requires-Dist: pynwb>=3.0.0
@@ -15,6 +15,54 @@ Requires-Dist: ruff>=0.9.9
 Requires-Dist: ipdb>=0.13.13
 Requires-Dist: pyqt5>=5.15.11
 Requires-Dist: ratinabox>=1.15.3
-Requires-Dist: pynapple>=0.8.4
 Requires-Dist: scikit-image>=0.25.2
 Requires-Dist: opencv-python-headless>=4.11.0.86
+Requires-Dist: scikit-learn>=1.6.1
+Requires-Dist: neuroconv>=0.7.2
+Requires-Dist: nwbinspector>=0.6.3
+Requires-Dist: setuptools>=80.0.1
+Requires-Dist: neo>=0.14.0
+Requires-Dist: black>=25.1.0
+Requires-Dist: pre-commit>=4.2.0
+Requires-Dist: nemos>=0.2.3
+Requires-Dist: pynapple==0.8.5
+Requires-Dist: pyglmnet>=1.1
+Requires-Dist: keras>=3.10.0
+Requires-Dist: tensorflow>=2.19.0
+Requires-Dist: xgboost>=3.0.2
+Requires-Dist: hdbscan>=0.8.40
+Requires-Dist: brainrender>=2.1.17
+
+# A Data-Driven Study of the Mouse Medial Entorhinal Cortex
+This repository contains the code I developed for analysing Neuropixels 2.0 recordings from the Nolan lab.
+
+Contact information:
+| Name         | Email address                                         | Website                   |
+| :----------- | :---------------------------------------------------- | :------------------------ |
+| Wolf De Wulf | [wolf.de.wulf@ed.ac.uk](mailto:wolf.de.wulf@ed.ac.uk) | https://www.wolfdewulf.eu |
+
+## Usage
+This is all linux-based.
+
+### Environment
+
+I use [`uv`](https://docs.astral.sh/uv/) to keep track of packages and versions.  
+To recreate my exact environment, do:
+```
+uv sync
+```
+
+The [`uv.lock`](uv.lock) file contains a more detailed description of the environment, if you need it.
+
+### Data
+
+Read [`data/README.md`](data/README.md) for directions on where to get what data and how to preprocess it.
+
+### Analyses
+
+Various analysis scripts can be found in [`scripts/`](scripts/).  
+The source code used in these can be found in [`src/spatial_manifolds/`](src/spatial_manifolds/).
+
+## Questions
+
+I am happy to answer your questions or to discuss my work, please send me an email!
