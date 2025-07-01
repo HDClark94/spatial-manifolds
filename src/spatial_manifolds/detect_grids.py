@@ -8,6 +8,7 @@ from spatial_manifolds.behaviour_plots import *
 from matplotlib.colors import TwoSlopeNorm
 from scipy.spatial import distance
 from spatial_manifolds.circular_decoder import circular_decoder, cross_validate_decoder, cross_validate_decoder_time, circular_nanmean, circular_nansem
+from scipy.stats import gaussian_kde
 
 import seaborn as sns
 from scipy.stats import pearsonr
@@ -78,14 +79,10 @@ def cell_classification_vr(mouse, day, percentile_threshold=99):
     
     return ramp_cells, ramp_and_speed_cells, non_spatial_cells
 
- 
-def cell_classification_of1(mouse, day, percentile_threshold=99, 
-                            disqualifying_brain_regions=None):
+
+def cell_classification_of1(mouse, day, percentile_threshold=99):
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day)
 
-    if disqualifying_brain_regions is None:
-        disqualifying_brain_regions = disqualifying_brain_areas_for_grid_cells
-     
     print(mouse, day)
     session = 'OF1'
     of1_folder = f'/Users/harryclark/Downloads/COHORT12_nwb/M{mouse}/D{day:02}/{session}/'
@@ -97,8 +94,6 @@ def cell_classification_of1(mouse, day, percentile_threshold=99,
     spatial_information_score_of1 = pd.read_parquet(spatial_path)
     shifted_speed_score_of1 = pd.read_parquet(speed_path)
 
-    shifted_grid_scores_of1 = shifted_grid_scores_of1.query('travel >= 0')
-    spatial_information_score_of1 = spatial_information_score_of1.query('travel >= 0')
     shifted_speed_score_of1 = shifted_speed_score_of1.query('travel == 0')
     cluster_ids_values = shifted_grid_scores_of1.query('travel == 0').cluster_id
 
@@ -108,9 +103,18 @@ def cell_classification_of1(mouse, day, percentile_threshold=99,
     speed_cells = pd.DataFrame(columns=shifted_grid_scores_of1.columns)
     cells = pd.DataFrame(columns=shifted_grid_scores_of1.columns)
 
-    print(f'there are {len(clusters_VR)} cells to begin with')
-    print(f'I wont use these brain regions')
-    print(disqualifying_brain_regions)
+    # estimate optimal travel using spatial information of all the cells
+    travel = np.arange(-50, 50, 2)
+    travel_at_max = []
+    for id in cluster_ids_values:
+        id_scores = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == id].spatial_information)
+        id_travels = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == id].travel)
+        travel_at_max.append(id_travels[np.nanargmax(id_scores)])
+
+    kde = gaussian_kde(travel_at_max, bw_method=0.3) # Adjust bw_method for smoothing
+    x = np.linspace(-50, 50, 1000)
+    kde_values = kde(x)
+    optimal_travel = x[np.argmax(kde_values)]
 
     for index in cluster_ids_values:
         brain_region = clusters_VR.brain_region[index]
@@ -120,10 +124,11 @@ def cell_classification_of1(mouse, day, percentile_threshold=99,
         probe_x = clusters_VR.coord_probe_x[index]
         probe_y = clusters_VR.coord_probe_y[index]
 
-        if brain_region not in disqualifying_brain_regions:
+        if brain_region not in disqualifying_brain_areas_for_grid_cells:
             cluster_spatial_information_of1 = spatial_information_score_of1[spatial_information_score_of1.cluster_id==index]
             cluster_shifted_grid_scores_of1 = shifted_grid_scores_of1[shifted_grid_scores_of1.cluster_id==index]
             cluster_speed_correlation_of1 = shifted_speed_score_of1[shifted_speed_score_of1.cluster_id==index]
+            cluster_optimal_lag = cluster_spatial_information_of1.travel.values[np.nanargmax(cluster_spatial_information_of1.spatial_information)]
 
             percentile99_grid_score_of1 = np.nanpercentile(cluster_shifted_grid_scores_of1.null_grid_score.iloc[0], percentile_threshold)
             percentile99_spatial_information_of1 = np.nanpercentile(cluster_spatial_information_of1.null_spatial_information.iloc[0], percentile_threshold)
@@ -131,31 +136,33 @@ def cell_classification_of1(mouse, day, percentile_threshold=99,
             percentile99_speed_information_of1_pos = np.nanpercentile(cluster_speed_correlation_of1.null_speed_correlation.iloc[0], percentile_threshold)
             percentile99_speed_information_of1_neg = np.nanpercentile(cluster_speed_correlation_of1.null_speed_correlation.iloc[0], 100-percentile_threshold)
 
-            max_grid_score_of1 = cluster_shifted_grid_scores_of1.grid_score.values[np.nanargmax(cluster_shifted_grid_scores_of1.grid_score)]
-            spatial_info = cluster_spatial_information_of1.spatial_information.values[np.nanargmax(cluster_shifted_grid_scores_of1.grid_score)]
+            max_grid_score_of1 = cluster_shifted_grid_scores_of1[cluster_shifted_grid_scores_of1['travel'] == np.round(optimal_travel)]['grid_score'].iloc[0]
+            spatial_info = cluster_spatial_information_of1[cluster_spatial_information_of1['travel'] == np.round(optimal_travel)]['spatial_information'].iloc[0]
             spatial_info_no_lag = cluster_spatial_information_of1.spatial_information.iloc[0]
 
             speed_correlation = cluster_speed_correlation_of1.speed_correlation.iloc[0]
 
             cell = shifted_grid_scores_of1[shifted_grid_scores_of1.grid_score==max_grid_score_of1]
+            cell['mouse'] = mouse
+            cell['day'] = day
             cell['brain_region'] = brain_region
+            cell['optimal_travel_lag'] = cluster_optimal_lag
             cell['SC_x'] = SC_x
             cell['SC_y'] = SC_y
             cell['SC_z'] = SC_z
             cell['probe_x'] = probe_x
             cell['probe_y'] = probe_y
 
-            if (max_grid_score_of1 > percentile99_grid_score_of1) and (spatial_info > percentile99_spatial_information_of1) and (max_grid_score_of1>0.4):
+            if (max_grid_score_of1 > percentile99_grid_score_of1) and (spatial_info > percentile99_spatial_information_of1):
                 grid_cells = pd.concat([grid_cells, cell], ignore_index=True)
-            elif (spatial_info_no_lag > percentile99_spatial_information_of1):
+            elif (spatial_info > percentile99_spatial_information_of1):
                 non_grid_cells = pd.concat([non_grid_cells, cell], ignore_index=True)
             elif (speed_correlation > percentile99_speed_information_of1_pos) or (speed_correlation < percentile99_speed_information_of1_neg):
                 speed_cells = pd.concat([speed_cells, cell], ignore_index=True)
             else:
                 non_spatial_cells = pd.concat([non_spatial_cells, cell], ignore_index=True)
             cells = pd.concat([cells, cell], ignore_index=True)
-        else:
-            print(f'Cell from {brain_region} being removed')
+        
     all_cells = cells.copy() 
     non_grid_and_non_spatial_cells = pd.concat([non_grid_cells, non_spatial_cells], ignore_index=True)
 
@@ -170,31 +177,48 @@ def cell_classification_of1(mouse, day, percentile_threshold=99,
 
 
 
-def HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=5, cluster_selection_epsilon=3, figpath='', 
+def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None, cluster_selection_epsilon=None,
                          curate_with_vr=True, curate_with_brain_region=True):
-
+    if min_cluster_size is not None:
+        print(f'params min_cluster_size and cluster_selection_epsilon are deprecated, these are now set to default values of 3 and 0.3 respectively')
+    
     if len(gcs) == 0:
         return [], []
+    
+    gcs['field_spacing'] = pd.to_numeric(gcs['field_spacing'], errors='coerce')
+    gcs['orientation'] = pd.to_numeric(gcs['orientation'], errors='coerce')
+    gcs.dropna(subset=['field_spacing', 'orientation'], inplace=True)
 
-    samples = np.stack([np.array(gcs['field_spacing']),
-                        np.cos((np.array(gcs['orientation'])/60) * 2 * np.pi),
-                        np.sin((np.array(gcs['orientation'])/60) * 2 * np.pi)]).T
+    # Extract and preprocess features
+    X = gcs[["field_spacing", "orientation"]].copy()
 
-    samples2d = np.stack([np.array(gcs['field_spacing']),
-                        np.array(gcs['orientation'])]).T
-
-    # Standardize the data
+    # Standard scale the 'field_spacing'
     scaler = StandardScaler()
-    samples_scaled = scaler.fit_transform(samples)
-    samples_scaled[:, 1] /= np.sqrt(2)
-    samples_scaled[:, 2] /= np.sqrt(2)
+    X["field_spacing_scaled"] = scaler.fit_transform(X[["field_spacing"]])
 
-    samples_scaled = samples
+    # Cyclic encoding for 'orientation' (range 0 to 60)
+    X["orientation_sin"] = np.sin(2 * np.pi * X["orientation"] / 60)
+    X["orientation_cos"] = np.cos(2 * np.pi * X["orientation"] / 60)
 
-    # Apply HDBSCAN
-    clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, 
-                                cluster_selection_epsilon=cluster_selection_epsilon)
-    module_labels = clusterer.fit_predict(samples_scaled)
+    # Scale sine and cosine components to balance feature influence
+    scale_factor = 1 / np.sqrt(2)
+    X["orientation_sin_scaled"] = X["orientation_sin"] * scale_factor
+    X["orientation_cos_scaled"] = X["orientation_cos"] * scale_factor
+
+    # Prepare the feature matrix
+    features = X[["field_spacing_scaled", 
+                  "orientation_sin_scaled", 
+                  "orientation_cos_scaled"]]
+
+    clusterer = hdbscan.HDBSCAN(
+                min_cluster_size=3,
+                min_samples=1,
+                cluster_selection_epsilon=0.3,
+                allow_single_cluster=False,
+                metric='chebyshev'
+            )
+    
+    module_labels = clusterer.fit_predict(features)
 
     # Plot the results
     plt.figure(figsize=(3, 3))
@@ -202,20 +226,22 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=5, cluster_selec
     for mi in np.unique(module_labels):
         mask = module_labels == mi
         print(f'for mi{mi}, there are {np.sum(mask)} points')
-        plt.scatter(samples2d[:, 0][mask], samples2d[:, 1][mask], c=label_colors[mi], s=20, cmap='viridis', label='Clustered Points')
+        plt.scatter(np.array(X['field_spacing'])[mask], 
+                    np.array(X['orientation'])[mask], c=label_colors[mi], s=20, cmap='viridis', label='Clustered Points')
+    
     # Highlight unassigned points (label -1)
-    unassigned = samples2d[module_labels == -1]
-    plt.scatter(unassigned[:, 0], unassigned[:, 1], s=21, color='red', label='Unassigned Points')
+    plt.scatter(np.array(X['field_spacing'])[module_labels == -1], 
+                np.array(X['orientation'])[module_labels == -1], s=21, color='red', label='Unassigned Points')
     plt.scatter(all['field_spacing'], all['orientation'], s=20, color='tab:grey', alpha=0.5,zorder=-1)
 
     #plt.legend()
-    plt.xlabel('Grid Spacing (cm)')
-    plt.ylabel('Grid Orientation ($^\circ$)')
+    plt.xlabel('Grid spacing (cm)')
+    plt.ylabel('Grid orientation ($^\circ$)')
     plt.ylim(0,60)
     plt.title(f'HDBSCAN M{mouse}D{day}')
     plt.tight_layout()
-    plt.savefig(f'{figpath}/M{mouse}D{day}_HDBSCAN.pdf')
-    plt.show()  
+    plt.show()
+
 
     if np.unique(module_labels).size == 1 and np.unique(module_labels)[0] == -1:
         module_labels[:] = 0  # Assign all points to a single cluster if no clusters were found
@@ -235,10 +261,8 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=5, cluster_selec
     grid_module_cluster_ids = [x for _, x in sorted(zip(avg_spacings, grid_module_cluster_ids))]
     grid_module_ids = [x for _, x in sorted(zip(avg_spacings, grid_module_ids))]
 
-
+    # now curate the modules based on the VR data and anatomy
     _,_,autocorrs,_,_,clusters_VR = compute_vr_tcs(mouse, day)
- 
-
     if curate_with_brain_region:
         for mi, module_ids in zip(grid_module_ids, grid_module_cluster_ids):
             print(f'module {mi} contains cells from {np.unique(clusters_VR[module_ids].brain_region)}')
@@ -248,7 +272,6 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=5, cluster_selec
                 if br in disqualifying_brain_areas_for_grid_cells:
                     module_ids.remove(id)
             grid_module_cluster_ids[grid_module_ids.index(mi)] = new_module_ids
-
 
     if curate_with_vr:
         tolerance = 30
@@ -329,7 +352,6 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=5, cluster_selec
     return  grid_module_ids, grid_module_cluster_ids
 
 
-
 def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, mouse, day, figpath):
     print(mouse, day)
     session = 'OF1'
@@ -394,6 +416,7 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True):
     beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_beh.nwb"
     beh = nap.load_file(beh_path)
     clusters = nap.load_file(spikes_path)
+    print(f'there are this many clusters before curation {len(clusters)}')
     clusters = curate_clusters(clusters)
 
     tns = beh['trial_number']
