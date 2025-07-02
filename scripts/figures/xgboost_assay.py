@@ -33,7 +33,7 @@ mouse = 25
 day = 25
 assay_mode = 'GC'   # 'GC' for grid cells, 'NGS' for non grid spatial cells
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
-
+ 
 if use_parser:
     parser = ArgumentParser()
     parser.add_argument('mouse')
