@@ -14,7 +14,7 @@ from spatial_manifolds.predictive_grid import compute_travel_projected, wrap_lis
 from spatial_manifolds.behaviour_plots import *
 from spatial_manifolds.detect_grids import *
 from spatial_manifolds.brainrender_helper import *
-
+from argparse import ArgumentParser
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -25,12 +25,25 @@ It uses a subset of grid cells and non-grid spatial cells to predict the referen
 based on their activity, position and the history of their activity and position. 
 The results are saved in a YAML file for further analysis.
 '''
+use_parser=True
+
 
 data_path = '/Users/harryclark/Documents/data/'
-fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
 mouse = 25
 day = 25
 assay_mode = 'GC'   # 'GC' for grid cells, 'NGS' for non grid spatial cells
+fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
+
+if use_parser:
+    parser = ArgumentParser()
+    parser.add_argument('mouse')
+    parser.add_argument('day')
+    parser.add_argument('assay_mode')
+    parser.add_argument('data_path')
+    mouse = int(parser.parse_args().mouse)
+    day = int(parser.parse_args().day)
+    assay_mode = parser.parse_args().assay_mode
+    data_path = parser.parse_args().data_path   
 
 # xgboost parameters 
 nfilters = 5 # number of features to represent the covariate history per covariate
@@ -45,7 +58,7 @@ rc, rsc, vr_ns = cell_classification_vr(mouse, day)
 g_m_ids, g_m_cluster_ids = HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=3, cluster_selection_epsilon=3, 
                                                 figpath=fig_path, curate_with_vr=True, curate_with_brain_region=True) # create grid modules using HDBSCAN    
 
-plot_grid_modules_rate_maps(gcs, g_m_ids, g_m_cluster_ids, mouse, day, figpath=fig_path)
+#plot_grid_modules_rate_maps(gcs, g_m_ids, g_m_cluster_ids, mouse, day, figpath=fig_path)
 
 
 # we now have cluster ids classified into modules, non grid spatial cells and non spatial cells 
