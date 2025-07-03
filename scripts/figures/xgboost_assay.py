@@ -27,7 +27,7 @@ The results are saved in a YAML file for further analysis.
 
 print('hello there, this is the xgboost assay script for grid cells and non grid spatial cells')
 
-use_parser = False
+use_parser = True
 
 # Default values (can be overridden by arguments)
 source_path = '/Users/harryclark/Downloads/COHORT12/'
