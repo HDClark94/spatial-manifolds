@@ -163,5 +163,5 @@ for mouse, days in mouse_days.items():
 
         job_name = f"M{mouse}D{day}_xgboost_GC"
 
-        run_python_script(f"/home/hclark3/spatial-manifolds/scripts/figures/xgboost_assay.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=8, job_name=job_name)
+        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_assay.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=8, job_name=job_name)
         run_stage_script(stageout_dict, hold_jid=job_name)
