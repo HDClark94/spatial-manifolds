@@ -24,7 +24,7 @@ It uses a subset of grid cells and non-grid spatial cells to predict the referen
 based on their activity, position and the history of their activity and position. 
 The results are saved in a YAML file for further analysis.
 '''
-use_parser=False
+use_parser=True
 
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
