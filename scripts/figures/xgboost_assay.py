@@ -118,7 +118,9 @@ elif assay_mode == 'NGS':
 # set up xgboost history model
 xgb_history = MLencoding(tunemodel = 'xgboost', cov_history = True, spike_history=False, 
                          window = time_bs, n_filters = nfilters, max_time = history_length)
-n_neurons = np.arange(1, len(cov_cell_population_cluster_ids), 3)
+n_neurons = np.arange(1, len(cov_cell_population_cluster_ids), 2)
+n_neurons = np.insert(n_neurons, 0, 0) # we want the condition where no grid cells are used as a covariate history as well
+
 pR2s_grids_comodular = np.zeros((len(n_neurons), len(grid_module_population_cluster_ids)))
 pR2s_grids_non_comodular = np.zeros((len(n_neurons), len(grid_non_module_population_cluster_ids)))
 pR2s_non_grids = np.zeros((len(n_neurons), len(non_grid_population_cluster_ids)))
@@ -142,11 +144,13 @@ for test_population_cluster_ids, pR2s, in zip([grid_module_population_cluster_id
 
             # sub select n cells to use in the covariate history
             np.random.seed(j)
-            idx = np.random.choice(np.arange(0,all_x.shape[1]), n, replace=False)
-            x = all_x[:, idx]
-            
-            # add position to the covariate history as well
-            x = np.column_stack((pos_in_time, x))
+            if n > 0:
+                idx = np.random.choice(np.arange(0,all_x.shape[1]), n, replace=False)
+                x = all_x[:, idx]
+                # add position to the covariate history as well
+                x = np.column_stack((pos_in_time, x))
+            else:
+                x = pos_in_time.reshape(-1, 1)
 
             # get the target variable
             y = np.array(tcs_time[id])
