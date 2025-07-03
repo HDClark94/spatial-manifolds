@@ -156,7 +156,7 @@ mouse_days = {25: [25,24]}
 
 for mouse, days in mouse_days.items():
     for day in days:
-        data_path = f"/exports/eddie/scratch/hclark3/data/M{mouse}/D{day}/"
+        data_path = f"/exports/eddie/scratch/hclark3/data/xgboost_assay_GC/"
         stageout_dict = {
             data_path: '/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_GC_assay/'
         }
