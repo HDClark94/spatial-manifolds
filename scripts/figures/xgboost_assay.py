@@ -27,27 +27,30 @@ The results are saved in a YAML file for further analysis.
 
 print('hello there, this is the xgboost assay script for grid cells and non grid spatial cells')
 
-use_parser=True
+use_parser = True
 
+# Default values (can be overridden by arguments)
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 mouse = 25
 day = 25
-assay_mode = 'GC'   # 'GC' for grid cells, 'NGS' for non grid spatial cells
+assay_mode = 'GC'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
-source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 
-if use_parser: # for running on eddie
+if use_parser:
     parser = ArgumentParser()
-    parser.add_argument('mouse')
-    parser.add_argument('day')
-    parser.add_argument('assay_mode')
-    parser.add_argument('data_path')
-    mouse = int(parser.parse_args().mouse)
-    day = int(parser.parse_args().day)
-    assay_mode = parser.parse_args().assay_mode
-    data_path = parser.parse_args().data_path   
+    parser.add_argument('--mouse', type=int, required=True, help='Mouse ID')
+    parser.add_argument('--day', type=int, required=True, help='Day of recording')
+    parser.add_argument('--assay_mode', type=str, required=True, help='Assay mode: GC or NGS')
+    parser.add_argument('--data_path', type=str, required=True, help='Path to data directory')
+    args = parser.parse_args()
+
+    mouse = args.mouse
+    day = args.day
+    assay_mode = args.assay_mode
+    data_path = args.data_path
     source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
+
 
 # xgboost parameters 
 nfilters = 5 # number of features to represent the covariate history per covariate
