@@ -13,7 +13,6 @@ from spatial_manifolds.util import gaussian_filter_nan
 from spatial_manifolds.predictive_grid import compute_travel_projected, wrap_list
 from spatial_manifolds.behaviour_plots import *
 from spatial_manifolds.detect_grids import *
-from spatial_manifolds.brainrender_helper import *
 from argparse import ArgumentParser
 import warnings
 warnings.filterwarnings('ignore')
@@ -25,7 +24,7 @@ It uses a subset of grid cells and non-grid spatial cells to predict the referen
 based on their activity, position and the history of their activity and position. 
 The results are saved in a YAML file for further analysis.
 '''
-use_parser=True
+use_parser=False
 
 
 data_path = '/Users/harryclark/Documents/data/'
@@ -160,7 +159,7 @@ for test_population_cluster_ids, pR2s, label in zip([grid_module_population_clus
     yaml_friendly_results = {str(int(k)): v.tolist() for k, v in results.items()}
 
     # Save
-    with open(f'{data_path}xgboost_{assay_mode}_assay_mouse{mouse}_day{day}_{label}.yaml', 'w') as f:
+    with open(f'{data_path}xgboost_{assay_mode}_assay_mouse_{mouse}_day{day}_{label}.yaml', 'w') as f:
         yaml.dump(yaml_friendly_results, f)
 
 
