@@ -27,13 +27,13 @@ The results are saved in a YAML file for further analysis.
 
 print('hello there, this is the xgboost assay script for grid cells and non grid spatial cells')
 
-use_parser = True
+use_parser = False
 
 # Default values (can be overridden by arguments)
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 mouse = 25
-day = 25
+day = 24
 assay_mode = 'GC'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
 
@@ -118,7 +118,7 @@ elif assay_mode == 'NGS':
 # set up xgboost history model
 xgb_history = MLencoding(tunemodel = 'xgboost', cov_history = True, spike_history=False, 
                          window = time_bs, n_filters = nfilters, max_time = history_length)
-n_neurons = np.arange(1, len(cov_cell_population_cluster_ids)+1, 5)
+n_neurons = np.arange(1, len(cov_cell_population_cluster_ids), 3)
 pR2s_grids_comodular = np.zeros((len(n_neurons), len(grid_module_population_cluster_ids)))
 pR2s_grids_non_comodular = np.zeros((len(n_neurons), len(grid_non_module_population_cluster_ids)))
 pR2s_non_grids = np.zeros((len(n_neurons), len(non_grid_population_cluster_ids)))
