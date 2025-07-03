@@ -183,6 +183,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
 
 def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None, cluster_selection_epsilon=None,
                          curate_with_vr=True, curate_with_brain_region=True, source_path=None):
+    print(source_path)
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
 
