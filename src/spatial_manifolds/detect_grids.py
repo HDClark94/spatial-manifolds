@@ -32,9 +32,11 @@ import matplotlib as mpl
 mpl.rcParams['font.family'] = 'Arial'
 
 
-def cell_classification_vr(mouse, day, percentile_threshold=99):
+def cell_classification_vr(mouse, day, percentile_threshold=99, source_path=None):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
     session = 'VR'
-    vr_folder = f'/Users/harryclark/Downloads/COHORT12_nwb/M{mouse}/D{day:02}/{session}/'
+    vr_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
     ramp_path = vr_folder + 'tuning_scores/ramps.parquet'
     speed_path = vr_folder + 'tuning_scores/speed_correlation.parquet'
     spatial_path = vr_folder + 'tuning_scores/spatial_information.parquet'
@@ -80,12 +82,14 @@ def cell_classification_vr(mouse, day, percentile_threshold=99):
     return ramp_cells, ramp_and_speed_cells, non_spatial_cells
 
 
-def cell_classification_of1(mouse, day, percentile_threshold=99):
-    _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day)
+def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=None):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
 
     print(mouse, day)
     session = 'OF1'
-    of1_folder = f'/Users/harryclark/Downloads/COHORT12_nwb/M{mouse}/D{day:02}/{session}/'
+    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
     speed_path = of1_folder + "tuning_scores/shifted_speed_correlation.parquet"
@@ -352,10 +356,12 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     return  grid_module_ids, grid_module_cluster_ids
 
 
-def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, mouse, day, figpath):
+def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, mouse, day, figpath, source_path=None):
     print(mouse, day)
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
     session = 'OF1'
-    of1_folder = f'/Users/harryclark/Downloads/COHORT12_nwb/M{mouse}/D{day:02}/{session}/'
+    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
     spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
@@ -410,8 +416,10 @@ def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, m
     plt.close()    
 
 
-def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True):
-    vr_folder = f'/Users/harryclark/Downloads/COHORT12_nwb/M{mouse}/D{day:02}/VR/'
+def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    vr_folder = f'{source_path}M{mouse}/D{day:02}/VR/'
     spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_srt-kilosort4_clusters.npz"
     beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_beh.nwb"
     beh = nap.load_file(beh_path)

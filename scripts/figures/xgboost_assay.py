@@ -24,16 +24,16 @@ It uses a subset of grid cells and non-grid spatial cells to predict the referen
 based on their activity, position and the history of their activity and position. 
 The results are saved in a YAML file for further analysis.
 '''
-use_parser=False
+use_parser=True
 
-
+source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 mouse = 25
 day = 25
 assay_mode = 'GC'   # 'GC' for grid cells, 'NGS' for non grid spatial cells
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
  
-if use_parser:
+if use_parser: # for running on eddie
     parser = ArgumentParser()
     parser.add_argument('mouse')
     parser.add_argument('day')
@@ -43,6 +43,7 @@ if use_parser:
     day = int(parser.parse_args().day)
     assay_mode = parser.parse_args().assay_mode
     data_path = parser.parse_args().data_path   
+    source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 
 # xgboost parameters 
 nfilters = 5 # number of features to represent the covariate history per covariate
@@ -52,8 +53,8 @@ history_length = 1000 # in ms
 #mice = [25, 25, 26, 27, 29, 28]
 #days = [25, 24, 18, 26, 23, 25]
 
-gcs, ngs, ns, sc, ngs_ns, all = cell_classification_of1(mouse, day, percentile_threshold=95) # subset
-rc, rsc, vr_ns = cell_classification_vr(mouse, day)
+gcs, ngs, ns, sc, ngs_ns, all = cell_classification_of1(mouse, day, percentile_threshold=95, source_path=source_path) # subset
+rc, rsc, vr_ns = cell_classification_vr(mouse, day, source_path=source_path)
 g_m_ids, g_m_cluster_ids = HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=3, cluster_selection_epsilon=3, 
                                                 figpath=fig_path, curate_with_vr=True, curate_with_brain_region=True) # create grid modules using HDBSCAN    
 
@@ -71,7 +72,7 @@ cluster_ids_by_group.append(gcs.cluster_id.values.tolist()) # all grid cells [-2
 cluster_ids_by_group.append(sc.cluster_id.values.tolist()) # speed cells [-1]
 
 # load the behaviour data
-tcs, tcs_time, _, last_ephys_bin, beh, clusters = compute_vr_tcs(mouse,day, apply_zscore=False, apply_guassian_filter=False)
+tcs, tcs_time, _, last_ephys_bin, beh, clusters = compute_vr_tcs(mouse,day, apply_zscore=False, apply_guassian_filter=False, source_path=source_path)
 last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
 
 # time binned variables for later
