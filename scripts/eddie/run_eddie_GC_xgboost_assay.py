@@ -150,17 +150,35 @@ def run_script(script_file_path):
 
 #=================================================================================================================
 #=================================================================================================================
+mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
+              21: [15,16,17,18,19,20,21,22,23,24,25,26],
+              22: [33,34,35,36,37,38,39,40,41,42,43,44,45,46],
+              25: [16,17,18,19,20,21,22,23,24,25,26,27],
+              26: [11,12,13,14,15,16,17,18,19,20,21,22,23],
+              27: [16,17,18,19,20,21,22,23,24,25,26],
+              28: [16,17,18,19,20,21,22,23,24],
+              29: [16,17,18,19,20,21,22,23],
+            }
 
 assay_mode = "GC"  # 'GC' for grid cells, 'NGS' for non grid spatial cells
-mouse_days = {25: [25,24]}
-
 for mouse, days in mouse_days.items():
     for day in days:
         data_path = f"/exports/eddie/scratch/hclark3/data/xgboost_assay_GC/"
         stageout_dict = {
             data_path: '/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_GC_assay/'
         }
-
         job_name = f"M{mouse}D{day}_xgboost_GC"
+        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_assay.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=8, job_name=job_name)
+        run_stage_script(stageout_dict, hold_jid=job_name)
+
+
+assay_mode = "NGS"  # 'GC' for grid cells, 'NGS' for non grid spatial cells
+for mouse, days in mouse_days.items():
+    for day in days:
+        data_path = f"/exports/eddie/scratch/hclark3/data/xgboost_assay_NGS/"
+        stageout_dict = {
+            data_path: '/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_NGS_assay/'
+        }
+        job_name = f"M{mouse}D{day}_xgboost_NGS"
         run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_assay.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=8, job_name=job_name)
         run_stage_script(stageout_dict, hold_jid=job_name)
