@@ -54,10 +54,11 @@ history_length = 1000 # in ms
 #mice = [25, 25, 26, 27, 29, 28]
 #days = [25, 24, 18, 26, 23, 25]
 
+print(f'using source path {source_path}, data path {data_path}, mouse {mouse}, day {day}, assay mode {assay_mode}')
 gcs, ngs, ns, sc, ngs_ns, all = cell_classification_of1(mouse, day, percentile_threshold=95, source_path=source_path) # subset
 rc, rsc, vr_ns = cell_classification_vr(mouse, day, source_path=source_path)
 g_m_ids, g_m_cluster_ids = HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=3, cluster_selection_epsilon=3, 
-                                                figpath=fig_path, curate_with_vr=True, curate_with_brain_region=True) # create grid modules using HDBSCAN    
+                                                figpath=fig_path, curate_with_vr=True, curate_with_brain_region=True, source_path=source_path) # create grid modules using HDBSCAN    
 
 #plot_grid_modules_rate_maps(gcs, g_m_ids, g_m_cluster_ids, mouse, day, figpath=fig_path)
 
