@@ -24,6 +24,9 @@ It uses a subset of grid cells and non-grid spatial cells to predict the referen
 based on their activity, position and the history of their activity and position. 
 The results are saved in a YAML file for further analysis.
 '''
+
+print('hello there, this is the xgboost assay script for grid cells and non grid spatial cells')
+
 use_parser=True
 
 source_path = '/Users/harryclark/Downloads/COHORT12/'
