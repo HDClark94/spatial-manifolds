@@ -182,7 +182,10 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
 
 
 def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None, cluster_selection_epsilon=None,
-                         curate_with_vr=True, curate_with_brain_region=True):
+                         curate_with_vr=True, curate_with_brain_region=True, source_path=None):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+
     if min_cluster_size is not None:
         print(f'params min_cluster_size and cluster_selection_epsilon are deprecated, these are now set to default values of 3 and 0.3 respectively')
     
@@ -266,7 +269,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     grid_module_ids = [x for _, x in sorted(zip(avg_spacings, grid_module_ids))]
 
     # now curate the modules based on the VR data and anatomy
-    _,_,autocorrs,_,_,clusters_VR = compute_vr_tcs(mouse, day)
+    _,_,autocorrs,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
     if curate_with_brain_region:
         for mi, module_ids in zip(grid_module_ids, grid_module_cluster_ids):
             print(f'module {mi} contains cells from {np.unique(clusters_VR[module_ids].brain_region)}')
