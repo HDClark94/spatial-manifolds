@@ -24,7 +24,7 @@ It uses a subset of grid cells and non-grid spatial cells to predict the referen
 based on their activity, position and the history of their activity and position. 
 The results are saved in a YAML file for further analysis.
 '''
-use_parser=True
+use_parser=False
 
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
@@ -32,7 +32,8 @@ mouse = 25
 day = 25
 assay_mode = 'GC'   # 'GC' for grid cells, 'NGS' for non grid spatial cells
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
- 
+source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
+
 if use_parser: # for running on eddie
     parser = ArgumentParser()
     parser.add_argument('mouse')
