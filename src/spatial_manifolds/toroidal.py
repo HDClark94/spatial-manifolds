@@ -26,6 +26,38 @@ def circ_mean(x, axis=-1, keepdims=False):
         np.sin(x).mean(axis, keepdims=keepdims), np.cos(x).mean(axis, keepdims=keepdims)
     )
 
+def get_spectrogram(tcs, tl, bs, windowsize=8):
+    """ 
+    Compute spectrogram of cells.
+    
+    tcs: list of 1d np.array
+    tl: track length
+    bs: size of bin in cm
+    windowsize: how many track lengths to compute over
+    """
+    N = len(tcs)
+    L = tl / bs
+    zmaps = list(tcs.values())
+    
+    min_freq, max_freq = 1 / 500, 1 / 20  # cm^-1
+    nperseg = windowsize * L
+    nperseg = 1600
+    
+    Sxs, phase_grams = [], []
+    for mp in zmaps:
+        f, t, Sxx = spectrogram(mp.ravel(), nperseg=nperseg, noverlap=1400)
+        _, _, phase_gram = spectrogram(
+            mp.ravel(), nperseg=nperseg, mode="angle", noverlap=1400
+        )
+        Sxs.append(Sxx[(min_freq < f) & (f < max_freq)])
+        phase_grams.append(phase_gram[(min_freq < f) & (f < max_freq)])
+
+    phase_grams = np.stack(phase_grams).T
+    Sxs = np.stack(Sxs)
+    Sxs = np.nan_to_num(Sxs / (np.linalg.norm(Sxs, axis=1, keepdims=True) + 1e-5))
+    return Sxs, phase_grams, f, t
+
+
 
 def spectral_analysis(tcs, tl, bs, windowsize=8):
     """
