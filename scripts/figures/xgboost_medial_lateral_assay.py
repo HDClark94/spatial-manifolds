@@ -14,6 +14,7 @@ from spatial_manifolds.predictive_grid import compute_travel_projected, wrap_lis
 from spatial_manifolds.behaviour_plots import *
 from spatial_manifolds.detect_grids import *
 from spatial_manifolds.brainrender_helper import *
+from argparse import ArgumentParser
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -29,6 +30,9 @@ The results are saved in a YAML file for further analysis.
 This assay is will be optimised for recordings which were recorded in the multishank mode ||||
 '''
 
+use_parser = True
+
+source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
 mouse = 25
@@ -39,6 +43,22 @@ ordering_mode = 'nearest' # 'nearest' for nearest cells first,
                           # 'farthest' for farthest cells first, 
                           # 'random' for random order
 
+if use_parser:
+    parser = ArgumentParser()
+    parser.add_argument('--mouse', type=int, required=True, help='Mouse ID')
+    parser.add_argument('--day', type=int, required=True, help='Day of recording')
+    parser.add_argument('--assay_mode', type=str, required=True, help='Assay mode: GC or NGS')
+    parser.add_argument('--ordering_mode', type=str, required=True, help='ordering mode: nearest or farthest or random')
+    parser.add_argument('--data_path', type=str, required=True, help='Path to data directory')
+    args = parser.parse_args()
+
+    mouse = args.mouse
+    day = args.day
+    assay_mode = args.assay_mode
+    data_path = args.data_path
+    source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
+
+
 # xgboost parameters 
 nfilters = 5 # number of features to represent the covariate history per covariate
 history_length = 1000 # in ms
@@ -47,10 +67,10 @@ history_length = 1000 # in ms
 #mice = [25, 25, 26, 27, 29, 28]
 #days = [25, 24, 18, 26, 23, 25]
 
-gcs, ngs, ns, sc, ngs_ns, all = cell_classification_of1(mouse, day, percentile_threshold=99) # subset
-rc, rsc, vr_ns = cell_classification_vr(mouse, day)
+gcs, ngs, ns, sc, ngs_ns, all = cell_classification_of1(mouse, day, percentile_threshold=95, source_path=source_path) # subset
+rc, rsc, vr_ns = cell_classification_vr(mouse, day, source_path=source_path)
 g_m_ids, g_m_cluster_ids = HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=3, cluster_selection_epsilon=3, 
-                                                figpath=fig_path, curate_with_vr=True, curate_with_brain_region=True) # create grid modules using HDBSCAN    
+                                                figpath=fig_path, curate_with_vr=True, curate_with_brain_region=True, source_path=source_path) # create grid modules using HDBSCAN    
 
 plot_grid_modules_rate_maps(gcs, g_m_ids, g_m_cluster_ids, mouse, day, figpath=fig_path)
 
@@ -66,7 +86,7 @@ cluster_ids_by_group.append(gcs.cluster_id.values.tolist()) # all grid cells [-2
 cluster_ids_by_group.append(sc.cluster_id.values.tolist()) # speed cells [-1]
 
 # load the behaviour data
-tcs, tcs_time, _, last_ephys_bin, beh, clusters = compute_vr_tcs(mouse,day, apply_zscore=False, apply_guassian_filter=False)
+tcs, tcs_time, _, last_ephys_bin, beh, clusters = compute_vr_tcs(mouse,day, apply_zscore=False, apply_guassian_filter=False, source_path=source_path)
 last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
 
 # time binned variables for later
@@ -94,7 +114,6 @@ grid_module_population_cluster_ids = np.array(cluster_ids_by_group[0].copy())
 grid_non_module_population_cluster_ids = np.setdiff1d(gcs.cluster_id.values, grid_module_population_cluster_ids).astype(int)
 non_grid_population_cluster_ids = ngs.cluster_id.values.astype(int).astype(int)
 
-
 # set the covariate cell population cluster ids based on the assay mode
 if assay_mode == 'GC':
     cov_cell_population_cluster_ids = grid_module_population_cluster_ids
@@ -104,7 +123,9 @@ elif assay_mode == 'NGS':
 # set up xgboost history model
 xgb_history = MLencoding(tunemodel = 'xgboost', cov_history = True, spike_history=False, 
                          window = time_bs, n_filters = nfilters, max_time = history_length)
-n_neurons = np.arange(1, len(cov_cell_population_cluster_ids)+1, 5)
+n_neurons = np.arange(1, len(cov_cell_population_cluster_ids), 2)
+n_neurons = np.insert(n_neurons, 0, 0) # we want the condition where no grid cells are used as a covariate history as well
+
 pR2s_grids_comodular = np.zeros((len(n_neurons), len(grid_module_population_cluster_ids)))
 pR2s_grids_non_comodular = np.zeros((len(n_neurons), len(grid_non_module_population_cluster_ids)))
 pR2s_non_grids = np.zeros((len(n_neurons), len(non_grid_population_cluster_ids)))
@@ -140,11 +161,14 @@ for test_population_cluster_ids, pR2s, in zip([grid_module_population_cluster_id
             cov_tcs_time = {cluster_id: tcs_time[cluster_id] for cluster_id in cov_clusters_df.cluster_id if cluster_id in tcs_time}
             all_x = np.vstack(list(cov_tcs_time.values())).T
 
-            # sub select n cells to use in the covariate history based on distance to the test cell
-            x = all_x[:, :n]
-            
-            # add position to the covariate history as well
-            x = np.column_stack((pos_in_time, x))
+            # sub select n cells to use in the covariate history
+            np.random.seed(j)
+            if n > 0:
+                x = all_x[:, :n]
+                # add position to the covariate history as well
+                x = np.column_stack((pos_in_time, x))
+            else:
+                x = pos_in_time.reshape(-1, 1)
 
             # get the target variable
             y = np.array(tcs_time[id])
