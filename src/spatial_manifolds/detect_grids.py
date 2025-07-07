@@ -188,7 +188,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
         source_path = '/Users/harryclark/Downloads/COHORT12/'
 
     if min_cluster_size is not None:
-        print(f'params min_cluster_size and cluster_selection_epsilon are deprecated, these are now set to default values of 3 and 0.3 respectively')
+        print(f'params min_cluster_size and cluster_selection_epsilon are deprecated, these are now set to default values of 3 and 0.4 respectively')
     
     if len(gcs) == 0:
         return [], []
@@ -221,25 +221,30 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     clusterer = hdbscan.HDBSCAN(
                 min_cluster_size=3,
                 min_samples=1,
-                cluster_selection_epsilon=0.3,
+                cluster_selection_epsilon=0.4,
                 allow_single_cluster=False,
                 metric='chebyshev'
             )
     
     module_labels = clusterer.fit_predict(features)
+    X["cluster"] = module_labels
 
+    print(f'Found {len(np.unique(module_labels))} modules with HDBSCAN for mouse {mouse} day {day}')
+    print(f'for each module , the number of points is: {np.unique(module_labels, return_counts=True)[1]}')
     # Plot the results
     plt.figure(figsize=(3, 3))
-    label_colors = {label: cm.get_cmap('viridis', len(np.unique(module_labels)))(i) for i, label in enumerate(np.unique(module_labels))}
-    for mi in np.unique(module_labels):
-        mask = module_labels == mi
-        print(f'for mi{mi}, there are {np.sum(mask)} points')
-        plt.scatter(np.array(X['field_spacing'])[mask], 
-                    np.array(X['orientation'])[mask], c=label_colors[mi], s=20, cmap='viridis', label='Clustered Points')
+    sns.scatterplot(data=X, x="field_spacing", y="orientation", hue="cluster", palette="tab10", s=25, legend=False,linewidth=0)
+
+    #label_colors = {label: cm.get_cmap('viridis', len(np.unique(module_labels)))(i) for i, label in enumerate(np.unique(module_labels))}
+    #for mi in np.unique(module_labels):
+    #    mask = module_labels == mi
+    #    print(f'for mi{mi}, there are {np.sum(mask)} points')
+    #    plt.scatter(np.array(X['field_spacing'])[mask], 
+    #                np.array(X['orientation'])[mask], c=label_colors[mi], s=20, cmap='viridis', label='Clustered Points')
     
     # Highlight unassigned points (label -1)
     plt.scatter(np.array(X['field_spacing'])[module_labels == -1], 
-                np.array(X['orientation'])[module_labels == -1], s=21, color='red', label='Unassigned Points')
+                np.array(X['orientation'])[module_labels == -1], s=21, color='black', label='Unassigned Points')
     plt.scatter(all['field_spacing'], all['orientation'], s=20, color='tab:grey', alpha=0.5,zorder=-1)
 
     #plt.legend()
@@ -250,10 +255,8 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     plt.tight_layout()
     plt.show()
 
-
     if np.unique(module_labels).size == 1 and np.unique(module_labels)[0] == -1:
         module_labels[:] = 0  # Assign all points to a single cluster if no clusters were found
-        label_colors[0] = label_colors[-1]
 
     # put cluster ids into modules then rearange from smallest spacing to larger
     grid_module_cluster_ids = []
@@ -283,6 +286,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
 
     if curate_with_vr:
         tolerance = 30
+        prominence = 0.05
         # before performing the median peak check, plot the histogram of peaks
         for mi, module_ids in zip(grid_module_ids, grid_module_cluster_ids):
             matrix = np.array(list(autocorrs.values()))
@@ -292,30 +296,30 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
             matrix_cluster_ids = matrix_cluster_ids[np.isin(matrix_cluster_ids, cluster_id_of_interest)]
             peaks = []
             for array in matrix:
-                if len(find_peaks(array)[0])>0:
-                    peak = find_peaks(array)[0][0]
+                if len(find_peaks(array,prominence=prominence)[0])>0:
+                    peak = find_peaks(array,prominence=prominence)[0][0]
                 else:
                     peak = np.nan
                     
-                '''
-                plt.plot(array, color=label_colors[mi], alpha=0.5)
-                plt.axvline(peak, color=label_colors[mi], linestyle='--', alpha=0.5)
-                plt.show()'''
+                
+                plt.plot(array, alpha=0.5)
+                plt.axvline(peak, linestyle='--', alpha=0.5)
+                plt.show()
 
                 peaks.append(peak)
             peaks = np.array(peaks)*bs
             median_peak = np.nanmedian(peaks)
-            '''
+            
             fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(2,2), squeeze=False)
             if median_peak < 200:
                 max_r = 200
             else:
                 max_r = 400
-            ax[0,0].hist(peaks, bins=25, range=(0, max_r), color=label_colors[mi])
+            ax[0,0].hist(peaks, bins=25, range=(0, max_r))
             ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
             ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
             plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}.pdf')
-            plt.show()'''
+            plt.show()
 
             # now check if the peaks are within 20cm of the median peak
             # also check if the rate is really low and should be considered
@@ -336,26 +340,26 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
             matrix_cluster_ids = matrix_cluster_ids[np.isin(matrix_cluster_ids, cluster_id_of_interest)]
             peaks = []
             for array in matrix:
-                if len(find_peaks(array)[0])>0:
-                    peak = find_peaks(array)[0][0]
+                if len(find_peaks(array,prominence=prominence)[0])>0:
+                    peak = find_peaks(array,prominence=prominence)[0][0]
                 else:
                     peak = np.nan
                 peaks.append(peak)
             peaks = np.array(peaks)*bs
             median_peak = np.nanmedian(peaks)
 
-            '''
+            
             fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(2,2), squeeze=False)
             if median_peak < 200:
                 max_r = 200
             else:
                 max_r = 400
-            ax[0,0].hist(peaks, bins=25, range=(0, max_r), color=label_colors[mi])
+            ax[0,0].hist(peaks, bins=25, range=(0, max_r))
             ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
             ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
             plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}_post_curated.pdf')
             plt.show()
-            '''
+            
 
     return  grid_module_ids, grid_module_cluster_ids
 
@@ -428,7 +432,7 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
     beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_beh.nwb"
     beh = nap.load_file(beh_path)
     clusters = nap.load_file(spikes_path)
-    print(f'there are this many clusters before curation {len(clusters)}')
+    #print(f'there are this many clusters before curation {len(clusters)}')
     clusters = curate_clusters(clusters)
 
     tns = beh['trial_number']
@@ -450,8 +454,8 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
     tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
     last_ephys_bin = int(np.nonzero(tc)[0][-1] + (tl/bs) - np.nonzero(tc)[0][-1]%(tl/bs))
     last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
-    print(f'last_ephys_bin {last_ephys_bin}')
-    print(f'last_ephys_time_bin {last_ephys_time_bin}')
+    #print(f'last_ephys_bin {last_ephys_bin}')
+    #print(f'last_ephys_time_bin {last_ephys_time_bin}')
 
     # time binned variables for later
     ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units = 's')
@@ -591,6 +595,110 @@ def get_avg_profile(tc, bs=bs, tl=tl, mask=None):
         return np.arange(bs/2, tl+(bs/2), bs), np.nanmean(trial_rate_map[mask], axis=0)
 
 
+
+def get_kmeans_spatial_labels(tc, labels, bs, tl):
+    """
+    Assign spatial labels using k-means labels allowed applied to the spectrogram.
+    tc: 1D numpy array of shape (n_bins)
+    labels: 1D numpy array of shape (n_windows) with k-means labels
+    """
+    bpt = tl/bs
+    n_trials = int(len(tc)/(bpt))
+
+    n_bins = len(tc)
+    n_windows = len(labels)
+    nperseg = 1600
+    noverlap = 1400
+    step = nperseg-noverlap  # nperseg - noverlap
+
+    trial_centres = []
+    for i in range(n_windows):
+        start = i * step
+        end = min(start + nperseg, n_bins)
+        trial_centres.append(int(((start + end)/2)/bpt))
+    trial_centres = np.array(trial_centres)
+
+    kmean_trial_labels = np.full(n_trials, np.nan)
+    for i in range(n_trials):
+        print(i+1)
+        print(trial_centres)
+
+        trial_labels = labels[trial_centres == i+1]
+        print(trial_labels)   
+        if len(trial_labels) != 0:
+
+            modal_label = stats.mode(trial_labels, nan_policy='omit').mode
+            kmean_trial_labels[i] = modal_label
+ 
+    # Fill NaN values with the nearest non-NaN value
+    for i in range(n_trials):
+        if np.isnan(kmean_trial_labels[i]):
+            # If the label is NaN, we need to find the nearest non-NaN value
+            # walk left and right to find the nearest non-NaN value
+            left = i - 1
+            right = i + 1
+            while left >= 0 and np.isnan(kmean_trial_labels[left]):
+                left -= 1
+            while right < n_trials and np.isnan(kmean_trial_labels[right]):
+                right += 1
+            if left >= 0 and right < n_trials:
+                # Take the nearest non-NaN value
+                if (i - left) <= (right - i):
+                    kmean_trial_labels[i] = kmean_trial_labels[left]
+                else:
+                    kmean_trial_labels[i] = kmean_trial_labels[right]
+            elif left >= 0:
+                kmean_trial_labels[i] = kmean_trial_labels[left]
+            elif right < n_trials:
+                kmean_trial_labels[i] = kmean_trial_labels[right]
+
+    return kmean_trial_labels
+
+
+def plot_individual_rate_maps_with_avg_k_means_grouped_spectrogram(mouse, day, cluster_ids, label='GC', figpath='', source_path=None):
+    if len(cluster_ids)==0:
+        return
+    tcs, _, _ , last_ephys_bin, beh, _ = compute_vr_tcs(mouse, day, apply_zscore=False) 
+
+    tcs_to_use = {cluster_id: tcs[cluster_id] for cluster_id in cluster_ids if cluster_id in tcs}
+    results = spectral_analysis(tcs_to_use, tl, bs=bs)
+    spectrograms = results[3] 
+    S = spectrograms.mean(0)
+    kmeans = KMeans(n_clusters=2, random_state=0, n_init='auto')
+    labels = kmeans.fit_predict(S.T)
+    
+    # translate the labels back to trial_numbers to use in the avging of the rate map
+ 
+    for id in cluster_ids:
+        tc = tcs[id]
+        tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
+        tc = tc[:last_ephys_bin] # only want bins with ephys data in it
+        tcz = zscore(tc)
+        
+        trial_labels = get_kmeans_spatial_labels(tcz, labels, bs=bs, tl=tl)
+    
+        fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(rm_figsize[0], rm_figsize[1]*1.45), sharex=True, height_ratios=[0.3, 1], width_ratios=[1,0.05], sharey='row')
+        plot_firing_rate_map(ax[1,0], tc, bs=bs, tl=tl, p=95, sort_indices=None)
+        ax[1,1].axis('off')
+        ax[0,1].axis('off')
+        ax[1,1].scatter(np.ones(len(trial_labels)), 
+                    np.arange(0,len(trial_labels)),
+                    c=trial_labels,
+                    cmap='cool',
+                    marker='s')
+        ax[1,0].set_xlabel('Pos (cm)')
+        cmap = plt.get_cmap('cool')
+
+        for group in np.unique(trial_labels):
+            if len(trial_labels[trial_labels == group])>5:
+                x, y = get_avg_profile(tc, bs, tl, mask=trial_labels==group)
+                ax[0,0].plot(x,y, color=cmap(group), linewidth=1)
+        fig.savefig(f'{figpath}/M{mouse}D{day}{label}{id}_with_avg_kmeans_spectrogram.pdf', dpi=300, bbox_inches='tight')
+        plt.close()
+
+
+
+
 def plot_individual_rate_maps_with_avg(mouse, day, cluster_ids, label='GC', figpath=''):
     if len(cluster_ids)==0:
         return
@@ -679,7 +787,7 @@ def plot_vr_rate_maps(mouse, day, cluster_ids, label, figpath):
     #plt.close()    
 
 
-def plot_spectrogram(mouse, day, cluster_ids, label, figpath):
+def plot_spectrogram(mouse, day, cluster_ids, label, figpath=None):
     if len(cluster_ids)==0:
         return
     tcs, _, _ , _, _, _ = compute_vr_tcs(mouse, day)
