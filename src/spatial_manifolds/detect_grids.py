@@ -318,7 +318,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
             ax[0,0].hist(peaks, bins=25, range=(0, max_r))
             ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
             ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
-            plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}.pdf')
+            #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}.pdf')
             plt.show()
 
             # now check if the peaks are within 20cm of the median peak
@@ -357,7 +357,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
             ax[0,0].hist(peaks, bins=25, range=(0, max_r))
             ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
             ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
-            plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}_post_curated.pdf')
+            #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}_post_curated.pdf')
             plt.show()
             
 
