@@ -81,6 +81,78 @@ def cell_classification_vr(mouse, day, percentile_threshold=99, source_path=None
     
     return ramp_cells, ramp_and_speed_cells, non_spatial_cells
 
+def cell_classification_anatomy(mouse, day, source_path=None):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
+    session = 'OF1'
+    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
+    spatial_information_score_of1 = pd.read_parquet(spatial_path)
+    cluster_ids_values = spatial_information_score_of1.query('travel == 0').cluster_id
+
+    MEC_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
+    PARA_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
+    PRE_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
+    VIS_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
+    CERE_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
+    other_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
+
+    print(f'unique brain regions {np.unique(clusters_VR.brain_region)}')
+    for index in cluster_ids_values:
+        cluster_spatial_information_of1 = spatial_information_score_of1[spatial_information_score_of1.cluster_id==index]
+        optimal_lag = cluster_spatial_information_of1.travel.values[np.nanargmax(cluster_spatial_information_of1.spatial_information)]
+
+        brain_region = clusters_VR.brain_region[index]
+        SC_x = clusters_VR.coord_SCs_x[index]
+        SC_y = clusters_VR.coord_SCs_y[index]
+        SC_z = clusters_VR.coord_SCs_z[index]
+        probe_x = clusters_VR.coord_probe_x[index]
+        probe_y = clusters_VR.coord_probe_y[index]
+
+        cell = cluster_spatial_information_of1[(spatial_information_score_of1.travel == optimal_lag)]
+        cell['mouse'] = mouse
+        cell['day'] = day
+        cell['brain_region'] = brain_region
+        cell['optimal_travel_lag'] = optimal_lag
+        cell['SC_x'] = SC_x
+        cell['SC_y'] = SC_y
+        cell['SC_z'] = SC_z
+        cell['probe_x'] = probe_x
+        cell['probe_y'] = probe_y
+
+        if 'ENT' in brain_region:
+            MEC_cells = pd.concat([MEC_cells, cell], ignore_index=True)
+        elif 'PAR' in brain_region:
+            PARA_cells = pd.concat([PARA_cells, cell], ignore_index=True)
+        elif 'PAR' in brain_region:
+            PRE_cells = pd.concat([PRE_cells, cell], ignore_index=True)
+        elif 'VIS' in brain_region:
+            VIS_cells = pd.concat([VIS_cells, cell], ignore_index=True)
+        elif 'arb' in brain_region:
+            CERE_cells = pd.concat([CERE_cells, cell], ignore_index=True)
+        elif 'PFL' in brain_region:
+            CERE_cells = pd.concat([CERE_cells, cell], ignore_index=True)
+        elif 'FL' in brain_region:
+            CERE_cells = pd.concat([CERE_cells, cell], ignore_index=True)
+        elif 'root' in brain_region:
+            CERE_cells = pd.concat([CERE_cells, cell], ignore_index=True)
+        elif 'SIM' in brain_region:
+            CERE_cells = pd.concat([CERE_cells, cell], ignore_index=True)
+        else:
+            other_cells = pd.concat([other_cells, cell], ignore_index=True)
+            
+    print(f'there are {len(MEC_cells)} MEC cells')
+    print(f'there are {len(PARA_cells)} PARA cells')
+    print(f'there are {len(PRE_cells)} PRE cells')
+    print(f'there are {len(VIS_cells)} VIS cells')
+    print(f'there are {len(CERE_cells)} CERE cells')
+    print(f'there are {len(other_cells)} other cells')
+    all_cells = pd.concat([MEC_cells, PARA_cells, PRE_cells, VIS_cells, CERE_cells, other_cells], ignore_index=True)
+    print(f'there are {len(all_cells)} all cells')
+    return MEC_cells, PARA_cells, PRE_cells, VIS_cells, CERE_cells, other_cells, all_cells
+
+        
 
 def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=None):
     if source_path is None:
@@ -182,7 +254,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
 
 
 def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None, cluster_selection_epsilon=None,
-                         curate_with_vr=True, curate_with_brain_region=True, source_path=None):
+                         curate_with_vr=True, curate_with_brain_region=True, source_path=None, plot_curate=False):
     print(source_path)
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
@@ -190,7 +262,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     if min_cluster_size is not None:
         print(f'params min_cluster_size and cluster_selection_epsilon are deprecated, these are now set to default values of 3 and 0.4 respectively')
     
-    if len(gcs) == 0:
+    if len(gcs) <= 1:
         return [], []
     
     gcs['field_spacing'] = pd.to_numeric(gcs['field_spacing'], errors='coerce')
@@ -231,6 +303,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
 
     print(f'Found {len(np.unique(module_labels))} modules with HDBSCAN for mouse {mouse} day {day}')
     print(f'for each module , the number of points is: {np.unique(module_labels, return_counts=True)[1]}')
+    
     # Plot the results
     plt.figure(figsize=(3, 3))
     sns.scatterplot(data=X, x="field_spacing", y="orientation", hue="cluster", palette="tab10", s=25, legend=False,linewidth=0)
@@ -257,7 +330,8 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
 
     if np.unique(module_labels).size == 1 and np.unique(module_labels)[0] == -1:
         module_labels[:] = 0  # Assign all points to a single cluster if no clusters were found
-
+        return [], []
+    
     # put cluster ids into modules then rearange from smallest spacing to larger
     grid_module_cluster_ids = []
     grid_module_ids = []
@@ -301,25 +375,26 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
                 else:
                     peak = np.nan
                     
-                
-                plt.plot(array, alpha=0.5)
-                plt.axvline(peak, linestyle='--', alpha=0.5)
-                plt.show()
+                if plot_curate:
+                    plt.plot(array, alpha=0.5)
+                    plt.axvline(peak, linestyle='--', alpha=0.5)
+                    plt.show()
 
                 peaks.append(peak)
             peaks = np.array(peaks)*bs
             median_peak = np.nanmedian(peaks)
             
-            fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(2,2), squeeze=False)
-            if median_peak < 200:
-                max_r = 200
-            else:
-                max_r = 400
-            ax[0,0].hist(peaks, bins=25, range=(0, max_r))
-            ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
-            ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
-            #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}.pdf')
-            plt.show()
+            if plot_curate:
+                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(2,2), squeeze=False)
+                if median_peak < 200:
+                    max_r = 200
+                else:
+                    max_r = 400
+                ax[0,0].hist(peaks, bins=25, range=(0, max_r))
+                ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
+                ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
+                #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}.pdf')
+                plt.show()
 
             # now check if the peaks are within 20cm of the median peak
             # also check if the rate is really low and should be considered
@@ -348,17 +423,17 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
             peaks = np.array(peaks)*bs
             median_peak = np.nanmedian(peaks)
 
-            
-            fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(2,2), squeeze=False)
-            if median_peak < 200:
-                max_r = 200
-            else:
-                max_r = 400
-            ax[0,0].hist(peaks, bins=25, range=(0, max_r))
-            ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
-            ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
-            #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}_post_curated.pdf')
-            plt.show()
+            if plot_curate:
+                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(2,2), squeeze=False)
+                if median_peak < 200:
+                    max_r = 200
+                else:
+                    max_r = 400
+                ax[0,0].hist(peaks, bins=25, range=(0, max_r))
+                ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
+                ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
+                #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}_post_curated.pdf')
+                plt.show()
             
 
     return  grid_module_ids, grid_module_cluster_ids
