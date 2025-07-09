@@ -54,7 +54,7 @@ def make_run_python_script(python_arg, username, venv=None, cores=None, email=No
     Makes a python script, which will run
     >>  python python_arg
 
-    If nothing else is supplied, this will run on the venv 'elrond' with 8 cores, 19GB of RAM per core, with a 
+    If nothing else is supplied, this will run on the venv 'elrond' with 19 cores, 19GB of RAM per core, with a 
     hard runtime limit of 48 hours.    
     """
 
