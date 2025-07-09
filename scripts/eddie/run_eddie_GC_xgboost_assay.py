@@ -70,7 +70,7 @@ def make_run_python_script(python_arg, username, venv=None, cores=None, email=No
         venv = "elrond"
     
     if cores is None:
-        cores = 8
+        cores = 16
 
     if h_rt is None:
         h_rt = "47:59:59"
