@@ -738,6 +738,8 @@ def plot_individual_rate_maps_with_avg_k_means_grouped_spectrogram(mouse, day, c
     tcs_to_use = {cluster_id: tcs[cluster_id] for cluster_id in cluster_ids if cluster_id in tcs}
     results = spectral_analysis(tcs_to_use, tl, bs=bs)
     spectrograms = results[3] 
+    fvalid = results[5]
+
     S = spectrograms.mean(0)
     kmeans = KMeans(n_clusters=2, random_state=0, n_init='auto')
     labels = kmeans.fit_predict(S.T)
