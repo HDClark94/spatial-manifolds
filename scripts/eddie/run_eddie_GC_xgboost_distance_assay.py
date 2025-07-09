@@ -91,7 +91,7 @@ def make_run_python_script(python_arg, username, venv=None, cores=None, email=No
 
     script_content = f"""#!/bin/bash
 #$ -cwd{staging_script}{core_script} -l rl9=true{vmem_script},h_rt={h_rt}{hold_script}{email_script}{name_script}
-
+source $HOME/.bashrc
 /home/{username}/.local/bin/uv run {python_arg}"""
 
     return script_content
