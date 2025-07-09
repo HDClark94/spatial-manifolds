@@ -49,8 +49,8 @@ def get_spectrogram(tcs, tl, bs, windowsize=8):
         _, _, phase_gram = spectrogram(
             mp.ravel(), nperseg=nperseg, mode="angle", noverlap=1400
         )
-        Sxs.append(Sxx[(min_freq < f) & (f < max_freq)])
-        phase_grams.append(phase_gram[(min_freq < f) & (f < max_freq)])
+        Sxs.append(Sxx[(min_freq < f) & (f <= max_freq)])
+        phase_grams.append(phase_gram[(min_freq < f) & (f <= max_freq)])
 
     phase_grams = np.stack(phase_grams).T
     Sxs = np.stack(Sxs)
@@ -83,8 +83,8 @@ def spectral_analysis(tcs, tl, bs, windowsize=8):
         _, _, phase_gram = spectrogram(
             mp.ravel(), nperseg=nperseg, mode="angle", noverlap=1400
         )
-        Sxs.append(Sxx[(min_freq < f) & (f < max_freq)])
-        phase_grams.append(phase_gram[(min_freq < f) & (f < max_freq)])
+        Sxs.append(Sxx[(min_freq < f) & (f <= max_freq)])
+        phase_grams.append(phase_gram[(min_freq < f) & (f <= max_freq)])
 
     #for pg in phase_grams:
     #    plt.imshow(pg)
@@ -94,7 +94,7 @@ def spectral_analysis(tcs, tl, bs, windowsize=8):
     Sxs = np.stack(Sxs)
     Sxs = np.nan_to_num(Sxs / (np.linalg.norm(Sxs, axis=1, keepdims=True) + 1e-5))
 
-    fvalid = f[(min_freq < f) & (f < max_freq)]
+    fvalid = f[(min_freq < f) & (f <= max_freq)]
     cutoff_idx = np.where(min_freq < f)[0][0]
     start_trial, end_trial = trial_starts[0], trial_starts[1]
 
