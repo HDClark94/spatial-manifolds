@@ -289,7 +289,10 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     features = X[["field_spacing_scaled", 
                   "orientation_sin_scaled", 
                   "orientation_cos_scaled"]]
-
+    original_features = X[["field_spacing", 
+                           "orientation"]]
+    
+    # Perform HDBSCAN clustering
     clusterer = hdbscan.HDBSCAN(
                 min_cluster_size=3,
                 min_samples=1,
@@ -297,8 +300,24 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
                 allow_single_cluster=False,
                 metric='chebyshev'
             )
-    
     module_labels = clusterer.fit_predict(features)
+
+    # merge labels if centroids are within 10 units (e.g., cm or degrees)
+    centroids = original_features.groupby(module_labels).mean().values
+    centroids = np.array(centroids)
+    # Start with original labels
+    merged_labels = module_labels.copy()
+    for i, label_i in enumerate(np.unique(module_labels)):
+        for j, label_j in enumerate(np.unique(module_labels)):
+            if j <= i or label_i == -1 or label_j == -1:
+                continue
+            if (distance.euclidean(centroids[i], centroids[j]) < 10):
+                print(f"Merging labels {label_i} and {label_j} with distance {distance.euclidean(centroids[i], centroids[j])}")
+                merged_labels[merged_labels == label_j] = label_i
+            else:
+                print(f"Not merging labels {label_i} and {label_j} with distance {distance.euclidean(centroids[i], centroids[j])}")
+    module_labels = merged_labels.copy()
+    
     X["cluster"] = module_labels
 
     print(f'Found {len(np.unique(module_labels))} modules with HDBSCAN for mouse {mouse} day {day}')
@@ -435,7 +454,6 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
                 #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}_post_curated.pdf')
                 plt.show()
             
-
     return  grid_module_ids, grid_module_cluster_ids
 
 
@@ -728,6 +746,53 @@ def get_kmeans_spatial_labels(tc, labels, bs, tl):
                 kmean_trial_labels[i] = kmean_trial_labels[right]
 
     return kmean_trial_labels
+
+def plot_individual_rate_maps_with_avg_based_on_task_anchoring(mouse, day, cluster_ids, cluster_ids_for_spectrogram=None, label='GC', figpath='', source_path=None):
+    if len(cluster_ids)==0:
+        return
+
+    if cluster_ids_for_spectrogram is None:
+        cluster_ids_for_spectrogram = cluster_ids
+    
+    tcs, _, _ , last_ephys_bin, beh, _ = compute_vr_tcs(mouse, day, apply_zscore=False) 
+
+    tcs_to_use = {cluster_id: tcs[cluster_id] for cluster_id in cluster_ids_for_spectrogram if cluster_id in tcs}
+    results = spectral_analysis(tcs_to_use, tl, bs=bs)
+    spectrograms = results[3] 
+    S = spectrograms.mean(0)
+    max_peaks = np.argmax(S, axis=0)
+    labels = np.isin(max_peaks, [12, 28, 44, 60, 76]).astype(int) # these are the peaks that correspond to the task anchoring
+    
+    # translate the labels back to trial_numbers to use in the avging of the rate map
+
+    for id in cluster_ids:
+        tc = tcs[id]
+        tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
+        tc = tc[:last_ephys_bin] # only want bins with ephys data in it
+        tcz = zscore(tc)
+        
+        trial_labels = get_kmeans_spatial_labels(tcz, labels, bs=bs, tl=tl) # reuse kmeans function to get the labels based on the task anchoring
+    
+        fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(rm_figsize[0], rm_figsize[1]*1.45), sharex=True, height_ratios=[0.3, 1], width_ratios=[1,0.05], sharey='row')
+        plot_firing_rate_map(ax[1,0], tc, bs=bs, tl=tl, p=95, sort_indices=None)
+        ax[1,1].axis('off')
+        ax[0,1].axis('off')
+        ax[1,1].scatter(np.ones(len(trial_labels)), 
+                    np.arange(0,len(trial_labels)),
+                    c=trial_labels,
+                    cmap='cool',
+                    marker='s',
+                    vmin=0, 
+                    vmax=1)
+        ax[1,0].set_xlabel('Pos (cm)')
+        cmap = plt.get_cmap('cool')
+
+        for group in np.unique(trial_labels):
+            if len(trial_labels[trial_labels == group])>5:
+                x, y = get_avg_profile(tc, bs, tl, mask=trial_labels==group)
+                ax[0,0].plot(x,y, color=cmap(group), linewidth=1)
+        fig.savefig(f'{figpath}/M{mouse}D{day}{label}{id}_with_avg_task_anchoring.pdf', dpi=300, bbox_inches='tight')
+        plt.close()
 
 
 def plot_individual_rate_maps_with_avg_k_means_grouped_spectrogram(mouse, day, cluster_ids, label='GC', figpath='', source_path=None):
