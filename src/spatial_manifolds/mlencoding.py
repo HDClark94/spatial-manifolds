@@ -914,3 +914,15 @@ class MLencoding(object):
         LS = np.sum(y*np.log(eps+y) - y)
         R2 = 1-(LS-L1)/(LS-L0)
         return R2
+
+# out of class for using in notebooks
+def poisson_pseudoR2(y, yhat, ynull):
+    # This is our scoring function. Implements pseudo-R2
+    yhat = yhat.reshape(y.shape)
+    eps = np.spacing(1)
+    L1 = np.sum(y*np.log(eps+yhat) - yhat)
+    L1_v = y*np.log(eps+yhat) - yhat
+    L0 = np.sum(y*np.log(eps+ynull) - ynull)
+    LS = np.sum(y*np.log(eps+y) - y)
+    R2 = 1-(LS-L1)/(LS-L0)
+    return R2

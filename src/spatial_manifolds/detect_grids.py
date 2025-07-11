@@ -713,11 +713,7 @@ def get_kmeans_spatial_labels(tc, labels, bs, tl):
 
     kmean_trial_labels = np.full(n_trials, np.nan)
     for i in range(n_trials):
-        print(i+1)
-        print(trial_centres)
-
         trial_labels = labels[trial_centres == i+1]
-        print(trial_labels)   
         if len(trial_labels) != 0:
 
             modal_label = stats.mode(trial_labels, nan_policy='omit').mode
@@ -1457,3 +1453,35 @@ def extract_border(image, color):
     border_points = np.column_stack(np.where(border_mask == 1))
 
     return border_points
+
+
+
+def get_task_anchored_labels_in_time(mouse, day, cluster_ids_for_spectrogram):
+    tcs, tcs_time, autocorrs, last_ephys_bin, beh, clusters = compute_vr_tcs(mouse, day, apply_zscore=False) # recompute tcs without z-scoring to use in the spectrogram
+    tcs_to_use = {cluster_id: tcs[cluster_id] for cluster_id in cluster_ids_for_spectrogram if cluster_id in tcs}
+    results = spectral_analysis(tcs_to_use, tl, bs=bs)
+    spectrograms = results[3] 
+    S = spectrograms.mean(0)
+    max_peaks = np.argmax(S, axis=0)
+    labels = np.isin(max_peaks, [12, 28, 44, 60, 76]).astype(int) # these are the peaks that correspond to the task anchoring
+    trial_labels = get_kmeans_spatial_labels(tcs[cluster_ids_for_spectrogram[0]], labels, bs=bs, tl=tl) # reuse kmeans function to get the labels based on the task anchoring
+
+    last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
+
+    # time binned variables for later
+    ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units = 's')
+    speed_in_time = beh['S'].bin_average(bin_size=time_bs, time_units = 'ms', ep=ep)
+    dt_in_time = beh['travel'].bin_average(bin_size=time_bs, time_units = 'ms', ep=ep)-((beh['trial_number'][0]-1)*tl)
+    time_vals = np.arange(0, len(speed_in_time)*(time_bs/1000),time_bs/1000) # secs
+    pos_in_time = dt_in_time%tl
+    trial_number_in_time = (dt_in_time//tl)+beh['trial_number'][0]
+
+    trial_number_in_time = pd.Series(np.array(trial_number_in_time)).fillna(method='ffill').fillna(method='bfill').to_numpy()
+    trial_labels_trial_numbers = np.arange(trial_number_in_time[0], len(trial_labels)+trial_number_in_time[0], 1)
+    trial_labels_in_time = np.zeros(len(trial_number_in_time), dtype=int)
+    assert len(trial_labels) == len(trial_labels_trial_numbers), f'len(trial_labels)={len(trial_labels)} != len(trial_labels_trial_numbers)={len(trial_labels_trial_numbers)}'
+
+    for i, tn in enumerate(trial_number_in_time.astype(int)):
+        trial_labels_in_time[i] = trial_labels[np.where(trial_labels_trial_numbers == tn)[0][0]].astype(int)
+    
+    return trial_labels_in_time
