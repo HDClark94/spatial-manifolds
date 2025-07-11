@@ -156,10 +156,12 @@ mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
               26: [11,12,13,14,15,16,17,18,19,20,21,22,23],
               27: [16,17,18,19,20,21,22,23,24,25,26],
               28: [16,17,18,19,20,21,22,23,24],
-              29: [16,17,18,19,20,21,22,23],
+              29: [16,17,18,19,20,21,22,23,25],
             }
 
 #mouse_days = {25: [24]} # remove once this is working 
+mouse_days = {29: [25]} # remove once this is working 
+
 for assay_mode in ["GC", "NGS"]:
     for ordering_mode in ['nearest', 'farthest', 'random']:
         for mouse, days in mouse_days.items():
