@@ -251,9 +251,10 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
     print(f'there are {len(speed_cells)} speed cells')
     print(f'there are {len(all_cells)} cells')
 
-    print(f'for the non-grid spatial cells the unique locations are {np.unique(non_grid_cells.brain_region)}')  
-    print(f'for the grid cells the unique locations are {np.unique(grid_cells.brain_region)}')
-    
+    if len(non_grid_cells)>0:
+        print(f'for the non-grid spatial cells the unique locations are {np.unique(non_grid_cells.brain_region)}')  
+    if len(grid_cells)>0:
+        print(f'for the grid cells the unique locations are {np.unique(grid_cells.brain_region)}')
     return grid_cells, non_grid_cells, non_spatial_cells, speed_cells, non_grid_and_non_spatial_cells, all_cells
 
 
