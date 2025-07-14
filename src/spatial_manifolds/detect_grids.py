@@ -155,7 +155,8 @@ def cell_classification_anatomy(mouse, day, source_path=None):
 
         
 
-def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=None):
+def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=None, 
+                            disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
@@ -232,7 +233,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
 
             if (max_grid_score_of1 > percentile99_grid_score_of1) and (spatial_info > percentile99_spatial_information_of1):
                 grid_cells = pd.concat([grid_cells, cell], ignore_index=True)
-            elif (spatial_info > percentile99_spatial_information_of1):
+            elif (spatial_info > percentile99_spatial_information_of1) and brain_region.str.contains('VIS'):
                 non_grid_cells = pd.concat([non_grid_cells, cell], ignore_index=True)
             elif (speed_correlation > percentile99_speed_information_of1_pos) or (speed_correlation < percentile99_speed_information_of1_neg):
                 speed_cells = pd.concat([speed_cells, cell], ignore_index=True)
