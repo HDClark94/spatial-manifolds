@@ -70,7 +70,7 @@ def plot_NP2_probe(ax, sorting_analyzer_path=None):
         # get any sorting analyzer from this project folder
         example_day_path = [f.path for f in os.scandir(f"{project_path}{'M25'}/") if f.is_dir()][25]
         sorting_analyzer_path = f"{example_day_path}/full/kilosort4/kilosort4_sa"
-    print(sorting_analyzer_path)
+    #print(sorting_analyzer_path)
     sorting_analyzer = si.load_sorting_analyzer(sorting_analyzer_path, load_extensions=False)
     probe_group = sorting_analyzer.get_probegroup()
     plot_probegroup(probe_group, ax=ax, 
