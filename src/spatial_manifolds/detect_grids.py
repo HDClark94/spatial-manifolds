@@ -241,7 +241,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
                 non_spatial_cells = pd.concat([non_spatial_cells, cell], ignore_index=True)
             cells = pd.concat([cells, cell], ignore_index=True)
         
-    all_cells = cells.copy() 
+    all_cells = cells.copy()
     non_grid_and_non_spatial_cells = pd.concat([non_grid_cells, non_spatial_cells], ignore_index=True)
 
     print(f'there are {len(non_grid_and_non_spatial_cells)} non_grid and non_spatial_cells')
