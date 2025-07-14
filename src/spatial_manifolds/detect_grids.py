@@ -233,7 +233,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
 
             if (max_grid_score_of1 > percentile99_grid_score_of1) and (spatial_info > percentile99_spatial_information_of1):
                 grid_cells = pd.concat([grid_cells, cell], ignore_index=True)
-            elif (spatial_info > percentile99_spatial_information_of1) and not brain_region.contains('VIS'):
+            elif (spatial_info > percentile99_spatial_information_of1) and (not 'VIS' in brain_region):
                 non_grid_cells = pd.concat([non_grid_cells, cell], ignore_index=True)
             elif (speed_correlation > percentile99_speed_information_of1_pos) or (speed_correlation < percentile99_speed_information_of1_neg):
                 speed_cells = pd.concat([speed_cells, cell], ignore_index=True)
@@ -251,6 +251,9 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
     print(f'there are {len(speed_cells)} speed cells')
     print(f'there are {len(all_cells)} cells')
 
+    print(f'for the non-grid spatial cells the unique locations are {np.unique(non_grid_cells.brain_region)}')  
+    print(f'for the grid cells the unique locations are {np.unique(grid_cells.brain_region)}')
+    
     return grid_cells, non_grid_cells, non_spatial_cells, speed_cells, non_grid_and_non_spatial_cells, all_cells
 
 
