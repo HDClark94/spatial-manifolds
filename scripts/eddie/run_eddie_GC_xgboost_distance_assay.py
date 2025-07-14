@@ -171,5 +171,5 @@ for assay_mode in ["GC", "NGS"]:
                     data_path: '/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_distance_assay/'
                 }
                 job_name = f"M{mouse}D{day}_xgboost_{assay_mode}_{ordering_mode}"
-                run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_medial_lateral_assay2.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --ordering_mode={ordering_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=8, job_name=job_name)
+                run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_medial_lateral_assay2.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --ordering_mode={ordering_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
                 run_stage_script(stageout_dict, hold_jid=job_name)
