@@ -32,6 +32,7 @@ dependencies = [
     "xgboost>=3.0.2",
     "hdbscan>=0.8.40",
     "brainrender>=2.1.17",
+    "astropy>=7.1.0",
 ]
 [build-system]
 requires = ["setuptools", "wheel"]

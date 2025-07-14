@@ -1,5 +1,4 @@
 einops>=0.8.1
-pyarrow>=19.0.1
 seaborn>=0.13.2
 spikeinterface>=0.102.2
 statsmodels>=0.14.4
@@ -26,3 +25,4 @@ tensorflow>=2.19.0
 xgboost>=3.0.2
 hdbscan>=0.8.40
 brainrender>=2.1.17
+astropy>=7.1.0

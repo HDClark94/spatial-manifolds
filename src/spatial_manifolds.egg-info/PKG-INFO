@@ -5,7 +5,6 @@ Summary: Spatial manifolds in the MEC, research package.
 Requires-Python: ==3.11.*
 Description-Content-Type: text/markdown
 Requires-Dist: einops>=0.8.1
-Requires-Dist: pyarrow>=19.0.1
 Requires-Dist: seaborn>=0.13.2
 Requires-Dist: spikeinterface>=0.102.2
 Requires-Dist: statsmodels>=0.14.4
@@ -32,6 +31,7 @@ Requires-Dist: tensorflow>=2.19.0
 Requires-Dist: xgboost>=3.0.2
 Requires-Dist: hdbscan>=0.8.40
 Requires-Dist: brainrender>=2.1.17
+Requires-Dist: astropy>=7.1.0
 
 # A Data-Driven Study of the Mouse Medial Entorhinal Cortex
 This repository contains the code I developed for analysing Neuropixels 2.0 recordings from the Nolan lab.
