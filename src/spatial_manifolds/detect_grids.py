@@ -9,11 +9,12 @@ from matplotlib.colors import TwoSlopeNorm
 from scipy.spatial import distance
 from spatial_manifolds.circular_decoder import circular_decoder, cross_validate_decoder, cross_validate_decoder_time, circular_nanmean, circular_nansem
 from scipy.stats import gaussian_kde
-
+from astropy.convolution import convolve, Gaussian1DKernel
 import seaborn as sns
 from scipy.stats import pearsonr
 import matplotlib.cm as cm
 from scipy.signal import find_peaks
+from scipy.signal import correlate
 
 from spatial_manifolds.tuning_scores.grid_score import autocorr2d
 from spatial_manifolds.data.curation import curate_clusters
@@ -1485,3 +1486,145 @@ def get_task_anchored_labels_in_time(mouse, day, cluster_ids_for_spectrogram):
         trial_labels_in_time[i] = trial_labels[np.where(trial_labels_trial_numbers == tn)[0][0]].astype(int)
     
     return trial_labels_in_time
+
+
+from astropy.convolution import convolve, Gaussian1DKernel
+def cross_correlation_with_jitter(
+    cell1_spikes, cell2_spikes, bin_size=1, max_lag_ms=100, jitter_window_ms=5, n_jitters=1000, duration_s=2000, gauss_sigma_bins=1
+):
+    """
+    Compute cross-correlation between two spike trains and assess significance by jittering cell2_spikes.
+    Applies Gaussian smoothing to binned spike trains.
+    Returns:
+        lags, original_cc, jittered_ccs (n_jitters x len(lags)), pvals (per lag),
+        optimal_lag (ms), optimal_corr (value at optimal lag)
+    """
+    n_bins = int(duration_s * (1000/bin_size))
+    # Bin both spike trains
+    binned1, _ = np.histogram(cell1_spikes, bins=n_bins, range=(0, duration_s))
+    binned2, _ = np.histogram(cell2_spikes, bins=n_bins, range=(0, duration_s))
+    # Gaussian smoothing
+    gauss_kernel = Gaussian1DKernel(gauss_sigma_bins)
+    binned1 = convolve(binned1, gauss_kernel)
+    binned2 = convolve(binned2, gauss_kernel)
+    # Compute original cross-correlation
+    max_lag_bins = int(max_lag_ms // bin_size)
+    lags = np.arange(-max_lag_bins, max_lag_bins + 1)
+    original_cc = correlate(binned1, binned2, mode='full')
+    center = len(original_cc) // 2
+    original_cc = original_cc[center - max_lag_bins : center + max_lag_bins + 1]
+    # Jitter cell2_spikes and compute surrogate cross-correlations
+    jittered_ccs = []
+    for _ in range(n_jitters):
+        jittered_spikes = cell2_spikes + np.random.uniform(-jitter_window_ms, jitter_window_ms, size=cell2_spikes.shape)
+        jittered_spikes = np.clip(jittered_spikes, 0, duration_s)
+        binned2_jit, _ = np.histogram(jittered_spikes, bins=n_bins, range=(0, duration_s))
+        binned2_jit = convolve(binned2_jit, gauss_kernel)
+        cc = correlate(binned1, binned2_jit, mode='full')
+        cc = cc[center - max_lag_bins : center + max_lag_bins + 1]
+        jittered_ccs.append(cc)
+    jittered_ccs = np.array(jittered_ccs)
+    pvals = np.mean(jittered_ccs >= original_cc, axis=0)
+    optimal_idx = np.argmax(original_cc)
+    optimal_lag = lags[optimal_idx] * bin_size
+    optimal_corr = original_cc[optimal_idx]
+
+
+    return lags * bin_size, original_cc, jittered_ccs, pvals, optimal_lag, optimal_corr
+
+
+def cross_correlation_with_jitter(
+    cell1_spikes, cell2_spikes, bin_size=1, max_lag_ms=100, jitter_window_ms=5, 
+    n_jitters=1000, duration_s=2000, gauss_sigma_bins=1, plot=True
+):
+    """
+    Compute cross-correlation between two spike trains and assess significance by jittering cell2_spikes.
+    Applies Gaussian smoothing to binned spike trains.
+    Returns:
+        lags, original_cc, jittered_ccs (n_jitters x len(lags)), pvals (per lag),
+        optimal_lag (ms), optimal_corr (value at optimal lag), noise_correlation
+    """
+
+    def normalized_cross_correlation(x, y, max_lag_bins=max_lag_ms // bin_size):
+        x = (x - np.mean(x)) / (np.std(x) + 1e-10)
+        y = (y - np.mean(y)) / (np.std(y) + 1e-10)
+        cc = correlate(x, y, mode='full')
+        center = len(cc) // 2
+        cc = cc[center - max_lag_bins : center + max_lag_bins + 1]
+        cc = cc / len(x)  # Normalize by number of samples
+        return cc
+
+    n_bins = int(duration_s * (1000/bin_size))
+    # Bin both spike trains
+    binned1, _ = np.histogram(cell1_spikes, bins=n_bins, range=(0, duration_s))
+    binned2, _ = np.histogram(cell2_spikes, bins=n_bins, range=(0, duration_s))
+    # Gaussian smoothing
+    gauss_kernel = Gaussian1DKernel(gauss_sigma_bins)
+    binned1 = convolve(binned1, gauss_kernel)
+    binned2 = convolve(binned2, gauss_kernel)
+    # Compute original cross-correlation
+    max_lag_bins = int(max_lag_ms // bin_size)
+    lags = np.arange(-max_lag_bins, max_lag_bins + 1)
+    original_cc = normalized_cross_correlation(binned1, binned2)
+    center = len(original_cc) // 2
+    original_cc = original_cc[center - max_lag_bins : center + max_lag_bins + 1]
+
+    if plot:
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(8, 1.7))
+        plt.plot(lags * bin_size, original_cc, label='Original CC', color='blue')
+        plt.title('Original Cross-Correlation')
+        plt.xlabel('Lag (ms)')
+        plt.ylabel('Correlation')
+        plt.axhline(0, color='black', linestyle='--')
+        plt.legend()
+        plt.show()
+
+    # Jitter cell2_spikes and compute surrogate cross-correlations
+    jittered_ccs = []
+    jittered_max_corrs = []
+    for i in range(n_jitters):
+        if i % 10 == 0:
+            print(f'Jitter iteration {i+1}/{n_jitters}')
+        jittered_spikes = cell2_spikes + np.random.uniform(-jitter_window_ms, jitter_window_ms, size=cell2_spikes.shape)
+        jittered_spikes = np.clip(jittered_spikes, 0, duration_s)
+        binned2_jit, _ = np.histogram(jittered_spikes, bins=n_bins, range=(0, duration_s))
+        binned2_jit = convolve(binned2_jit, gauss_kernel)
+        cc = normalized_cross_correlation(binned1, binned2_jit)
+        cc = cc[center - max_lag_bins : center + max_lag_bins + 1]
+        jittered_ccs.append(cc)
+        jittered_max_corrs.append(np.max(cc))
+    jittered_ccs = np.array(jittered_ccs)
+
+    if plot:
+        # plot 4 jittered cross-correlations in a subplot nrows=4
+        fig, ax = plt.subplots(ncols=1, nrows=4, figsize=(8, 5), squeeze=False,sharex=True)
+        ax[0, 0].set_title(f'Jittered Cross-Correlations')
+        for j in [0,1,2,3]:
+            ax[j, 0].plot(lags * bin_size, jittered_ccs[j], color='red', alpha=1)
+            ax[j, 0].set_xlabel('Lag (ms)')
+            ax[j, 0].set_ylabel('Correlation')
+            ax[j, 0].axhline(0, color='black', linestyle='--')
+        plt.tight_layout()
+        plt.show()
+
+    jittered_max_corrs = np.array(jittered_max_corrs)
+    pvals = np.mean(jittered_ccs >= original_cc, axis=0)
+    optimal_idx = np.argmax(original_cc)
+    optimal_lag = lags[optimal_idx] * bin_size
+    optimal_corr = original_cc[optimal_idx]
+    # Noise correlation: original max - median jittered max
+    noise_correlation = optimal_corr - np.median(jittered_max_corrs)
+
+    if plot:
+        plt.figure(figsize=(3,3))
+        plt.hist(jittered_max_corrs, bins=30, alpha=0.5, color='gray', label='Jittered Max Correlations')
+        plt.axvline(np.median(jittered_max_corrs), color='red', linestyle='--', label='Median Jittered Max Correlation')
+        plt.axvline(optimal_corr, color='blue', linestyle='--', label='Original Max Correlation')
+        plt.title('Distribution of Jittered Max Correlations')
+        plt.xlabel('Max Correlation')
+        plt.ylabel('Frequency')
+        plt.legend()
+        plt.show()
+
+    return lags * bin_size, original_cc, jittered_ccs, pvals, optimal_lag, optimal_corr, noise_correlation
