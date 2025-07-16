@@ -224,6 +224,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
             cell['mouse'] = mouse
             cell['day'] = day
             cell['brain_region'] = brain_region
+            cell['session_travel_lag'] = optimal_travel
             cell['optimal_travel_lag'] = cluster_optimal_lag
             cell['SC_x'] = SC_x
             cell['SC_y'] = SC_y
