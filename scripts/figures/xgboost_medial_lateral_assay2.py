@@ -132,6 +132,9 @@ pR2s_grids_non_comodular = np.zeros((49, len(n_neurons), len(grid_non_module_pop
 pR2s_non_grids = np.zeros((49, len(n_neurons), len(non_grid_population_cluster_ids))); pR2s_non_grids[:,:,:] = np.nan
 # 49 as there are 48 condition combinations for context rz1 or rz2, type b or nb and performance hit, try, run, slow and 1 for everything combined
 
+# EDIT, DUMB ERROR, there are actually 16 condition combinations, not 48, so we need to change the first dimension of the pR2s arrays to 16
+# This just means rows 0-15 are fine and rows 16-47 are not used, where as row 48 / -1 is the average pR2 across all conditions
+
 # loop over the number of neurons to use in the covariate history and the cell population cluster ids
 for test_population_cluster_ids, pR2s, in zip([grid_module_population_cluster_ids, grid_non_module_population_cluster_ids, non_grid_population_cluster_ids],
                                               [pR2s_grids_comodular, pR2s_grids_non_comodular, pR2s_non_grids]):
