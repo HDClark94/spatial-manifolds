@@ -155,7 +155,7 @@ def cell_classification_anatomy(mouse, day, source_path=None):
 
         
 
-def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=None, 
+def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=None, 
                             disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
@@ -207,6 +207,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
             cluster_shifted_grid_scores_of1 = shifted_grid_scores_of1[shifted_grid_scores_of1.cluster_id==index]
             cluster_speed_correlation_of1 = shifted_speed_score_of1[shifted_speed_score_of1.cluster_id==index]
             cluster_optimal_lag = cluster_spatial_information_of1.travel.values[np.nanargmax(cluster_spatial_information_of1.spatial_information)]
+            cluster_optimal_lag_grid_score = cluster_shifted_grid_scores_of1.travel.values[np.nanargmax(cluster_shifted_grid_scores_of1.grid_score)]
 
             percentile99_grid_score_of1 = np.nanpercentile(cluster_shifted_grid_scores_of1.null_grid_score.iloc[0], percentile_threshold)
             percentile99_spatial_information_of1 = np.nanpercentile(cluster_spatial_information_of1.null_spatial_information.iloc[0], percentile_threshold)
@@ -226,6 +227,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=99, source_path=Non
             cell['brain_region'] = brain_region
             cell['session_travel_lag'] = optimal_travel
             cell['optimal_travel_lag'] = cluster_optimal_lag
+            cell['optimal_travel_lag_grid_score'] = cluster_optimal_lag_grid_score
             cell['SC_x'] = SC_x
             cell['SC_y'] = SC_y
             cell['SC_z'] = SC_z
@@ -1634,3 +1636,17 @@ def cross_correlation_with_jitter(
         plt.show()
 
     return lags * bin_size, original_cc, jittered_ccs, pvals, optimal_lag, optimal_corr, noise_correlation
+
+
+def load_cluster_locations(clusters, cells):
+    for column in ['coord_SCs_x', 
+                   'coord_SCs_y', 
+                   'coord_SCs_z', 
+                   'coord_probe_x', 
+                   'coord_probe_y',
+                   'brain_region']:
+        vals = []
+        for id in cells.cluster_id:
+            vals.append(clusters[column][id])
+        cells[column] = vals
+    return cells
