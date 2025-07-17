@@ -156,7 +156,7 @@ def cell_classification_anatomy(mouse, day, source_path=None):
         
 
 def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=None, 
-                            disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells):
+                            disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells, use_optimal_travel=True):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
@@ -194,6 +194,13 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
     kde_values = kde(x)
     optimal_travel = x[np.argmax(kde_values)]
 
+    if use_optimal_travel:
+        print(f'optimal travel lag is {optimal_travel} cm')
+    else:
+        print(f'using travel lag of 0 cm')
+        optimal_travel = 0
+    
+    # now loop through the clusters and classify them
     for index in cluster_ids_values:
         brain_region = clusters_VR.brain_region[index]
         SC_x = clusters_VR.coord_SCs_x[index]
