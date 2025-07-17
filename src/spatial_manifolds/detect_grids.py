@@ -96,6 +96,7 @@ def cell_classification_anatomy(mouse, day, source_path=None):
     PARA_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
     PRE_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
     VIS_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
+    SUB_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
     CERE_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
     other_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
 
@@ -126,7 +127,7 @@ def cell_classification_anatomy(mouse, day, source_path=None):
             MEC_cells = pd.concat([MEC_cells, cell], ignore_index=True)
         elif 'PAR' in brain_region:
             PARA_cells = pd.concat([PARA_cells, cell], ignore_index=True)
-        elif 'PAR' in brain_region:
+        elif 'PRE' in brain_region:
             PRE_cells = pd.concat([PRE_cells, cell], ignore_index=True)
         elif 'VIS' in brain_region:
             VIS_cells = pd.concat([VIS_cells, cell], ignore_index=True)
@@ -140,6 +141,8 @@ def cell_classification_anatomy(mouse, day, source_path=None):
             CERE_cells = pd.concat([CERE_cells, cell], ignore_index=True)
         elif 'SIM' in brain_region:
             CERE_cells = pd.concat([CERE_cells, cell], ignore_index=True)
+        elif 'SUB' in brain_region:
+            SUB_cells = pd.concat([SUB_cells, cell], ignore_index=True)
         else:
             other_cells = pd.concat([other_cells, cell], ignore_index=True)
             
@@ -149,9 +152,12 @@ def cell_classification_anatomy(mouse, day, source_path=None):
     print(f'there are {len(VIS_cells)} VIS cells')
     print(f'there are {len(CERE_cells)} CERE cells')
     print(f'there are {len(other_cells)} other cells')
-    all_cells = pd.concat([MEC_cells, PARA_cells, PRE_cells, VIS_cells, CERE_cells, other_cells], ignore_index=True)
+    print(f'there are {len(SUB_cells)} SUB cells')
+
+    all_cells = pd.concat([MEC_cells, PARA_cells, PRE_cells, SUB_cells, VIS_cells, CERE_cells, other_cells], ignore_index=True)
     print(f'there are {len(all_cells)} all cells')
-    return MEC_cells, PARA_cells, PRE_cells, VIS_cells, CERE_cells, other_cells, all_cells
+
+    return MEC_cells, PARA_cells, PRE_cells, SUB_cells, VIS_cells, CERE_cells, other_cells, all_cells
 
         
 
@@ -235,6 +241,8 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
             cell['session_travel_lag'] = optimal_travel
             cell['optimal_travel_lag'] = cluster_optimal_lag
             cell['optimal_travel_lag_grid_score'] = cluster_optimal_lag_grid_score
+            cell['spatial_information_score'] = spatial_info
+            cell['spatial_information_score_no_lag'] = spatial_info_no_lag
             cell['SC_x'] = SC_x
             cell['SC_y'] = SC_y
             cell['SC_z'] = SC_z
@@ -265,6 +273,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         print(f'for the non-grid spatial cells the unique locations are {np.unique(non_grid_cells.brain_region)}')  
     if len(grid_cells)>0:
         print(f'for the grid cells the unique locations are {np.unique(grid_cells.brain_region)}')
+
     return grid_cells, non_grid_cells, non_spatial_cells, speed_cells, non_grid_and_non_spatial_cells, all_cells
 
 
