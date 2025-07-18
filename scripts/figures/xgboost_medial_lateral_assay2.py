@@ -18,6 +18,8 @@ from argparse import ArgumentParser
 import warnings
 warnings.filterwarnings('ignore')
 
+import yaml
+
 '''
 This script performs an xgboost assay to assess the influence of grid cells or non grid cells 
 on the encoding of a reference cell in a VR environment with respect to the distance of the grid cells
@@ -136,8 +138,8 @@ pR2s_non_grids = np.zeros((49, len(n_neurons), len(non_grid_population_cluster_i
 # This just means rows 0-15 are fine and rows 16-47 are not used, where as row 48 / -1 is the average pR2 across all conditions
 
 # loop over the number of neurons to use in the covariate history and the cell population cluster ids
-for test_population_cluster_ids, pR2s, in zip([grid_module_population_cluster_ids, grid_non_module_population_cluster_ids, non_grid_population_cluster_ids],
-                                              [pR2s_grids_comodular, pR2s_grids_non_comodular, pR2s_non_grids]):
+for test_population_cluster_ids, pR2s, label in zip([grid_module_population_cluster_ids, grid_non_module_population_cluster_ids, non_grid_population_cluster_ids],
+                                              [pR2s_grids_comodular, pR2s_grids_non_comodular, pR2s_non_grids], ['cmGC', 'ncmGC', 'NGS']):
     for j, n in enumerate(n_neurons):
         print(f'I am going to use only {n} grid cells')
 
@@ -200,12 +202,7 @@ for test_population_cluster_ids, pR2s, in zip([grid_module_population_cluster_id
                             pR2s[c, j, i] = pR2_condition_cv
                         c += 1
             pR2s[-1, j, i] = np.nanmean(pR2_cv)
-
-
-# save the results
-import yaml
-for test_population_cluster_ids, pR2s, label in zip([grid_module_population_cluster_ids, grid_non_module_population_cluster_ids, non_grid_population_cluster_ids],
-                                              [pR2s_grids_comodular, pR2s_grids_non_comodular, pR2s_non_grids], ['cmGC', 'ncmGC', 'NGS']):
+  
     # merge test_population_cluster_ids and pR2s into a dictionary
     results = {test_population_cluster_ids[i]: pR2s[:, :, i] for i in range(len(test_population_cluster_ids))}
 
