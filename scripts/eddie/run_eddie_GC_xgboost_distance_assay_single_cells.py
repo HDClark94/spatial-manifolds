@@ -184,16 +184,6 @@ mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
               29: [16,17,18,19,20,21,22,23,25],
             }
 
-# without test
-mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
-              21: [15,16,17,18,19,20,21,22,23,24,25,26],
-              25: [16,17,18,19,20,21,22,23,25],
-              26: [11,12,13,14,15,16,17,18,19],
-              27: [16,17,18,19,20,21,22,23,24,26],
-              28: [16,17,18,19,20,21,22,23,25],
-              29: [16,17,18,19,20,21,22,23,25],
-            }
-
 #mouse_days = {25: [24]} # remove once this is working 
 
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
@@ -205,9 +195,9 @@ for mouse, days in mouse_days.items():
         clusters = curate_clusters(clusters)
 
         for cluster_id in clusters.index:
-            xgboost_pkl_path = f'{source_path}xgboost/M{mouse}_D{day}_C{cluster_id}.pkl'
+            xgboost_result_path = f'{source_path}xgboost/M{mouse}_D{day}_C{cluster_id}.csv'
 
-            if os.path.exists(xgboost_pkl_path):
+            if os.path.exists(xgboost_result_path):
                 run = False; print(f"Skipping M{mouse}D{day}_C{cluster_id}, already exists")
             else:
                 run = True; print(f"Running M{mouse}D{day}_C{cluster_id}")
