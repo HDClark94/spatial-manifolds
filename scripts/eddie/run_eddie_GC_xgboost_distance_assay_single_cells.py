@@ -1,6 +1,30 @@
 from datetime import datetime
 import subprocess
 import pandas as pd 
+import pynapple as nap
+import warnings
+import os
+
+def curate_clusters(clusters) -> nap.TsGroup:
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=UserWarning,
+            message="Some epochs have no duration",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=RuntimeWarning,
+            message="divide by zero encountered in scalar divide",
+        )
+    return clusters[
+        (clusters["isi_violations_ratio"] < 0.5)
+        # & (clusters['amplitude_cutoff'] < 0.1)
+        & (clusters["presence_ratio"] > 0.9)
+        & (clusters["firing_rate"] > 0.5)
+        & (clusters["snr"] > 1)
+    ]
+
 
 def run_python_script(python_arg, username, venv=None, cores=None, email=None, h_rt=None, h_vmem=None, hold_jid=None, script_file_path=None, staging=False, job_name=None):
 
@@ -71,10 +95,10 @@ def make_run_python_script(python_arg, username, venv=None, cores=None, email=No
         venv = "elrond"
     
     if cores is None:
-        cores = 32
+        cores = 8
 
     if h_rt is None:
-        h_rt = "47:59:59"
+        h_rt = "0:59:59"
     if h_vmem is None:
         h_vmem=19
     if job_name is not None:
@@ -159,21 +183,33 @@ mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
               28: [16,17,18,19,20,21,22,23,25],
               29: [16,17,18,19,20,21,22,23,25],
             }
-       
-#mouse_days = {25: [24]} # remove once this is working 
-#mouse_days = {29: [25]} # remove once this is working 
-'''
-for assay_mode in ["GC", "NGS"]:
-    for ordering_mode in ['nearest', 'farthest', 'random']:
-        for mouse, days in mouse_days.items():
-            for day in days:
-                data_path = f"/exports/eddie/scratch/hclark3/data/xgboost_distance_assay/"
+   
+mouse_days = {25: [24]} # remove once this is working 
+
+source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
+for mouse, days in mouse_days.items():
+    for day in days:
+        vr_folder = f'{source_path}M{mouse}/D{day:02}/VR/'
+        spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_srt-kilosort4_clusters.npz"
+        clusters = nap.load_file(spikes_path)
+        clusters = curate_clusters(clusters)
+
+        for cluster_id in clusters.index:
+            xgboost_pkl_path = f'{source_path}xgboost/M{mouse}_D{day}_C{cluster_id}.pkl'
+
+            if os.path.exists(xgboost_pkl_path):
+                run = False; print(f"Skipping M{mouse}D{day}_C{cluster_id}, already exists")
+            else:
+                run = True; print(f"Running M{mouse}D{day}_C{cluster_id}")
+
+            if run:
+                data_path = f"/exports/eddie/scratch/hclark3/COHORT12/xgboost/"
                 stageout_dict = {
-                    data_path: '/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_distance_assay/'
+                    data_path: '/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_single_cell/'
                 }
-                job_name = f"M{mouse}D{day}_xgboost_{assay_mode}_{ordering_mode}"
-                run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_medial_lateral_assay2.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --ordering_mode={ordering_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
-                run_stage_script(stageout_dict, hold_jid=job_name)
-'''
+                job_name = f"M{mouse}D{day}_C{cluster_id}_xgb"
+                run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_medial_lateral_assay_by_single_cell.py --mouse={mouse} --day={day} --cluster_id={cluster_id} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=8, job_name=job_name)
+                #run_stage_script(stageout_dict, hold_jid=job_name)
+
 
 print('This script does not run any jobs, it is just a template for running jobs on Eddie.')

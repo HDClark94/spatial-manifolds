@@ -198,11 +198,14 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         if 'ENT' in brain_region or 'PAR' in brain_region or 'PRE' in brain_region:
             travel_at_max.append(id_travels[np.nanargmax(id_scores)])
 
-    if len(travel_at_max) > 2:
+    if len(travel_at_max) > 3:
         kde = gaussian_kde(travel_at_max, bw_method=0.3) # Adjust bw_method for smoothing
         x = np.linspace(-50, 50, 1000)
         kde_values = kde(x)
         optimal_travel = x[np.argmax(kde_values)]
+        # don't allow optimal_travel to be less than -30
+        if optimal_travel < -30:
+            optimal_travel = 0  
     else:
         optimal_travel = 0
 
