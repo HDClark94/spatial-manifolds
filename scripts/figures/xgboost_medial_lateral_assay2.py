@@ -141,7 +141,7 @@ pR2s_non_grids = np.zeros((49, len(n_neurons), len(non_grid_population_cluster_i
 for test_population_cluster_ids, pR2s, label in zip([grid_module_population_cluster_ids, grid_non_module_population_cluster_ids, non_grid_population_cluster_ids],
                                               [pR2s_grids_comodular, pR2s_grids_non_comodular, pR2s_non_grids], ['cmGC', 'ncmGC', 'NGS']):
     for j, n in enumerate(n_neurons):
-        print(f'I am going to use only {n} grid cells')
+        print(f'I am going to use only {n} cells')
 
         # loop over cell population cluster ids
         for i, id in enumerate(test_population_cluster_ids):
