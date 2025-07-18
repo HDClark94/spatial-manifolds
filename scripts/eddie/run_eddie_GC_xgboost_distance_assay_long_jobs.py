@@ -154,7 +154,6 @@ def run_script(script_file_path):
 mouse_days = {20: [14,16,18,19,20,26],
               21: [15,17,18,19],
 }
-
 #mouse_days = {25: [24]} # remove once this is working 
 #mouse_days = {29: [25]} # remove once this is working 
 
