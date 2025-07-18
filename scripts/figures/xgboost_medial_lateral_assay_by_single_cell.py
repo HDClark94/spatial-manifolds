@@ -252,9 +252,9 @@ for trained_on in ['GC', 'NGS']:
             print(f'When trained on {trained_on} and ordered by {ordering}, while testing on cluster {cluster_id}, using {n} neurons + position, pR2_cv = {np.nanmean(pR2_cv)}')
 
 
-# save results in pkl
-xgboost_result_path = f'{source_path}xgboost/M{mouse}_D{day}_C{cluster_id}.pkl'
-xgboost_results.to_pickle(xgboost_result_path)
+# save results in csv
+xgboost_result_path = f'{source_path}xgboost/M{mouse}_D{day}_C{cluster_id}.csv'
+xgboost_results.to_csv(xgboost_result_path)
 
 
 time_end = time.time()
