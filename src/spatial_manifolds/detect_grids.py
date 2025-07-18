@@ -122,7 +122,7 @@ def cell_classification_anatomy(mouse, day, source_path=None):
         cell['SC_z'] = SC_z
         cell['probe_x'] = probe_x
         cell['probe_y'] = probe_y
-
+        
         if 'ENT' in brain_region:
             MEC_cells = pd.concat([MEC_cells, cell], ignore_index=True)
         elif 'PAR' in brain_region:
@@ -194,7 +194,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         id_scores = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == id].spatial_information)
         id_travels = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == id].travel)
 
-        brain_region = clusters_VR.brain_region[index]
+        brain_region = clusters_VR.brain_region[id]
         if 'ENT' in brain_region or 'PAR' in brain_region or 'PRE' in brain_region:
             travel_at_max.append(id_travels[np.nanargmax(id_scores)])
 
@@ -212,7 +212,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         print(f'using travel lag of 0 cm')
         optimal_travel = 0
     
-    
+
     # now loop through the clusters and classify them
     for index in cluster_ids_values:
         brain_region = clusters_VR.brain_region[index]
