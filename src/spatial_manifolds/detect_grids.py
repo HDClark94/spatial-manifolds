@@ -187,24 +187,31 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
     speed_cells = pd.DataFrame(columns=shifted_grid_scores_of1.columns)
     cells = pd.DataFrame(columns=shifted_grid_scores_of1.columns)
 
-    # estimate optimal travel using spatial information of all the cells
+    # estimate optimal travel using spatial information of all retrohippocampal cells
     travel = np.arange(-50, 50, 2)
     travel_at_max = []
     for id in cluster_ids_values:
         id_scores = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == id].spatial_information)
         id_travels = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == id].travel)
-        travel_at_max.append(id_travels[np.nanargmax(id_scores)])
 
-    kde = gaussian_kde(travel_at_max, bw_method=0.3) # Adjust bw_method for smoothing
-    x = np.linspace(-50, 50, 1000)
-    kde_values = kde(x)
-    optimal_travel = x[np.argmax(kde_values)]
+        brain_region = clusters_VR.brain_region[index]
+        if 'ENT' in brain_region or 'PAR' in brain_region or 'PRE' in brain_region:
+            travel_at_max.append(id_travels[np.nanargmax(id_scores)])
+
+    if len(travel_at_max) > 2:
+        kde = gaussian_kde(travel_at_max, bw_method=0.3) # Adjust bw_method for smoothing
+        x = np.linspace(-50, 50, 1000)
+        kde_values = kde(x)
+        optimal_travel = x[np.argmax(kde_values)]
+    else:
+        optimal_travel = 0
 
     if use_optimal_travel:
         print(f'optimal travel lag is {optimal_travel} cm')
     else:
         print(f'using travel lag of 0 cm')
         optimal_travel = 0
+    
     
     # now loop through the clusters and classify them
     for index in cluster_ids_values:
