@@ -150,15 +150,11 @@ def run_script(script_file_path):
 
 #=================================================================================================================
 #=================================================================================================================
-mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
-              21: [15,16,17,18,19,20,21,22,23,24,25,26],
-              25: [16,17,18,19,20,21,22,23,24,25],
-              26: [11,12,13,14,15,16,17,18,19],
-              27: [16,17,18,19,20,21,22,23,24,26],
-              28: [16,17,18,19,20,21,22,23,25],
-              29: [16,17,18,19,20,21,22,23,25],
-            }
        
+mouse_days = {20: [14,16,18,19,20,26],
+              21: [15,17,18,19],
+}
+
 #mouse_days = {25: [24]} # remove once this is working 
 #mouse_days = {29: [25]} # remove once this is working 
 
@@ -171,5 +167,5 @@ for assay_mode in ["GC", "NGS"]:
                     data_path: '/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_distance_assay/'
                 }
                 job_name = f"M{mouse}D{day}_xgboost_{assay_mode}_{ordering_mode}"
-                run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_medial_lateral_assay2.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --ordering_mode={ordering_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
+                run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_medial_lateral_assay2.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --ordering_mode={ordering_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, h_rt="167:59:59", job_name=job_name)
                 run_stage_script(stageout_dict, hold_jid=job_name)
