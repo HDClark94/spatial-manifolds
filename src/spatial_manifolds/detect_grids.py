@@ -793,7 +793,8 @@ def plot_individual_rate_maps_with_avg_based_on_task_anchoring(mouse, day, clust
     S = spectrograms.mean(0)
     max_peaks = np.argmax(S, axis=0)
     labels = np.isin(max_peaks, [12, 28, 44, 60, 76]).astype(int) # these are the peaks that correspond to the task anchoring
-    
+    labels = np.isin(max_peaks, [28, 44, 60, 76]).astype(int) # these are the peaks that correspond to the task anchoring
+
     # translate the labels back to trial_numbers to use in the avging of the rate map
 
     for id in cluster_ids:

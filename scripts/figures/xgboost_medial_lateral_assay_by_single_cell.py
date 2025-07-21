@@ -38,9 +38,9 @@ use_parser = True
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
-mouse = 25
-day = 24
-cluster_id = 135 # cluster id of the reference cell
+mouse = 20
+day = 23
+cluster_id = 94 # cluster id of the reference cell
 
 if use_parser:
     parser = ArgumentParser()
@@ -110,7 +110,13 @@ if np.any(np.isnan(trial_number_in_time)):
 
 
 # create the reference cell population cluster ids
-grid_module_population_cluster_ids = np.array(cluster_ids_by_group[0].copy())
+if len(g_m_cluster_ids) > 0:
+    # if there are grid modules, use the first one as the reference cell population
+    grid_module_population_cluster_ids = np.array(g_m_cluster_ids[0].copy())
+else:
+    # if there are no grid modules, there is no grid cell population from which to make reference to co modular grid cells
+    grid_module_population_cluster_ids = np.array([])
+
 grid_non_module_population_cluster_ids = np.setdiff1d(gcs.cluster_id.values, grid_module_population_cluster_ids).astype(int)
 non_grid_population_cluster_ids = ngs.cluster_id.values.astype(int).astype(int)
 
@@ -130,7 +136,9 @@ xgboost_results = pd.DataFrame(columns=['mouse',
                                          'pR2_cv', 
                                          'trial_type', 
                                          'trial_context', 
-                                         'trial_performance'])
+                                         'trial_performance',
+                                         'n_filters',
+                                         'history_length'])
  
 # loop over the training conditions
 for trained_on in ['GC', 'NGS']:
@@ -142,7 +150,7 @@ for trained_on in ['GC', 'NGS']:
         elif trained_on == 'NGS':
             cov_cell_population_cluster_ids = non_grid_population_cluster_ids
 
-        n_neurons = np.array([0,1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,30,40,50,60,70,80,90,100,150,200,250,300,350,400,450,500,600,700,800,900,1000])
+        n_neurons = np.array([0,1,4,7,10,15,20,25,30,40,50,75,100,150,200,300,400,500,600,700,800,900,1000])
         n_neurons = n_neurons[n_neurons <= len(cov_cell_population_cluster_ids)] # remove the conditions where the number of neurons is greater than the number of covariate cells
         
         # assign tested_on based on the trained_on and cluster_id
@@ -223,7 +231,7 @@ for trained_on in ['GC', 'NGS']:
                         df = pd.DataFrame()
                         df['mouse'] = [mouse]
                         df['day'] = [day]
-                        df['order_by'] = [ordering]
+                        df['ordering'] = [ordering]
                         df['trained_on'] = [trained_on]
                         df['tested_on'] = [tested_on]
                         df['n_neurons'] = [n]
@@ -232,13 +240,15 @@ for trained_on in ['GC', 'NGS']:
                         df['trial_context'] = [context]
                         df['trial_type'] = [type]
                         df['trial_performance'] = [performance]
+                        df['n_filters'] = [nfilters]
+                        df['history_length'] = [history_length]
                         xgboost_results = pd.concat([xgboost_results, df], ignore_index=True)
 
             # save the results for the session wide condition'
             df = pd.DataFrame()
             df['mouse'] = [mouse]
             df['day'] = [day]
-            df['order_by'] = [ordering]
+            df['ordering'] = [ordering]
             df['trained_on'] = [trained_on]
             df['tested_on'] = [tested_on]
             df['n_neurons'] = [n]
@@ -247,6 +257,8 @@ for trained_on in ['GC', 'NGS']:
             df['trial_context'] = ['session']
             df['trial_type'] = ['session']
             df['trial_performance'] = ['session']
+            df['n_filters'] = [nfilters]
+            df['history_length'] = [history_length]
             xgboost_results = pd.concat([xgboost_results, df], ignore_index=True)
 
             print(f'When trained on {trained_on} and ordered by {ordering}, while testing on cluster {cluster_id}, using {n} neurons + position, pR2_cv = {np.nanmean(pR2_cv)}')
