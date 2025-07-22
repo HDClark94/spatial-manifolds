@@ -38,9 +38,9 @@ use_parser = True
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
-mouse = 20
-day = 23
-cluster_id = 94 # cluster id of the reference cell
+mouse = 25
+day = 16
+cluster_id = 18 # cluster id of the reference cell
 
 if use_parser:
     parser = ArgumentParser()
@@ -150,7 +150,7 @@ for trained_on in ['GC', 'NGS']:
         elif trained_on == 'NGS':
             cov_cell_population_cluster_ids = non_grid_population_cluster_ids
 
-        n_neurons = np.array([0,1,4,7,10,15,20,25,30,40,50,75,100,150,200,300,400,500,600,700,800,900,1000])
+        n_neurons = np.array([0,1,2,3,4,5,6,7,8,9,10,12,14,15,16,18,20,25,30,40,50,75,100])
         n_neurons = n_neurons[n_neurons <= len(cov_cell_population_cluster_ids)] # remove the conditions where the number of neurons is greater than the number of covariate cells
         
         # assign tested_on based on the trained_on and cluster_id
