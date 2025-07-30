@@ -89,7 +89,11 @@ def cell_classification_anatomy(mouse, day, source_path=None):
     session = 'OF1'
     of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
+    theta_path = of1_folder + "tuning_scores/theta_index.parquet"
+
     spatial_information_score_of1 = pd.read_parquet(spatial_path)
+    theta_index_of1 = pd.read_parquet(theta_path)
+
     cluster_ids_values = spatial_information_score_of1.query('travel == 0').cluster_id
 
     MEC_cells = pd.DataFrame(columns=spatial_information_score_of1.columns)
@@ -111,6 +115,7 @@ def cell_classification_anatomy(mouse, day, source_path=None):
         SC_z = clusters_VR.coord_SCs_z[index]
         probe_x = clusters_VR.coord_probe_x[index]
         probe_y = clusters_VR.coord_probe_y[index]
+        theta_index = theta_index_of1[theta_index_of1.cluster_id==index]['theta_index'].iloc[0]
 
         cell = cluster_spatial_information_of1[(spatial_information_score_of1.travel == optimal_lag)]
         cell['mouse'] = mouse
@@ -122,6 +127,7 @@ def cell_classification_anatomy(mouse, day, source_path=None):
         cell['SC_z'] = SC_z
         cell['probe_x'] = probe_x
         cell['probe_y'] = probe_y
+        cell['theta_index'] = theta_index
         
         if 'ENT' in brain_region:
             MEC_cells = pd.concat([MEC_cells, cell], ignore_index=True)
@@ -175,10 +181,12 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
     speed_path = of1_folder + "tuning_scores/shifted_speed_correlation.parquet"
+    theta_path = of1_folder + "tuning_scores/theta_index.parquet"
 
     shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
     spatial_information_score_of1 = pd.read_parquet(spatial_path)
     shifted_speed_score_of1 = pd.read_parquet(speed_path)
+    theta_index_of1 = pd.read_parquet(theta_path)
 
     shifted_speed_score_of1 = shifted_speed_score_of1.query('travel == 0')
     cluster_ids_values = shifted_grid_scores_of1.query('travel == 0').cluster_id
@@ -227,6 +235,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         SC_z = clusters_VR.coord_SCs_z[index]
         probe_x = clusters_VR.coord_probe_x[index]
         probe_y = clusters_VR.coord_probe_y[index]
+        theta_index = theta_index_of1[theta_index_of1.cluster_id==index]['theta_index'].iloc[0]
 
         if brain_region not in disqualifying_brain_areas_for_grid_cells:
             cluster_spatial_information_of1 = spatial_information_score_of1[spatial_information_score_of1.cluster_id==index]
@@ -261,6 +270,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
             cell['SC_z'] = SC_z
             cell['probe_x'] = probe_x
             cell['probe_y'] = probe_y
+            cell['theta_index'] = theta_index
 
             if (max_grid_score_of1 > percentile99_grid_score_of1) and (spatial_info > percentile99_spatial_information_of1):
                 grid_cells = pd.concat([grid_cells, cell], ignore_index=True)

@@ -26,7 +26,7 @@ source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
 mouse = 25
-day = 16
+day = 25
 
 if use_parser:
     parser = ArgumentParser()
@@ -56,7 +56,9 @@ xgboost_results = pd.DataFrame(columns=['mouse',
                              'trained_on', 
                              'tested_on', 
                              'n_neurons',
-                             'pR2_cv', 
+                             'pR2_cv',
+                             'cluster_id_theta_index',
+                             'cluster_id_cov_theta_index',
                              'firing_mode',
                              'n_filters',
                              'history_length',
@@ -184,7 +186,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
 
                 # fit the model
                 Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose = 0, continuous_folds = True)
-                print(f'Firing mode = whole session, n_neurons {n}, pR2: {np.nanmean(pR2_cv)}')
+                print(f'Firing mode = whole session, n_neurons {n}, pR2: {np.nanmean(pR2_cv)} using position in covariate history: {pos_in_covariate}')
                 
                 df = pd.DataFrame({
                     'mouse': mouse,
@@ -195,6 +197,8 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                     'tested_on': tested_on,
                     'n_neurons': n,
                     'pR2_cv': np.nanmean(pR2_cv),
+                    'cluster_id_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == test_cluster_id]['theta_index'].iloc[0],
+                    'cluster_id_cov_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == cov_cluster_id]['theta_index'].iloc[0],
                     'position_in_covariate': pos_in_covariate,
                     'n_filters': nfilters,
                     'history_length': history_length,
@@ -225,6 +229,8 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                         'tested_on': tested_on,
                         'n_neurons': n,
                         'pR2_cv': pR2_condition_cv,
+                        'cluster_id_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == test_cluster_id]['theta_index'].iloc[0],
+                        'cluster_id_cov_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == cov_cluster_id]['theta_index'].iloc[0],
                         'position_in_covariate': pos_in_covariate,
                         'n_filters': nfilters,
                         'history_length': history_length,
