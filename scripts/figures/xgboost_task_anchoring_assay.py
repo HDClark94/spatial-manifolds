@@ -14,7 +14,7 @@ from spatial_manifolds.predictive_grid import compute_travel_projected, wrap_lis
 from spatial_manifolds.behaviour_plots import *
 from spatial_manifolds.detect_grids import *
 from argparse import ArgumentParser
-import time
+import time 
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -167,13 +167,17 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
             cov_tcs_time = {id: tcs_time[id] for id in [cov_cluster_id] if id in tcs_time}
             all_x = np.vstack(list(cov_tcs_time.values())).T
             
-            for n in [0,1]:
+            for n, pos_in_covariate in zip([0,1,1], [True, False, True]):
                 if n > 0:
                     x = all_x[:, :n]
-                    # add position to the covariate history as well
-                    x = np.column_stack((pos_in_time, x))
-                else:
+                    if pos_in_covariate:
+                        # add position to the covariate history as well
+                        x = np.column_stack((pos_in_time, x))
+                elif pos_in_covariate: # if we are not using any neurons, we need to use position
                     x = pos_in_time.reshape(-1, 1)
+                else:
+                    print('Skipping as no neurons and not using position in the covariate history')
+                    print('How are we going to train the model?')
 
                 # get the target variable
                 y = np.array(tcs_time[test_cluster_id])
@@ -191,6 +195,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                     'tested_on': tested_on,
                     'n_neurons': n,
                     'pR2_cv': np.nanmean(pR2_cv),
+                    'position_in_covariate': pos_in_covariate,
                     'n_filters': nfilters,
                     'history_length': history_length,
                     'firing_mode': 'session',
@@ -204,8 +209,11 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                     trials = trials[trial_labels == label]['number'].values
                     mask = np.isin(trial_number_in_time, trials)
                     # use that mask to calcalte the pr2
-                    
-                    pR2_condition_cv = poisson_pseudoR2(y[mask], Y_hat[mask], ynull=np.nanmean(y[mask]))
+                    if np.sum(mask) == 0:
+                        pR2_condition_cv = np.nan
+                    else:                
+                        pR2_condition_cv = poisson_pseudoR2(y[mask], Y_hat[mask], ynull=np.nanmean(y[mask]))
+
                     print(f'Firing mode {firing_mode}, n_neurons {n}, pR2: {pR2_condition_cv}')
                     
                     df = pd.DataFrame({
@@ -217,6 +225,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                         'tested_on': tested_on,
                         'n_neurons': n,
                         'pR2_cv': pR2_condition_cv,
+                        'position_in_covariate': pos_in_covariate,
                         'n_filters': nfilters,
                         'history_length': history_length,
                         'firing_mode': firing_mode,
