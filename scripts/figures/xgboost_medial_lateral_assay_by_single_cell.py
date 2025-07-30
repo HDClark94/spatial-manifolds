@@ -223,7 +223,7 @@ for trained_on in ['GC', 'NGS']:
                         if len(trial_numbers) != 0:
                             # get the indices of the trials in the tcs_time
                             trial_mask = np.isin(trial_number_in_time, trial_numbers)
-                            pR2_condition_cv = poisson_pseudoR2(y[trial_mask], Y_hat[trial_mask], ynull=np.nanmean(y))
+                            pR2_condition_cv = poisson_pseudoR2(y[trial_mask], Y_hat[trial_mask], ynull=np.nanmean(y[trial_mask]))
                         else:
                             pR2_condition_cv = np.nan
                         

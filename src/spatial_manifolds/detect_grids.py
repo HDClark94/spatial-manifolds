@@ -162,7 +162,9 @@ def cell_classification_anatomy(mouse, day, source_path=None):
         
 
 def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=None, 
-                            disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells, use_optimal_travel=True):
+                            disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells, 
+                            disqualifying_brain_areas_for_spatial_cells=disqualifying_brain_areas_for_grid_cells+['VIS'], 
+                            use_optimal_travel=True):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
@@ -203,6 +205,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         x = np.linspace(-50, 50, 1000)
         kde_values = kde(x)
         optimal_travel = x[np.argmax(kde_values)]
+        print(f'optimal travel lag is {optimal_travel} cm based on kde of travel at max spatial information')
         # don't allow optimal_travel to be less than -30
         if optimal_travel < -30:
             optimal_travel = 0  
@@ -261,7 +264,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
 
             if (max_grid_score_of1 > percentile99_grid_score_of1) and (spatial_info > percentile99_spatial_information_of1):
                 grid_cells = pd.concat([grid_cells, cell], ignore_index=True)
-            elif (spatial_info > percentile99_spatial_information_of1) and (not 'VIS' in brain_region):
+            elif (spatial_info > percentile99_spatial_information_of1) and (brain_region not in disqualifying_brain_areas_for_spatial_cells):
                 non_grid_cells = pd.concat([non_grid_cells, cell], ignore_index=True)
             elif (speed_correlation > percentile99_speed_information_of1_pos) or (speed_correlation < percentile99_speed_information_of1_neg):
                 speed_cells = pd.concat([speed_cells, cell], ignore_index=True)
@@ -380,7 +383,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     plt.ylim(0,60)
     plt.title(f'HDBSCAN M{mouse}D{day}')
     plt.tight_layout()
-    plt.show()
+    plt.close()
 
     if np.unique(module_labels).size == 1 and np.unique(module_labels)[0] == -1:
         module_labels[:] = 0  # Assign all points to a single cluster if no clusters were found
@@ -450,13 +453,15 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
                 #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}.pdf')
                 plt.show()
 
-            # now check if the peaks are within 20cm of the median peak
+            # now check if the peaks are within 30cm of the median peak
             # also check if the rate is really low and should be considered
             for peak, cluster_id in zip(peaks, matrix_cluster_ids):
                 if not np.abs(peak-median_peak)<(tolerance): # 30cm tolerance
                     module_ids.remove(cluster_id)
+                    print(f'removing cluster {cluster_id} from module {mi} because peak {peak} is not within tolerance of median peak {median_peak}')
                 elif nap.TsGroup([clusters_VR[cluster_id]]).rates[0] < 1:
                     module_ids.remove(cluster_id)
+                    print(f'removing cluster {cluster_id} from module {mi} because rate is too low (below 1 Hz)')
 
             grid_module_cluster_ids[grid_module_ids.index(mi)] = module_ids
 
@@ -552,9 +557,12 @@ def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, m
     plt.close()    
 
 
-def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None):
+def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
+    if bs_t is None:
+        bs_t = time_bs
+
     vr_folder = f'{source_path}M{mouse}/D{day:02}/VR/'
     spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_srt-kilosort4_clusters.npz"
     beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_beh.nwb"
@@ -581,14 +589,14 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
     
     tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
     last_ephys_bin = int(np.nonzero(tc)[0][-1] + (tl/bs) - np.nonzero(tc)[0][-1]%(tl/bs))
-    last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
+    last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=bs_t, time_units = 'ms').index[-1]
     #print(f'last_ephys_bin {last_ephys_bin}')
     #print(f'last_ephys_time_bin {last_ephys_time_bin}')
 
     # time binned variables for later
     ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units = 's')
-    speed_in_time = beh['S'].bin_average(bin_size=time_bs, time_units = 'ms', ep=ep)
-    dt_in_time = beh['travel'].bin_average(bin_size=time_bs, time_units = 'ms', ep=ep)-((tns[0]-1)*tl)
+    speed_in_time = beh['S'].bin_average(bin_size=bs_t, time_units = 'ms', ep=ep)
+    dt_in_time = beh['travel'].bin_average(bin_size=bs_t, time_units = 'ms', ep=ep)-((tns[0]-1)*tl)
     pos_in_time = dt_in_time%tl
     trial_number_in_time = (dt_in_time//tl)+tns[0]
 
@@ -610,7 +618,7 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
         tc = tc[:last_ephys_bin] # only want bins with ephys data in it
         tcs[cell] = tc
         
-        tc_time = clusters[cell].count(bin_size=time_bs, time_units = 'ms', ep=ep)
+        tc_time = clusters[cell].count(bin_size=bs_t, time_units = 'ms', ep=ep)
         tc_time = np.array(tc_time)
         tc_time = np.nan_to_num(tc_time).astype(np.float64)
         if apply_guassian_filter:
@@ -640,6 +648,58 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
     beh_trials = beh_trials[:int(last_ephys_bin/(tl/bs))]
 
     return tcs, tcs_time, autocorrs, last_ephys_bin, beh, clusters
+
+
+def get_time_binned_variables(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    if bs_t is None:
+        bs_t = time_bs
+
+    vr_folder = f'{source_path}M{mouse}/D{day:02}/VR/'
+    spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_srt-kilosort4_clusters.npz"
+    beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_beh.nwb"
+    beh = nap.load_file(beh_path)
+    clusters = nap.load_file(spikes_path)
+    #print(f'there are this many clusters before curation {len(clusters)}')
+    clusters = curate_clusters(clusters)
+
+    tns = beh['trial_number']
+    dt = beh['travel']-((tns[0]-1)*tl)
+    n_bins = int(int(((np.ceil(np.nanmax(dt))//tl)+1)*tl)/bs)
+    max_bound = int(((np.ceil(np.nanmax(dt))//tl)+1)*tl)
+    min_bound = 0
+    dt_bins = np.arange(0,max_bound,bs)
+
+    # trick to clip the tc to around the end of the ephys recording
+    # take the cell with the highest firing rate, and find the last bin with a spike
+    # then work backwards and clip at the end of the last appropriate trials
+    tc = nap.compute_1d_tuning_curves(nap.TsGroup([clusters[clusters.index[np.nanargmax(clusters.firing_rate)]]]), 
+                                        dt, 
+                                        nb_bins=n_bins, 
+                                        minmax=[min_bound, max_bound],
+                                        ep=beh["moving"])[0]
+    
+    tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
+    last_ephys_bin = int(np.nonzero(tc)[0][-1] + (tl/bs) - np.nonzero(tc)[0][-1]%(tl/bs))
+    last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=bs_t, time_units = 'ms').index[-1]
+    #print(f'last_ephys_bin {last_ephys_bin}')
+    #print(f'last_ephys_time_bin {last_ephys_time_bin}')
+
+    # time binned variables for later
+    ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units = 's')
+    speed_in_time = beh['S'].bin_average(bin_size=bs_t, time_units = 'ms', ep=ep)
+    dt_in_time = beh['travel'].bin_average(bin_size=bs_t, time_units = 'ms', ep=ep)-((tns[0]-1)*tl)
+    pos_in_time = dt_in_time%tl
+    trial_number_in_time = (dt_in_time//tl)+tns[0]
+
+    trial_type_in_time = []
+    for tn in trial_number_in_time:
+        trial = beh['trials'][beh['trials']['number'] == tn]
+        trial_type_in_time.append(trial['type'].values[0])
+    trial_type_in_time = np.array(trial_type_in_time)
+
+    return speed_in_time, dt_in_time, pos_in_time, trial_number_in_time, trial_type_in_time
 
 
 def get_sorted_trials_and_colors(beh, last_ephys_bin, tl, bs):
@@ -921,12 +981,12 @@ def plot_individual_rate_maps_with_avg(mouse, day, cluster_ids, label='GC', figp
         fig.savefig(f'{figpath}/M{mouse}D{day}{label}{id}_sorted_with_avg.pdf', dpi=300, bbox_inches='tight')
         plt.close()
 
-def plot_stops_mouse_day(mouse, day, figpath): 
+def plot_stops_mouse_day(mouse, day, figpath, return_fig=True): 
     _, _, _ , last_ephys_bin, beh,_ = compute_vr_tcs(mouse, day)
 
-    plot_stops(beh, tl=tl, sort=False, return_fig=False, last_ephys_bin=last_ephys_bin,
+    plot_stops(beh, tl=tl, sort=False, return_fig=return_fig, last_ephys_bin=last_ephys_bin,
            savepath=f'{figpath}/M{mouse}D{day}_stops')
-    plot_stops(beh, tl=200, sort=True, return_fig=False, last_ephys_bin=last_ephys_bin,
+    plot_stops(beh, tl=200, sort=True, return_fig=return_fig, last_ephys_bin=last_ephys_bin,
            savepath=f'{figpath}/M{mouse}D{day}_stops_sorted')
     
 

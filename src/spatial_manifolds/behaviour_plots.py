@@ -64,7 +64,7 @@ def remove_all_from_ax(ax):
     return ax
 
 
-def plot_NP2_probe(ax, sorting_analyzer_path=None):
+def plot_NP2_probe(ax, sorting_analyzer_path=None, contacts_alpha=0.0):
     if sorting_analyzer_path is None:
         project_path = "/Volumes/cmvm/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Chris/Cohort12/derivatives/"
         # get any sorting analyzer from this project folder
@@ -76,7 +76,7 @@ def plot_NP2_probe(ax, sorting_analyzer_path=None):
     plot_probegroup(probe_group, ax=ax, 
                     probe_shape_kwargs={"alpha":0.5,
                                         "color":"lightgrey"}, 
-                    contacts_kargs={"alpha":0.0})
+                    contacts_kargs={"alpha":contacts_alpha})
     ax.set_xlim(-200, 1000)
     ax.set_ylim(-300, 3000)
     ax = remove_all_from_ax(ax)
