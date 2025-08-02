@@ -199,6 +199,7 @@ mouse_days = {29: [23,19,20,25],
               26: [15,18,19],
               28: [19,23,25],
             }
+print('')
 
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 for mouse, days in mouse_days.items():
