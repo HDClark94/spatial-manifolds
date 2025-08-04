@@ -233,7 +233,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                         'pR2_cv': pR2_condition_cv,
                         'cluster_id_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == test_cluster_id]['theta_index'].iloc[0],
                         'cluster_id_cov_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == cov_cluster_id]['theta_index'].iloc[0],
-                        'grid_score_cov': all_by_anatomy[all_by_anatomy.cluster_id == test_cluster_id]['grid_score'].iloc[0],
+                        'grid_score_cov': all[all.cluster_id == test_cluster_id]['grid_score'].iloc[0],
                         'position_in_covariate': pos_in_covariate,
                         'n_filters': nfilters,
                         'history_length': history_length,
