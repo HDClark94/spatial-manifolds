@@ -708,6 +708,50 @@ class MLencoding(object):
 
         return Y_hat, pR2_cv
 
+
+    def fit_predefined_sets(self, X, Y, train_indices, test_indices,
+                            verbose=1, get_history_terms = True):
+        """Fits the model on a predefined set of training and test indices.
+        This is useful for fitting the model on a set of training and test indices
+        that are not necessarily cross-validated, e.g. when using a held-out set.
+        Parameters
+        ----------
+        X: float, n_samples x n_features, features of interest
+        Y: float, n_samples x 1, population activity
+        train_indices: list of indices to use for training
+        test_indices: list of indices to use for testing
+        verbose: int, whether to print convergence / loss, default: 1
+        get_history_terms: bool, whether to compute the temporal features.
+                    Note that if spike_history and cov_history are False,
+                    no history will be computed anyways and the flag does nothing.
+        Returns
+        -------
+        Y_hat: float, n_samples x 1, predicted activity on the test set
+        pR2: float, pseudo R^2 score on the test set
+        """
+        if np.ndim(X)==1:
+            X = np.transpose(np.atleast_2d(X))
+        if get_history_terms:
+            if self.tunemodel == 'lstm':
+                X, Y = self.get_all_with_history_keras(X, Y)
+            else:
+                X, Y = self.get_all_with_history(X, Y)
+        # Fit the model on the training set
+        Xr = X[train_indices, :]
+        Yr = Y[train_indices]
+        self.fit(Xr, Yr, get_history_terms = get_history_terms)
+        # Predict on the test set
+        Xt = X[test_indices, :]
+        Yt = Y[test_indices]
+        Yt_hat = self.predict(Xt, get_history_terms = get_history_terms)
+        Yt_hat = np.squeeze(Yt_hat)
+        # Compute the pseudo R^2 score
+        pR2 = self.poisson_pseudoR2(Yt, Yt_hat, np.mean(Yr))
+        if verbose > 0:
+            print( 'pR2: ', pR2)
+        return Yt_hat, pR2
+
+
     # These two methods implement the above scheme. We don't want to be forced to run the ensemble
     # at the same time as we train the other methods on each fold, so we'll save the 1st-stage predictions for later
     # and use separate methods for training a 1st-stage method and the 2nd-stage method. This will make more sense
