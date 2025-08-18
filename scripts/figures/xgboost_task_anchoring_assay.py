@@ -128,8 +128,8 @@ cmGC_cluster_ids = g_m_cluster_ids[0] # grid cells in the first module
 ncmGC_cluster_ids = np.setdiff1d(gcs.cluster_id.values.tolist(), cmGC_cluster_ids)
 ngs_cluster_ids = ngs.cluster_id.values.tolist() # non grid spatial cells
 
-print(f'Processing mouse {mouse}, day {day}')
-print(f'{len(cmGC_cluster_ids)} cmGC, {len(ncmGC_cluster_ids)} ncmGC, {len(ngs_cluster_ids)} NGS')
+print(f'Processing mouse {mouse}, day {day}', flush=True)
+print(f'{len(cmGC_cluster_ids)} cmGC, {len(ncmGC_cluster_ids)} ncmGC, {len(ngs_cluster_ids)} NGS', flush=True)
 
 for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tolist(), ngs.cluster_id.values.tolist()]):
     for i, cov_cluster_id in enumerate(cov_cluster_ids):
@@ -156,7 +156,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                 print(f'Skipping covariate cluster {cov_cluster_id} and test cluster {test_cluster_id} as they are the same')
                 continue
             
-            print(f'Processing trained on {trained_on} and tested on {tested_on}, i={i} covariate cluster {cov_cluster_id}, tested on {test_cluster_id}, j={j}')
+            print(f'Processing trained on {trained_on} and tested on {tested_on}, i={i} covariate cluster {cov_cluster_id}, tested on {test_cluster_id}, j={j}', flush=True)
 
             tc = tcs[test_cluster_id]
             tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
@@ -187,7 +187,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
 
                 # fit the model
                 Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose = 0, continuous_folds = True)
-                print(f'Firing mode = whole session, n_neurons {n}, pR2: {np.nanmean(pR2_cv)} using position in covariate history: {pos_in_covariate}')
+                print(f'Firing mode = whole session, n_neurons {n}, pR2: {np.nanmean(pR2_cv)} using position in covariate history: {pos_in_covariate}', flush=True)
                 
                 df = pd.DataFrame({
                     'mouse': mouse,
@@ -220,7 +220,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                     else:                
                         pR2_condition_cv = poisson_pseudoR2(y[mask], Y_hat[mask], ynull=np.nanmean(y[mask]))
 
-                    print(f'Firing mode {firing_mode}, n_neurons {n}, pR2: {pR2_condition_cv}')
+                    print(f'Firing mode {firing_mode}, n_neurons {n}, pR2: {pR2_condition_cv}', flush=True)
                     
                     df = pd.DataFrame({
                         'mouse': mouse,
@@ -241,10 +241,11 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                         'distance': np.sqrt((x_pos_cov - x_pos_test)**2 + (y_pos_cov - y_pos_test)**2),
                     }, index=[0])
                     xgboost_results = pd.concat([xgboost_results, df], ignore_index=True)
-
+                    
+                    
 # save results in csv
 xgboost_result_path = f'{data_path}M{mouse}_D{day}.csv'
 xgboost_results.to_csv(xgboost_result_path)
 
 time_end = time.time()
-print(f'Time taken: {time_end - time_start} seconds')
+print(f'Time taken: {time_end - time_start} seconds', flush=True)

@@ -95,7 +95,7 @@ def make_run_python_script(python_arg, username, venv=None, cores=None, email=No
         venv = "elrond"
     
     if cores is None:
-        cores = 8
+        cores = 32
 
     if h_rt is None:
         h_rt = "167:59:59"
@@ -198,6 +198,11 @@ mouse_days = {29: [23,19,20,25],
               21: [16,21,25,26],
               26: [15,18,19],
               28: [19,23,25],
+            }
+
+mouse_days = {27: [23,24],
+              21: [16,21],
+              26: [19],
             }
 print('')
 
