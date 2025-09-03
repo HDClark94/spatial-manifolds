@@ -210,12 +210,23 @@ mouse_days = {27: [24],
             }
 print('')
 
+
+# there are all the sessions
+mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
+              21: [15,17,18,19,20,22,23,26],
+              25: [16,17,18,19,20,21,22,23,24,25],
+              26: [11,12,13,14,16,17],
+              27: [16,17,18,19,20,21,22,26],
+              28: [16,17,18,20,21,22],
+              29: [16,17,18,19,20,21,22,23,25],
+            }
+
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 for mouse, days in mouse_days.items():
     for day in days:
         data_path = f"/exports/eddie/scratch/hclark3/COHORT12/xgboost_task_anchoring/"
         job_name = f"M{mouse}D{day}_xgb"
-        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_task_anchoring_assay.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=48, job_name=job_name)
+        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_task_anchoring_assay.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
         #run_stage_script(stageout_dict, hold_jid=job_name)
 
 print('This script does not run any jobs, it is just a template for running jobs on Eddie.')
