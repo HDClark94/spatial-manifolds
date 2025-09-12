@@ -247,5 +247,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
 xgboost_result_path = f'{data_path}M{mouse}_D{day}.csv'
 xgboost_results.to_csv(xgboost_result_path)
 
+print(f'Saved xgboost results to {xgboost_result_path}', flush=True)
+
 time_end = time.time()
 print(f'Time taken: {time_end - time_start} seconds', flush=True)
