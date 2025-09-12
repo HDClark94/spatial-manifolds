@@ -22,7 +22,7 @@ time_start = time.time()
 
 use_parser = True
 
-source_path = '/Users/harryclark/Downloads/COHORT12/'
+source_path = '/Users/harryclark/Downloads/COHORT12_OLD/'
 data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
 mouse = 25
@@ -60,9 +60,15 @@ xgboost_results = pd.DataFrame(columns=['mouse',
                              'cluster_id_theta_index',
                              'cluster_id_cov_theta_index',
                              'grid_score_cov',
+                             'spatial_info_cov',
+                             'firing_rate_VR_cov',
                              'firing_mode',
                              'n_filters',
                              'history_length',
+                             'X_pos_cov',
+                             'Y_pos_cov',
+                             'X_pos_test',
+                             'Y_pos_test',
                              'distance'])
 
 gcs, ngs, ns, sc, ngs_ns, all = cell_classification_of1(mouse, day, percentile_threshold=95, source_path=source_path) # subset
@@ -200,11 +206,17 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                     'pR2_cv': np.nanmean(pR2_cv),
                     'cluster_id_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == test_cluster_id]['theta_index'].iloc[0],
                     'cluster_id_cov_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == cov_cluster_id]['theta_index'].iloc[0],
-                    'grid_score_cov': all[all.cluster_id == test_cluster_id]['grid_score'].iloc[0],
+                    'grid_score_cov': all[all.cluster_id == test_cluster_id]['session_travel_lag_grid_score'].iloc[0],
+                    'spatial_info_cov': all[all.cluster_id == test_cluster_id]['spatial_information_score'].iloc[0],
+                    'firing_rate_VR_cov': all[all.cluster_id == cov_cluster_id]['firing_rate_VR'].iloc[0],
                     'position_in_covariate': pos_in_covariate,
                     'n_filters': nfilters,
                     'history_length': history_length,
                     'firing_mode': 'session',
+                    'X_pos_cov': x_pos_cov,
+                    'Y_pos_cov': y_pos_cov,
+                    'X_pos_test': x_pos_test,
+                    'Y_pos_test': y_pos_test,
                     'distance': np.sqrt((x_pos_cov - x_pos_test)**2 + (y_pos_cov - y_pos_test)**2),
                 }, index=[0])
                 xgboost_results = pd.concat([xgboost_results, df], ignore_index=True)
@@ -233,11 +245,59 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                         'pR2_cv': pR2_condition_cv,
                         'cluster_id_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == test_cluster_id]['theta_index'].iloc[0],
                         'cluster_id_cov_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == cov_cluster_id]['theta_index'].iloc[0],
-                        'grid_score_cov': all[all.cluster_id == test_cluster_id]['grid_score'].iloc[0],
+                        'grid_score_cov': all[all.cluster_id == test_cluster_id]['session_travel_lag_grid_score'].iloc[0],
+                        'spatial_info_cov': all[all.cluster_id == test_cluster_id]['spatial_information_score'].iloc[0],
+                        'firing_rate_VR_cov': all[all.cluster_id == cov_cluster_id]['firing_rate_VR'].iloc[0],
                         'position_in_covariate': pos_in_covariate,
                         'n_filters': nfilters,
                         'history_length': history_length,
                         'firing_mode': firing_mode,
+                        'X_pos_cov': x_pos_cov,
+                        'Y_pos_cov': y_pos_cov,
+                        'X_pos_test': x_pos_test,
+                        'Y_pos_test': y_pos_test,
+                        'distance': np.sqrt((x_pos_cov - x_pos_test)**2 + (y_pos_cov - y_pos_test)**2),
+                    }, index=[0])
+                    xgboost_results = pd.concat([xgboost_results, df], ignore_index=True)
+
+                # now we want to train on the TA trials and test on the TI trials and vice versa
+                for train_label, test_label, firing_mode in zip([1, 0], [0, 1], ['trainTA_testTI', 'trainTI_testTA']):
+                    train_trials = beh['trials'][:len(trial_labels)]
+                    train_trials = train_trials[trial_labels == train_label]['number'].values
+                    test_trials = beh['trials'][:len(trial_labels)]
+                    test_trials = test_trials[trial_labels == test_label]['number'].values
+                    train_mask = np.isin(trial_number_in_time, train_trials)
+                    test_mask = np.isin(trial_number_in_time, test_trials)
+                    
+                    if np.sum(train_mask) == 0 or np.sum(test_mask) == 0:
+                        pR2_condition_cv = np.nan
+                    else:                
+                        # fit the model on the training trials
+                        Yt_hat, pR2_condition_cv = xgb_history.fit_predefined_sets(x, y, train_mask, test_mask)
+                        print(f'Firing mode {firing_mode}, n_neurons {n}, pR2: {pR2_condition_cv}', flush=True)
+
+                    df = pd.DataFrame({
+                        'mouse': mouse,
+                        'day': day,
+                        'cluster_id': test_cluster_id,
+                        'cluster_id_cov': cov_cluster_id,
+                        'trained_on': trained_on,
+                        'tested_on': tested_on,
+                        'n_neurons': n,
+                        'pR2_cv': pR2_condition_cv,
+                        'cluster_id_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == test_cluster_id]['theta_index'].iloc[0],
+                        'cluster_id_cov_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == cov_cluster_id]['theta_index'].iloc[0],
+                        'grid_score_cov': all[all.cluster_id == test_cluster_id]['session_travel_lag_grid_score'].iloc[0],
+                        'spatial_info_cov': all[all.cluster_id == test_cluster_id]['spatial_information_score'].iloc[0],
+                        'firing_rate_VR_cov': all[all.cluster_id == cov_cluster_id]['firing_rate_VR'].iloc[0],
+                        'position_in_covariate': pos_in_covariate,
+                        'n_filters': nfilters,
+                        'history_length': history_length,
+                        'firing_mode': firing_mode,
+                        'X_pos_cov': x_pos_cov,
+                        'Y_pos_cov': y_pos_cov,
+                        'X_pos_test': x_pos_test,
+                        'Y_pos_test': y_pos_test,
                         'distance': np.sqrt((x_pos_cov - x_pos_test)**2 + (y_pos_cov - y_pos_test)**2),
                     }, index=[0])
                     xgboost_results = pd.concat([xgboost_results, df], ignore_index=True)
