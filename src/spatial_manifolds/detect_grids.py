@@ -1,3 +1,4 @@
+from tabnanny import verbose
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -15,7 +16,9 @@ from scipy.stats import pearsonr
 import matplotlib.cm as cm
 from scipy.signal import find_peaks
 from scipy.signal import correlate
-
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.ticker import MaxNLocator
+  
 from spatial_manifolds.tuning_scores.grid_score import autocorr2d
 from spatial_manifolds.data.curation import curate_clusters
 from scipy.stats import zscore
@@ -26,7 +29,7 @@ from spatial_manifolds.behaviour_plots import trial_cat_priority
 from spatial_manifolds.anaylsis_parameters import *
 import hdbscan
 from sklearn.preprocessing import StandardScaler
-from spatial_manifolds.anaylsis_parameters import tl, bs, time_bs, rm_figsize, disqualifying_brain_areas_for_grid_cells
+from spatial_manifolds.anaylsis_parameters import tl, vr_tl, mcvr_tl, bs, time_bs, rm_figsize, disqualifying_brain_areas_for_grid_cells
  
 
 import matplotlib as mpl
@@ -82,7 +85,7 @@ def cell_classification_vr(mouse, day, percentile_threshold=99, source_path=None
     
     return ramp_cells, ramp_and_speed_cells, non_spatial_cells
 
-def cell_classification_anatomy(mouse, day, source_path=None):
+def cell_classification_anatomy(mouse, day, source_path=None, verbose=True):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
@@ -151,14 +154,15 @@ def cell_classification_anatomy(mouse, day, source_path=None):
             SUB_cells = pd.concat([SUB_cells, cell], ignore_index=True)
         else:
             other_cells = pd.concat([other_cells, cell], ignore_index=True)
-            
-    print(f'there are {len(MEC_cells)} MEC cells')
-    print(f'there are {len(PARA_cells)} PARA cells')
-    print(f'there are {len(PRE_cells)} PRE cells')
-    print(f'there are {len(VIS_cells)} VIS cells')
-    print(f'there are {len(CERE_cells)} CERE cells')
-    print(f'there are {len(other_cells)} other cells')
-    print(f'there are {len(SUB_cells)} SUB cells')
+
+    if verbose:     
+        print(f'there are {len(MEC_cells)} MEC cells')
+        print(f'there are {len(PARA_cells)} PARA cells')
+        print(f'there are {len(PRE_cells)} PRE cells')
+        print(f'there are {len(VIS_cells)} VIS cells')
+        print(f'there are {len(CERE_cells)} CERE cells')
+        print(f'there are {len(other_cells)} other cells')
+        print(f'there are {len(SUB_cells)} SUB cells')
 
     all_cells = pd.concat([MEC_cells, PARA_cells, PRE_cells, SUB_cells, VIS_cells, CERE_cells, other_cells], ignore_index=True)
     print(f'there are {len(all_cells)} all cells')
@@ -170,25 +174,49 @@ def cell_classification_anatomy(mouse, day, source_path=None):
 def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=None, 
                             disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells, 
                             disqualifying_brain_areas_for_spatial_cells=disqualifying_brain_areas_for_grid_cells+['VIS'], 
-                            use_optimal_travel=True):
+                            use_optimal_travel=True, get_extra_info=False, verbose=True):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
+    last_ephys_time_bin = clusters_VR[clusters_VR.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
 
     print(mouse, day)
     session = 'OF1'
     of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
+    shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score_manual_smooth.parquet"
+
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
+    spatial_path = of1_folder + "tuning_scores/shifted_spatial_information_manual_smooth.parquet"
+
     speed_path = of1_folder + "tuning_scores/shifted_speed_correlation.parquet"
     theta_path = of1_folder + "tuning_scores/theta_index.parquet"
+    
+    head_direction_path = of1_folder + "tuning_scores/shifted_hd_information.parquet"
+    
+    clusters_OF1 = nap.load_file(of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz")
+    beh_OF1 = nap.load_file(of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb")
 
-    shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
-    spatial_information_score_of1 = pd.read_parquet(spatial_path)
+    if os.path.exists(shifted_grid_path):
+        shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
+    else:
+        shifted_grid_scores_of1 = pd.read_parquet(of1_folder + "tuning_scores/shifted_grid_score.parquet")
+
+    if os.path.exists(spatial_path):
+        spatial_information_score_of1 = pd.read_parquet(spatial_path)
+    else:
+        spatial_information_score_of1 = pd.read_parquet(of1_folder + "tuning_scores/shifted_spatial_information.parquet")
+
+    if os.path.exists(head_direction_path):
+        head_direction_of1 = pd.read_parquet(head_direction_path)
+    else:
+        head_direction_of1 = pd.read_parquet(of1_folder + "tuning_scores/shifted_hd_mean_vector_length.parquet")
+        head_direction_of1['hd_information'] = head_direction_of1['mean_vector_length'] 
+        
     shifted_speed_score_of1 = pd.read_parquet(speed_path)
     theta_index_of1 = pd.read_parquet(theta_path)
-
-    shifted_speed_score_of1 = shifted_speed_score_of1.query('travel == 0')
+    
+    
     cluster_ids_values = shifted_grid_scores_of1.query('travel == 0').cluster_id
 
     non_grid_cells = pd.DataFrame(columns=shifted_grid_scores_of1.columns)
@@ -244,25 +272,42 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
             cluster_optimal_lag = cluster_spatial_information_of1.travel.values[np.nanargmax(cluster_spatial_information_of1.spatial_information)]
             cluster_optimal_lag_grid_score = cluster_shifted_grid_scores_of1.travel.values[np.nanargmax(cluster_shifted_grid_scores_of1.grid_score)]
 
-            percentile99_grid_score_of1 = np.nanpercentile(cluster_shifted_grid_scores_of1.null_grid_score.iloc[0], percentile_threshold)
-            percentile99_spatial_information_of1 = np.nanpercentile(cluster_spatial_information_of1.null_spatial_information.iloc[0], percentile_threshold)
+            id_scores = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == index].spatial_information).tolist()
+            hd_scores = np.array(head_direction_of1[head_direction_of1.cluster_id == index].hd_information).tolist()
+            speed_scores = np.array(shifted_speed_score_of1[shifted_speed_score_of1.cluster_id == index].speed_correlation).tolist()
+            id_travels = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == index].travel).tolist()
+            
+            grid_shuffle_scores = np.array(cluster_shifted_grid_scores_of1[cluster_shifted_grid_scores_of1.travel == 0].null_grid_score.iloc[0]).tolist()
+            spatial_info_shuffle_scores = np.array(cluster_spatial_information_of1[cluster_spatial_information_of1.travel == 0].null_spatial_information.iloc[0]).tolist()
 
-            percentile99_speed_information_of1_pos = np.nanpercentile(cluster_speed_correlation_of1.null_speed_correlation.iloc[0], percentile_threshold)
-            percentile99_speed_information_of1_neg = np.nanpercentile(cluster_speed_correlation_of1.null_speed_correlation.iloc[0], 100-percentile_threshold)
+            percentile99_grid_score_of1 = np.nanpercentile(grid_shuffle_scores, percentile_threshold)
+            percentile99_spatial_information_of1 = np.nanpercentile(spatial_info_shuffle_scores, percentile_threshold)
+
+            #percentile99_speed_information_of1_pos = np.nanpercentile(cluster_speed_correlation_of1[cluster_speed_correlation_of1.travel == 0].null_speed_correlation.iloc[0], percentile_threshold)
+            #percentile99_speed_information_of1_neg = np.nanpercentile(cluster_speed_correlation_of1[cluster_speed_correlation_of1.travel == 0].null_speed_correlation.iloc[0], 100-percentile_threshold)
 
             max_grid_score_of1 = cluster_shifted_grid_scores_of1[cluster_shifted_grid_scores_of1['travel'] == np.round(optimal_travel)]['grid_score'].iloc[0]
+            zero_lag_grid_score_of1 = cluster_shifted_grid_scores_of1[cluster_shifted_grid_scores_of1['travel'] == 0]['grid_score'].iloc[0]
             spatial_info = cluster_spatial_information_of1[cluster_spatial_information_of1['travel'] == np.round(optimal_travel)]['spatial_information'].iloc[0]
-            spatial_info_no_lag = cluster_spatial_information_of1.spatial_information.iloc[0]
+            spatial_info_no_lag = cluster_spatial_information_of1[cluster_spatial_information_of1['travel'] == 0]['spatial_information'].iloc[0]
 
-            speed_correlation = cluster_speed_correlation_of1.speed_correlation.iloc[0]
+            speed_correlation = cluster_speed_correlation_of1[cluster_speed_correlation_of1['travel'] == 0]['speed_correlation'].iloc[0]
 
-            cell = shifted_grid_scores_of1[shifted_grid_scores_of1.grid_score==max_grid_score_of1]
+            cell = cluster_shifted_grid_scores_of1[cluster_shifted_grid_scores_of1['travel'] == np.round(optimal_travel)]
+
+            if len(cell) == 0:
+                print(f'cell is empty for cluster id {index}')
+                print(f'max_grid_score_of1 is {max_grid_score_of1}')
+
+            cell = cell.reset_index(drop=True) # reset index to avoid issues with concatenation
             cell['mouse'] = mouse
             cell['day'] = day
             cell['brain_region'] = brain_region
             cell['session_travel_lag'] = optimal_travel
             cell['optimal_travel_lag'] = cluster_optimal_lag
             cell['optimal_travel_lag_grid_score'] = cluster_optimal_lag_grid_score
+            cell['session_travel_lag_grid_score'] = max_grid_score_of1 
+            cell['zero_lag_grid_score'] = zero_lag_grid_score_of1
             cell['spatial_information_score'] = spatial_info
             cell['spatial_information_score_no_lag'] = spatial_info_no_lag
             cell['SC_x'] = SC_x
@@ -271,17 +316,58 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
             cell['probe_x'] = probe_x
             cell['probe_y'] = probe_y
             cell['theta_index'] = theta_index
+            cell['firing_rate'] = clusters_VR.firing_rate[index]
 
-            if (max_grid_score_of1 > percentile99_grid_score_of1) and (spatial_info > percentile99_spatial_information_of1):
-                grid_cells = pd.concat([grid_cells, cell], ignore_index=True)
-            elif (spatial_info > percentile99_spatial_information_of1) and (brain_region not in disqualifying_brain_areas_for_spatial_cells):
-                non_grid_cells = pd.concat([non_grid_cells, cell], ignore_index=True)
-            elif (speed_correlation > percentile99_speed_information_of1_pos) or (speed_correlation < percentile99_speed_information_of1_neg):
-                speed_cells = pd.concat([speed_cells, cell], ignore_index=True)
+            cell['firing_rate_OF1'] = len(clusters_OF1[index])/beh_OF1['head_x'].index[-1]
+            cell['firing_rate_VR'] = len(clusters_VR[index])/last_ephys_time_bin
+
+
+            # print a warning if the firing rates are very different, by a factor of 10 at least
+            if (cell['firing_rate_VR'].iloc[0] > 10*cell['firing_rate_OF1'].iloc[0]) or (cell['firing_rate_OF1'].iloc[0] > 10*cell['firing_rate_VR'].iloc[0]):
+                print(f'warning: firing rates are very different for cluster id {index}, VR: {cell["firing_rate_VR"].iloc[0]}, OF1: {cell["firing_rate_OF1"].iloc[0]}')
+                disgard = True
             else:
+                print(f'firing rates are similar for cluster id {index}, VR: {cell["firing_rate_VR"].iloc[0]}, OF1: {cell["firing_rate_OF1"].iloc[0]}')
+                disgard = False
+
+            if get_extra_info:
+                cell['grid_shuffles_scores'] = None
+                cell = cell.astype({'grid_shuffles_scores': 'object'})
+                
+                cell['head_direction_travel_scores'] = None
+                cell = cell.astype({'head_direction_travel_scores': 'object'})
+         
+                cell['spatial_information_shuffles_scores'] = None
+                cell = cell.astype({'spatial_information_shuffles_scores': 'object'})
+
+                cell['speed_travel_scores'] = None
+                cell = cell.astype({'speed_travel_scores': 'object'})
+
+                cell['spatial_information_travel_scores'] = None
+                cell = cell.astype({'spatial_information_travel_scores': 'object'})
+
+                cell['spatial_information_travel'] = None
+                cell = cell.astype({'spatial_information_travel': 'object'})
+
+                cell.at[0, 'grid_shuffles_scores'] = grid_shuffle_scores
+                cell.at[0, 'head_direction_travel_scores'] = hd_scores
+                cell.at[0, 'spatial_information_shuffles_scores'] = spatial_info_shuffle_scores
+                cell.at[0, 'spatial_information_travel_scores'] = id_scores
+                cell.at[0, 'speed_travel_scores'] = speed_scores
+                cell.at[0, 'spatial_information_travel'] = id_travels
+
+            if (max_grid_score_of1 > percentile99_grid_score_of1) and (spatial_info > percentile99_spatial_information_of1) and (not disgard):
+                grid_cells = pd.concat([grid_cells, cell], ignore_index=True)
+            elif (spatial_info > percentile99_spatial_information_of1) and (brain_region not in disqualifying_brain_areas_for_spatial_cells) and (not disgard):
+                non_grid_cells = pd.concat([non_grid_cells, cell], ignore_index=True)
+            #elif (speed_correlation > percentile99_speed_information_of1_pos) or (speed_correlation < percentile99_speed_information_of1_neg):
+            #    speed_cells = pd.concat([speed_cells, cell], ignore_index=True)
+            elif (not disgard):
                 non_spatial_cells = pd.concat([non_spatial_cells, cell], ignore_index=True)
-            cells = pd.concat([cells, cell], ignore_index=True)
-        
+
+            if ((not disgard)):
+                cells = pd.concat([cells, cell], ignore_index=True)
+
     all_cells = cells.copy()
     non_grid_and_non_spatial_cells = pd.concat([non_grid_cells, non_spatial_cells], ignore_index=True)
 
@@ -393,7 +479,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     plt.ylim(0,60)
     plt.title(f'HDBSCAN M{mouse}D{day}')
     plt.tight_layout()
-    plt.close()
+    plt.show()
 
     if np.unique(module_labels).size == 1 and np.unique(module_labels)[0] == -1:
         module_labels[:] = 0  # Assign all points to a single cluster if no clusters were found
@@ -565,17 +651,133 @@ def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, m
     plt.tight_layout()
     plt.savefig(f'{figpath}/M{mouse}D{day}_GC_rate_maps_modules.pdf', dpi=1000)
     plt.close()    
-
-
-def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None):
+ 
+def compute_vr_tcs_using_expected_spikes(mouse, day, apply_zscore=True, apply_guassian_filter=True, 
+                                         source_path=None, bs_t=None, vr_type='VR', expected_spikes=None):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     if bs_t is None:
         bs_t = time_bs
+    if vr_type is 'MCVR':
+        tl = mcvr_tl
+    else:
+        tl = vr_tl
 
-    vr_folder = f'{source_path}M{mouse}/D{day:02}/VR/'
-    spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_srt-kilosort4_clusters.npz"
-    beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_beh.nwb"
+    vr_folder = f'{source_path}M{mouse}/D{day:02}/{vr_type}/'
+    spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_srt-kilosort4_clusters.npz"
+    beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_beh.nwb"
+    beh = nap.load_file(beh_path)
+    clusters = nap.load_file(spikes_path)
+    #print(f'there are this many clusters before curation {len(clusters)}')
+    clusters = curate_clusters(clusters)
+
+    tns = beh['trial_number']
+    dt = beh['travel']-((tns[0]-1)*tl)
+    n_bins = int(int(((np.ceil(np.nanmax(dt))//tl)+1)*tl)/bs)
+    max_bound = int(((np.ceil(np.nanmax(dt))//tl)+1)*tl)
+    min_bound = 0
+    dt_bins = np.arange(0,max_bound,bs)
+
+    # trick to clip the tc to around the end of the ephys recording
+    # take the cell with the highest firing rate, and find the last bin with a spike
+    # then work backwards and clip at the end of the last appropriate trials
+    tc = nap.compute_1d_tuning_curves(nap.TsGroup([clusters[clusters.index[np.nanargmax(clusters.firing_rate)]]]), 
+                                        dt, 
+                                        nb_bins=n_bins, 
+                                        minmax=[min_bound, max_bound],
+                                        ep=beh["moving"])[0]
+    
+    tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
+    last_ephys_bin = int(np.nonzero(tc)[0][-1] + (tl/bs) - np.nonzero(tc)[0][-1]%(tl/bs))
+    last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=bs_t, time_units = 'ms').index[-1]
+    #print(f'last_ephys_bin {last_ephys_bin}')
+    #print(f'last_ephys_time_bin {last_ephys_time_bin}')
+
+    # time binned variables for later
+    ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units = 's')
+    speed_in_time = beh['S'].bin_average(bin_size=bs_t, time_units = 'ms', ep=ep)
+    dt_in_time = beh['travel'].bin_average(bin_size=bs_t, time_units = 'ms', ep=ep)-((tns[0]-1)*tl)
+    pos_in_time = dt_in_time%tl
+    trial_number_in_time = (dt_in_time//tl)+tns[0]
+
+    tcs = {}
+    tcs_time = {}
+    autocorrs = {}
+    for cell in clusters.index:
+        if (expected_spikes is not None) and (cell in expected_spikes):
+            print(f'using expected spikes for cell {cell}')
+            # Generate spike counts for each bin
+            spike_counts = np.random.poisson(expected_spikes[cell])
+
+            # Get the bin indices for all spikes
+            bin_indices = np.repeat(np.arange(len(spike_counts)), spike_counts)
+
+            # For each spike, add a random offset within the bin to get continuous time
+            spike_times = bin_indices * (time_bs/1000) + np.random.uniform(0, (time_bs/1000), size=len(bin_indices))
+        else:
+            spike_times = clusters[cell]
+        
+        tc = nap.compute_1d_tuning_curves(nap.TsGroup([spike_times]), 
+                                        dt, 
+                                        nb_bins=n_bins, 
+                                        minmax=[min_bound, max_bound],
+                                        ep=beh["moving"])[0]
+        tc = np.array(tc)
+        tc = np.nan_to_num(tc).astype(np.float64)
+        if apply_guassian_filter:
+            tc = gaussian_filter(tc, sigma=2.5)
+        if apply_zscore:
+            tc = zscore(tc)
+        tc = tc[:last_ephys_bin] # only want bins with ephys data in it
+        tcs[cell] = tc
+        
+        tc_time = clusters[cell].count(bin_size=bs_t, time_units = 'ms', ep=ep)
+        tc_time = np.array(tc_time)
+        tc_time = np.nan_to_num(tc_time).astype(np.float64)
+        if apply_guassian_filter:
+            tc_time = gaussian_filter(tc_time, sigma=2.5) # 
+        if apply_zscore:
+             tc_time = zscore(tc_time)
+        tcs_time[cell] = tc_time
+
+        lags = np.arange(0, 200, 1) # were looking at 10 timesteps back and 10 forward
+        autocorr = []
+        for lag in lags:
+            if lag < 0:
+                tc_offset = np.roll(tc, lag)
+                tc_offset[lag:] = 0
+            elif lag > 0:
+                tc_offset = np.roll(tc, lag)
+                tc_offset[:lag] = 0
+            else:
+                tc_offset = tc
+            corr = stats.pearsonr(tc, tc_offset)[0]
+            autocorr.append(corr)
+        autocorr = np.array(autocorr)
+        autocorrs[cell] = autocorr
+
+    # drop beh trials from after last ephys bin
+    beh_trials = beh['trials']
+    beh_trials = beh_trials[:int(last_ephys_bin/(tl/bs))]
+
+    return tcs, tcs_time, autocorrs, last_ephys_bin, beh, clusters
+
+
+
+
+def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None, vr_type='VR'):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    if bs_t is None:
+        bs_t = time_bs
+    if vr_type is 'MCVR':
+        tl = mcvr_tl
+    else:
+        tl = vr_tl
+
+    vr_folder = f'{source_path}M{mouse}/D{day:02}/{vr_type}/'
+    spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_srt-kilosort4_clusters.npz"
+    beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_beh.nwb"
     beh = nap.load_file(beh_path)
     clusters = nap.load_file(spikes_path)
     #print(f'there are this many clusters before curation {len(clusters)}')
@@ -712,7 +914,7 @@ def get_time_binned_variables(mouse, day, apply_zscore=True, apply_guassian_filt
     return speed_in_time, dt_in_time, pos_in_time, trial_number_in_time, trial_type_in_time
 
 
-def get_sorted_trials_and_colors(beh, last_ephys_bin, tl, bs):
+def get_sorted_trials_and_colors(beh, last_ephys_bin, tl, bs, ignore_performance=False):
     sorted_cats = beh['trials'][:int(last_ephys_bin/(tl/bs))].groupby(by=['context','type','performance'])
     sorted_cats = sort_dict_by_priority(sorted_cats, trial_cat_priority)
 
@@ -720,6 +922,8 @@ def get_sorted_trials_and_colors(beh, last_ephys_bin, tl, bs):
     sorted_trial_colors = []
     sorted_block_sizes = []
     for group, cat_indices in zip(sorted_cats.keys(), sorted_cats.values()):
+        if ignore_performance:
+            group = (group[0], group[1], 'hit')
         c = get_color_for_group(group)
         sorted_trial_colors.extend(np.repeat(c, len(cat_indices)).tolist())
         sorted_trial_indices.extend(cat_indices.tolist())
@@ -728,14 +932,17 @@ def get_sorted_trials_and_colors(beh, last_ephys_bin, tl, bs):
     sorted_trial_indices = np.array(sorted_trial_indices)
     return sorted_trial_indices, sorted_trial_colors
 
-def get_trial_groups_and_colors(beh, last_ephys_bin, tl, bs):
+def get_trial_groups_and_colors(beh, last_ephys_bin, tl, bs, ignore_performance=False):
     trial_colors = []
     trial_groups = []
 
     for trial in beh['trials'][:int(last_ephys_bin/(tl/bs))]:
-        group=(trial['context'][0], 
-            trial['type'][0],
-            trial['performance'][0])
+        if ignore_performance:
+            group = (trial['context'][0], trial['type'][0], 'hit')
+        else:
+            group=(trial['context'][0], 
+                trial['type'][0],
+                trial['performance'][0])
         c = get_color_for_group(group)
         group=''.join(group)
         trial_colors.append(c)
@@ -941,6 +1148,222 @@ def plot_individual_rate_maps_with_avg_k_means_grouped_spectrogram(mouse, day, c
         plt.close()
 
 
+def plot_open_field_rate_map_optimal_ax(ax, cluster_id, mouse, day, df, source_path=None):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    session = 'OF1'
+    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
+    spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
+    spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
+    beh_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb"
+    shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
+    spatial_information_score_of1 = pd.read_parquet(spatial_path)
+    beh_OF = nap.load_file(beh_path)
+    clusters_OF = nap.load_file(spikes_path)
+    # plot for cluster on ax
+    optimal_lag = df[df.cluster_id==cluster_id].travel.values[0]
+    grid_score_zero_lag = shifted_grid_scores_of1[(shifted_grid_scores_of1.cluster_id==cluster_id) & (shifted_grid_scores_of1.travel==0)].grid_score.values[0]
+    grid_score_lagged = shifted_grid_scores_of1[(shifted_grid_scores_of1.cluster_id==cluster_id) & (shifted_grid_scores_of1.travel==optimal_lag)].grid_score.values[0]
+    position = np.stack([beh_OF['P_x'], beh_OF['P_y']], axis=1)
+    beh_lag = compute_travel_projected(["P_x", "P_y"], position, position, optimal_lag)
+    position_lagged = np.stack([beh_lag['P_x'], beh_lag['P_y']], axis=1)
+    tc = nap.compute_2d_tuning_curves(nap.TsGroup([clusters_OF[cluster_id]]), position_lagged, nb_bins=(40,40))[0]
+    tc = gaussian_filter_nan(tc[0], sigma=(2.5,2.5))
+    #ax.text(0,-8, f'sGS: {np.round(grid_score_zero_lag, decimals=1)}', size=9)
+    #ax.text(0,-2, f'oGS: {np.round(grid_score_lagged, decimals=1)}', size=9)
+
+    ax.imshow(tc, cmap='viridis')
+    ax.axis('off') 
+
+
+def plot_vr_rate_map_trials_ax(ax, cluster_id, mouse, day, df, source_path=None):
+    tcs, _, _ , last_ephys_bin, beh, _ = compute_vr_tcs(mouse, day, apply_zscore=False) 
+    tc = tcs[cluster_id]
+    tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
+    tc = tc[:last_ephys_bin] # only want bins with ephys data in it
+    tcz = zscore(tc)
+    # plot firing rate map
+    plot_firing_rate_map(ax, tc, bs=bs, tl=tl,p=95, sort_indices=None)
+    ax.set_xlabel('Pos (cm)')
+
+def plot_vr_rate_map_avg_ax(ax, cluster_id, mouse, day, df, source_path=None):
+    tcs, _, _ , last_ephys_bin, beh, _ = compute_vr_tcs(mouse, day, apply_zscore=False) 
+    trial_groups, trial_colors = get_trial_groups_and_colors(beh, last_ephys_bin, tl, bs, ignore_performance=True)
+    tc = tcs[cluster_id]
+    tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
+    tc = tc[:last_ephys_bin] # only want bins with ephys data in it
+    tcz = zscore(tc)
+    # plot average rate map
+    for group in np.unique(trial_groups):
+        if len(trial_groups[trial_groups == group])>5:
+            x, y = get_avg_profile(tc, bs, tl, mask=trial_groups==group)
+            ax.plot(x,y, color=trial_colors[trial_groups==group][0], linewidth=1)
+    ax.set_xlim(0,200)
+
+
+def plot_individual_of_rate_maps_optimal_versus_standard(mouse, day, df, label='GC', figpath='', source_path=None):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    session = 'OF1'
+    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
+    spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
+    spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
+    beh_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb"
+    shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
+    spatial_information_score_of1 = pd.read_parquet(spatial_path)
+    beh_OF = nap.load_file(beh_path)
+    clusters_OF = nap.load_file(spikes_path)
+
+    for cluster_id in df.cluster_id:
+        fig, ax = plt.subplots(ncols=2, nrows=1, figsize=(5,2), squeeze=False)
+        
+        # plot the standard rate map
+        grid_score_standard = shifted_grid_scores_of1[(shifted_grid_scores_of1.cluster_id==cluster_id) & (shifted_grid_scores_of1.travel==0)].grid_score.values[0]
+        position = np.stack([beh_OF['P_x'], beh_OF['P_y']], axis=1)
+        beh_lag = compute_travel_projected(["P_x", "P_y"], position, position, 0)
+        position_lagged = np.stack([beh_lag['P_x'], beh_lag['P_y']], axis=1)
+        tc = nap.compute_2d_tuning_curves(nap.TsGroup([clusters_OF[cluster_id]]), position_lagged, nb_bins=(40,40))[0]
+        tc = gaussian_filter_nan(tc[0], sigma=(2.5,2.5))
+        ax[0,0].text(0,-2, f'GS: {np.round(grid_score_standard, decimals=1)}', size=10)
+        ax[0,0].imshow(tc, cmap='jet')
+        
+        # plot the lagged rate map
+        optimal_lag = df[df.cluster_id==cluster_id].travel.values[0]
+        grid_score_lagged = shifted_grid_scores_of1[(shifted_grid_scores_of1.cluster_id==cluster_id) & (shifted_grid_scores_of1.travel==optimal_lag)].grid_score.values[0]
+        position = np.stack([beh_OF['P_x'], beh_OF['P_y']], axis=1)
+        beh_lag = compute_travel_projected(["P_x", "P_y"], position, position, optimal_lag)
+        position_lagged = np.stack([beh_lag['P_x'], beh_lag['P_y']], axis=1)
+        tc = nap.compute_2d_tuning_curves(nap.TsGroup([clusters_OF[cluster_id]]), position_lagged, nb_bins=(40,40))[0]
+        tc = gaussian_filter_nan(tc[0], sigma=(2.5,2.5))
+        ax[0,1].text(0,-2, f'GS: {np.round(grid_score_lagged, decimals=1)}', size=10)
+        ax[0,1].imshow(tc, cmap='jet') 
+
+        for axi in ax.flatten():
+            axi.axis('off')
+        plt.tight_layout()
+        plt.savefig(f'{figpath}/M{mouse}D{day}{label}{cluster_id}_OF_rate_maps.pdf', dpi=1000)
+        plt.close()   
+    return 
+
+def white_to_hex_cmap(hex_color, name='custom_cmap'):
+    return LinearSegmentedColormap.from_list(name, ['#FFFFFF', hex_color])
+
+def plot_individual_rate_maps_with_avg_by_trial_type_with_open_field(mouse, day, df, label='GC', figpath='',vr_type='VR',source_path=None):
+    if df.empty:
+        return
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    if vr_type is 'MCVR':
+        tl = mcvr_tl
+    else:
+        tl = vr_tl
+    if label=='GC':
+        cmap = white_to_hex_cmap('#69201a')
+    elif label=='NGS':
+        cmap = white_to_hex_cmap('#0d2958')
+    else:
+        cmap = 'binary' 
+
+    tcs, _, _ , last_ephys_bin, beh, _ = compute_vr_tcs(mouse, day, apply_zscore=False, vr_type=vr_type, source_path=source_path) 
+    trial_groups, trial_colors = get_trial_groups_and_colors(beh, last_ephys_bin, tl, bs, ignore_performance=True)
+    sorted_trial_indices, sorted_trial_colors = get_sorted_trials_and_colors(beh, last_ephys_bin, tl, bs, ignore_performance=True)
+
+    for id in df.cluster_id.values:
+        tc = tcs[id]
+        tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
+        tc = tc[:last_ephys_bin] # only want bins with ephys data in it
+        tcz = zscore(tc)
+
+        fig, ax = plt.subplots(ncols=2, nrows=3, figsize=(rm_figsize[0], rm_figsize[1]*1.7), 
+                               sharex=False, height_ratios=[0.6, 0.25, 1], width_ratios=[1,0.05])
+        # plot unsorted rate map
+        plot_firing_rate_map(ax[2,0], tc, bs=bs, tl=tl,p=95, sort_indices=None, cmap=cmap)
+
+        # plot open field rate map
+        plot_open_field_rate_map_optimal_ax(ax[0,0], id, mouse, day, df, source_path=None)
+
+        # plot trial colors
+        ax[2,1].scatter(np.ones(len(trial_colors)), 
+                    np.arange(0,len(trial_colors)), 
+                    c = trial_colors,
+                    marker='s')
+        
+        # plot average rate maps
+        for group in np.unique(trial_groups):
+            if len(trial_groups[trial_groups == group])>5:
+                x, y = get_avg_profile(tc, bs, tl, mask=trial_groups==group)
+                ax[1,0].plot(x,y, color=trial_colors[trial_groups==group][0], linewidth=1)
+        
+        ax[2,0].set_xlabel('Pos (cm)')
+        ax[2,1].axis('off')
+        ax[1,0].set_xticks([])
+        ax[1,0].set_xlim([0,200])
+        ax[0,1].axis('off')
+        ax[1,1].axis('off')
+        ax[1,0].yaxis.set_major_locator(MaxNLocator(integer=True, nbins=2))
+        fig.savefig(f'{figpath}/M{mouse}D{day}{label}{id}_with_avg_and_of_rate_map.pdf', dpi=300, bbox_inches='tight')
+        plt.close()
+
+
+def plot_individual_rate_maps_with_avg_by_trial_type(mouse, day, cluster_ids, label='GC', figpath='',vr_type='VR',source_path=None):
+    if len(cluster_ids)==0:
+        return
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    if vr_type is 'MCVR':
+        tl = mcvr_tl
+    else:
+        tl = vr_tl
+    if label=='GC':
+        cmap = white_to_hex_cmap('#69201a')
+    elif label=='NGS':
+        cmap = white_to_hex_cmap('#0d2958')
+    else:
+        cmap = 'binary'
+
+    tcs, _, _ , last_ephys_bin, beh, _ = compute_vr_tcs(mouse, day, apply_zscore=False, vr_type=vr_type, source_path=source_path) 
+    trial_groups, trial_colors = get_trial_groups_and_colors(beh, last_ephys_bin, tl, bs, ignore_performance=True)
+    sorted_trial_indices, sorted_trial_colors = get_sorted_trials_and_colors(beh, last_ephys_bin, tl, bs, ignore_performance=True)
+ 
+    for id in cluster_ids:
+        tc = tcs[id]
+        tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
+        tc = tc[:last_ephys_bin] # only want bins with ephys data in it
+        tcz = zscore(tc)
+
+        fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(rm_figsize[0], rm_figsize[1]*1.45), sharex=True, height_ratios=[0.3, 1], width_ratios=[1,0.05], sharey='row')
+        plot_firing_rate_map(ax[1,0], tc, bs=bs, tl=tl,p=95, sort_indices=None, cmap=cmap)
+        ax[1,1].axis('off')
+        ax[0,1].axis('off')
+        ax[1,1].scatter(np.ones(len(trial_colors)), 
+                    np.arange(0,len(trial_colors)), 
+                    c = trial_colors,
+                    marker='s')
+        ax[1,0].set_xlabel('Pos (cm)')
+        for group in np.unique(trial_groups):
+            if len(trial_groups[trial_groups == group])>5:
+                x, y = get_avg_profile(tc, bs, tl, mask=trial_groups==group)
+                ax[0,0].plot(x,y, color=trial_colors[trial_groups==group][0], linewidth=1)
+        fig.savefig(f'{figpath}/M{mouse}D{day}{label}{id}_with_avg.pdf', dpi=300, bbox_inches='tight')
+        plt.close()
+
+        fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(rm_figsize[0], rm_figsize[1]*1.45), sharex=True, height_ratios=[0.3, 1], width_ratios=[1,0.05], sharey='row')
+        plot_firing_rate_map(ax[1,0], tc, bs=bs, tl=tl,p=95, sort_indices=sorted_trial_indices, cmap=cmap)
+        ax[1,1].axis('off')
+        ax[0,1].axis('off')
+        ax[1,1].scatter(np.ones(len(sorted_trial_colors)), 
+                    np.arange(0,len(sorted_trial_colors)), 
+                    c = sorted_trial_colors,
+                    marker='s')
+        ax[1,0].set_xlabel('Pos (cm)')
+        for group in np.unique(trial_groups):
+            if len(trial_groups[trial_groups == group])>5:
+                x, y = get_avg_profile(tc, bs, tl, mask=trial_groups==group)
+                ax[0,0].plot(x,y, color=trial_colors[trial_groups==group][0], linewidth=1)
+        fig.savefig(f'{figpath}/M{mouse}D{day}{label}{id}_sorted_with_avg.pdf', dpi=300, bbox_inches='tight')
+        plt.close()
 
 
 def plot_individual_rate_maps_with_avg(mouse, day, cluster_ids, label='GC', figpath=''):
@@ -1001,6 +1424,7 @@ def plot_stops_mouse_day(mouse, day, figpath, return_fig=True):
     
 
 def plot_vr_rate_maps(mouse, day, cluster_ids, label, figpath):
+    print(f'plotting vr rate maps using cluster_ids {cluster_ids}')
     if len(cluster_ids)==0:
         return
     
@@ -1747,3 +2171,54 @@ def load_cluster_locations(clusters, cells):
             vals.append(clusters[column][id])
         cells[column] = vals
     return cells
+
+
+def extract_border(image, color, only_border=True):
+    mask = image == color
+
+    rows, cols = mask.shape
+    border_mask = np.copy(mask)
+    
+    if only_border:
+        for i in range(1, rows - 1):
+            for j in range(1, cols - 1):
+                if mask[i, j] == 1:
+                    neighbors = np.array([
+                        mask[i-1, j-1], mask[i-1, j], mask[i-1, j+1],
+                        mask[i, j-1],                   mask[i, j+1],
+                        mask[i+1, j-1], mask[i+1, j], mask[i+1, j+1]
+                    ])
+                    if np.all(neighbors):
+                        border_mask[i, j] = 0
+     
+    points = np.column_stack(np.where(border_mask == 1))
+    return points
+
+
+def get_annotation_colors_2D(annotations):
+    # set colors based on annotations
+    annotation_colors = np.zeros((annotations.shape[0], annotations.shape[1]), dtype=object)
+    # Set colors to black where annotation contains 'VIS'
+    for y in range(annotation_colors.shape[0]):
+        for x in range(annotation_colors.shape[1]):
+            if 'VIS' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'black'
+            elif 'ENT' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'silver'
+            elif 'RSP' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'grey'
+            elif 'SUB' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'gainsboro'
+            elif 'PAR' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'dimgrey'
+            elif 'PRE' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'dimgrey'
+            elif 'POST' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'lightslategrey'
+            elif 'HPF' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'lightslategrey'
+            elif 'ECT' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'lightslategrey'
+            else:
+                annotation_colors[y, x] = 'white'
+    return annotation_colors
