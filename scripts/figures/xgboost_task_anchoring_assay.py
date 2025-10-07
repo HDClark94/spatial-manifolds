@@ -20,12 +20,12 @@ warnings.filterwarnings('ignore')
 
 time_start = time.time()
 
-use_parser = True
+use_parser = False
 
-source_path = '/Users/harryclark/Downloads/COHORT12_OLD/'
+source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
-mouse = 25
+mouse = 29
 day = 25
 
 if use_parser:
@@ -206,9 +206,12 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                     'pR2_cv': np.nanmean(pR2_cv),
                     'cluster_id_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == test_cluster_id]['theta_index'].iloc[0],
                     'cluster_id_cov_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == cov_cluster_id]['theta_index'].iloc[0],
-                    'grid_score_cov': all[all.cluster_id == test_cluster_id]['session_travel_lag_grid_score'].iloc[0],
-                    'spatial_info_cov': all[all.cluster_id == test_cluster_id]['spatial_information_score'].iloc[0],
-                    'firing_rate_VR_cov': all[all.cluster_id == cov_cluster_id]['firing_rate_VR'].iloc[0],
+                    'cluster_id_grid_score': all[all.cluster_id == test_cluster_id]['session_travel_lag_grid_score'].iloc[0],
+                    'cluster_id_cov_grid_score': all[all.cluster_id == cov_cluster_id]['session_travel_lag_grid_score'].iloc[0],
+                    'cluster_id_spatial_info': all[all.cluster_id == test_cluster_id]['spatial_information_score'].iloc[0],
+                    'cluster_id_cov_spatial_info': all[all.cluster_id == cov_cluster_id]['spatial_information_score'].iloc[0],
+                    'cluster_id_firing_rate_VR': all[all.cluster_id == test_cluster_id]['firing_rate_VR'].iloc[0],
+                    'cluster_id_cov_firing_rate_VR': all[all.cluster_id == cov_cluster_id]['firing_rate_VR'].iloc[0],
                     'position_in_covariate': pos_in_covariate,
                     'n_filters': nfilters,
                     'history_length': history_length,
@@ -245,9 +248,12 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                         'pR2_cv': pR2_condition_cv,
                         'cluster_id_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == test_cluster_id]['theta_index'].iloc[0],
                         'cluster_id_cov_theta_index': all_by_anatomy[all_by_anatomy.cluster_id == cov_cluster_id]['theta_index'].iloc[0],
-                        'grid_score_cov': all[all.cluster_id == test_cluster_id]['session_travel_lag_grid_score'].iloc[0],
-                        'spatial_info_cov': all[all.cluster_id == test_cluster_id]['spatial_information_score'].iloc[0],
-                        'firing_rate_VR_cov': all[all.cluster_id == cov_cluster_id]['firing_rate_VR'].iloc[0],
+                        'cluster_id_grid_score': all[all.cluster_id == test_cluster_id]['session_travel_lag_grid_score'].iloc[0],
+                        'cluster_id_cov_grid_score': all[all.cluster_id == cov_cluster_id]['session_travel_lag_grid_score'].iloc[0],
+                        'cluster_id_spatial_info': all[all.cluster_id == test_cluster_id]['spatial_information_score'].iloc[0],
+                        'cluster_id_cov_spatial_info': all[all.cluster_id == cov_cluster_id]['spatial_information_score'].iloc[0],
+                        'cluster_id_firing_rate_VR': all[all.cluster_id == test_cluster_id]['firing_rate_VR'].iloc[0],
+                        'cluster_id_cov_firing_rate_VR': all[all.cluster_id == cov_cluster_id]['firing_rate_VR'].iloc[0],
                         'position_in_covariate': pos_in_covariate,
                         'n_filters': nfilters,
                         'history_length': history_length,
