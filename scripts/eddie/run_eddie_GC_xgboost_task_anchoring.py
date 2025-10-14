@@ -237,9 +237,10 @@ for mouse, days in mouse_days.items():
         data_path = f"/exports/eddie/scratch/hclark3/COHORT12/xgboost_task_anchoring/"
         job_name = f"M{mouse}D{day}_xgb"
         if mouse == 21:
-            cores = 48
+            cores = 32
         else:
-            cores = 16
+            cores = 16 # 32 for mouse 21, 16 for everything else
+
         run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_task_anchoring_assay.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=cores, job_name=job_name)
         #run_stage_script(stageout_dict, hold_jid=job_name)
 
