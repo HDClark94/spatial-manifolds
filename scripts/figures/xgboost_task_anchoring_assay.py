@@ -223,6 +223,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                 }, index=[0])
                 xgboost_results = pd.concat([xgboost_results, df], ignore_index=True)
         
+                '''
                 # now we need to calculate the pR2 for each firing mode
                 for firing_mode, label in zip(['TA', 'TI'], [1, 0]):
                     trials = beh['trials'][:len(trial_labels)]
@@ -309,7 +310,7 @@ for trained_on, cov_cluster_ids in zip(['GC', 'NGS'], [gcs.cluster_id.values.tol
                         'distance': np.sqrt((x_pos_cov - x_pos_test)**2 + (y_pos_cov - y_pos_test)**2),
                     }, index=[0])
                     xgboost_results = pd.concat([xgboost_results, df], ignore_index=True)
-                    
+                '''  
                     
 # save results in csv
 xgboost_result_path = f'{data_path}M{mouse}_D{day}.csv'
