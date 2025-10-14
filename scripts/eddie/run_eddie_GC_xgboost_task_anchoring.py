@@ -230,7 +230,13 @@ mouse_days = {21: [16,21,26],
               28: [19,23,25],
               29: [19,20,23,25],
             }
-
+# sessions that need running 
+mouse_days = {21: [16,21],
+              26: [19],
+              27: [24,26],
+              28: [19,23,25],
+              29: [19,20,23,25],
+            }
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 for mouse, days in mouse_days.items():
     for day in days:
