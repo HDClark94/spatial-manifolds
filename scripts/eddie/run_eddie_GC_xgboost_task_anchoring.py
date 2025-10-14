@@ -236,7 +236,11 @@ for mouse, days in mouse_days.items():
     for day in days:
         data_path = f"/exports/eddie/scratch/hclark3/COHORT12/xgboost_task_anchoring/"
         job_name = f"M{mouse}D{day}_xgb"
-        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_task_anchoring_assay.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
+        if mouse == 21:
+            cores = 48
+        else:
+            cores = 16
+        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_task_anchoring_assay.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=cores, job_name=job_name)
         #run_stage_script(stageout_dict, hold_jid=job_name)
 
 print('This script does not run any jobs, it is just a template for running jobs on Eddie.')
