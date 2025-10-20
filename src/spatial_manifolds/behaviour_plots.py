@@ -64,7 +64,9 @@ def remove_all_from_ax(ax):
     return ax
 
 
-def plot_NP2_probe(ax, sorting_analyzer_path=None, contacts_alpha=0.0):
+def plot_NP2_probe(ax, sorting_analyzer_path=None, 
+                   contacts_alpha=0.0, probe_alpha=0.5, 
+                   probe_color='lightgrey', probe_edgecolor='black'):
     if sorting_analyzer_path is None:
         project_path = "/Volumes/cmvm/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Chris/Cohort12/derivatives/"
         # get any sorting analyzer from this project folder
@@ -74,19 +76,21 @@ def plot_NP2_probe(ax, sorting_analyzer_path=None, contacts_alpha=0.0):
     sorting_analyzer = si.load_sorting_analyzer(sorting_analyzer_path, load_extensions=False)
     probe_group = sorting_analyzer.get_probegroup()
     plot_probegroup(probe_group, ax=ax, 
-                    probe_shape_kwargs={"alpha":0.5,
-                                        "color":"lightgrey"}, 
+                    probe_shape_kwargs={"alpha":probe_alpha,
+                                        "color":probe_color,
+                                        "edgecolor":probe_edgecolor}, 
                     contacts_kargs={"alpha":contacts_alpha})
     ax.set_xlim(-200, 1000)
     ax.set_ylim(-300, 3000)
     ax = remove_all_from_ax(ax)
 
 
-def plot_firing_rate_map(ax, tc, bs, tl, p=99, sort_indices=None):
+def plot_firing_rate_map(ax, tc, bs, tl, p=99, sort_indices=None, cmap='binary'):
     p = np.nanpercentile(tc, p)
     tc = np.clip(tc, max=p)
     bpt = tl/bs
     n_trials = int(len(tc)/(bpt))
+    print(f'n trials: {n_trials}')
     trial_rate_map = []
     for i in range(n_trials):
         trial_rate_map.append(tc[int(i*bpt): int((i+1)*bpt)])
@@ -97,7 +101,7 @@ def plot_firing_rate_map(ax, tc, bs, tl, p=99, sort_indices=None):
     x = np.arange(1, len(trial_rate_map)+1)
     y = np.arange(0, len(trial_rate_map[0])*bs, bs)
     X, Y = np.meshgrid(x, y)
-    heatmap = ax.pcolormesh(Y, X, trial_rate_map.T, shading='auto', cmap='binary')
+    heatmap = ax.pcolormesh(Y, X, trial_rate_map.T, shading='auto', cmap=cmap)
     heatmap.set_rasterized(True)
     ax.set_xlim(0,tl)
     ax.set_ylim(0,len(trial_rate_map))
@@ -339,9 +343,10 @@ def sort_dict_by_priority(data, priority):
     )
     return dict(sorted_items)
  
+    
 def get_color_for_group(group):
     if group == ('rz1', 'b', 'hit'):
-        color= '#3071AB'
+        color= "#00FF0D"
     elif group == ('rz1', 'b', 'try'):
             color= "#6697CF"
     elif group == ('rz1', 'b', 'run'):
@@ -349,7 +354,7 @@ def get_color_for_group(group):
     elif group == ('rz1', 'b', 'slow'):
             color= 'tab:grey'
     elif group == ('rz1', 'nb', 'hit'):
-            color= '#DB752B'
+            color= "#000000"
     elif group == ('rz1', 'nb', 'try'):
             color= '#E89E57'
     elif group == ('rz1', 'nb', 'run'):

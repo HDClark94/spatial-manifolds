@@ -221,31 +221,24 @@ mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
             }
 
 # there are sessions with detected grid modules
-
-mouse_days = {21: [16,21,26],
+mouse_days = {21: [16,21,25,26],
               20: [25],
-              25: [20,21,24,25],
-              26: [18,19],
-              27: [23,24,26],
-              28: [19,23,25],
+              25: [19, 20,21,22,24,25],
+              26: [15, 18,19],
+              27: [20,23,24,26],
+              28: [17,19,23,25],
               29: [19,20,23,25],
             }
-# sessions that need running 
-mouse_days = {21: [16,21],
-              26: [19],
-              27: [24,26],
-              28: [19,23,25],
-              29: [19,20,23,25],
-            }
+
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 for mouse, days in mouse_days.items():
     for day in days:
         data_path = f"/exports/eddie/scratch/hclark3/COHORT12/xgboost_task_anchoring/"
         job_name = f"M{mouse}D{day}_xgb"
         if mouse == 21:
-            cores = 32
+            cores = 48
         else:
-            cores = 16 # 32 for mouse 21, 16 for everything else
+            cores = 32 # 32 for mouse 21, 16 for everything else
 
         run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_task_anchoring_assay.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=cores, job_name=job_name)
         #run_stage_script(stageout_dict, hold_jid=job_name)

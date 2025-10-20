@@ -75,7 +75,7 @@ gcs, ngs, ns, sc, ngs_ns, all = cell_classification_of1(mouse, day, percentile_t
 tcs, tcs_time, _ , last_ephys_bin, beh, clusters_VR = compute_vr_tcs(mouse, day, apply_zscore=False, source_path=source_path) 
 _, _, _, _, _, _, _, all_by_anatomy = cell_classification_anatomy(mouse,day, source_path=source_path)
 g_m_ids, g_m_cluster_ids = HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=3, cluster_selection_epsilon=3, 
-                                                figpath=fig_path, curate_with_vr=False, curate_with_brain_region=True, source_path=source_path) # create grid modules using HDBSCAN    
+                                                figpath=fig_path, curate_with_vr=False, curate_with_brain_region=False, source_path=source_path) # create grid modules using HDBSCAN    
 
 # load the behaviour data and 
 last_ephys_time_bin = clusters_VR[clusters_VR.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]

@@ -30,7 +30,7 @@ The results are saved in a YAML file for further analysis.
 
 This assay is will be optimised for recordings which were recorded in the multishank mode ||||
 '''
-
+ 
 use_parser = True
 
 source_path = '/Users/harryclark/Downloads/COHORT12/'

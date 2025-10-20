@@ -88,6 +88,8 @@ def cell_classification_vr(mouse, day, percentile_threshold=99, source_path=None
 def cell_classification_anatomy(mouse, day, source_path=None, verbose=True):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
+    brain_locations = pd.read_csv(source_path+'all_cluster_brain_locations_chris.csv')
+
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
     session = 'OF1'
     of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
@@ -112,12 +114,13 @@ def cell_classification_anatomy(mouse, day, source_path=None, verbose=True):
         cluster_spatial_information_of1 = spatial_information_score_of1[spatial_information_score_of1.cluster_id==index]
         optimal_lag = cluster_spatial_information_of1.travel.values[np.nanargmax(cluster_spatial_information_of1.spatial_information)]
 
-        brain_region = clusters_VR.brain_region[index]
-        SC_x = clusters_VR.coord_SCs_x[index]
-        SC_y = clusters_VR.coord_SCs_y[index]
-        SC_z = clusters_VR.coord_SCs_z[index]
-        probe_x = clusters_VR.coord_probe_x[index]
-        probe_y = clusters_VR.coord_probe_y[index]
+        brain_region = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['brain_region'].iloc[0]
+        SC_x = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['coord_SCs_x'].iloc[0]
+        SC_y = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['coord_SCs_y'].iloc[0]
+        SC_z = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['coord_SCs_z'].iloc[0]
+        probe_x = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['unit_location_x'].iloc[0]
+        probe_y = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['unit_location_y'].iloc[0]
+
         theta_index = theta_index_of1[theta_index_of1.cluster_id==index]['theta_index'].iloc[0]
 
         cell = cluster_spatial_information_of1[(spatial_information_score_of1.travel == optimal_lag)]
@@ -172,14 +175,15 @@ def cell_classification_anatomy(mouse, day, source_path=None, verbose=True):
         
 
 def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=None, 
-                            disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells, 
-                            disqualifying_brain_areas_for_spatial_cells=disqualifying_brain_areas_for_grid_cells+['VIS'], 
+                            disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells,
+                            disqualifying_brain_areas_for_spatial_cells=disqualifying_brain_areas_for_grid_cells, 
                             use_optimal_travel=True, get_extra_info=False, verbose=True):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
     last_ephys_time_bin = clusters_VR[clusters_VR.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
 
+    brain_locations = pd.read_csv(source_path+'all_cluster_brain_locations_chris.csv')
     print(mouse, day)
     session = 'OF1'
     of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
@@ -232,7 +236,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         id_scores = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == id].spatial_information)
         id_travels = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == id].travel)
 
-        brain_region = clusters_VR.brain_region[id]
+        brain_region = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==id)]['brain_region'].iloc[0]
         if 'ENT' in brain_region or 'PAR' in brain_region or 'PRE' in brain_region:
             travel_at_max.append(id_travels[np.nanargmax(id_scores)])
 
@@ -257,12 +261,12 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
 
     # now loop through the clusters and classify them
     for index in cluster_ids_values:
-        brain_region = clusters_VR.brain_region[index]
-        SC_x = clusters_VR.coord_SCs_x[index]
-        SC_y = clusters_VR.coord_SCs_y[index]
-        SC_z = clusters_VR.coord_SCs_z[index]
-        probe_x = clusters_VR.coord_probe_x[index]
-        probe_y = clusters_VR.coord_probe_y[index]
+        brain_region = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['brain_region'].iloc[0]
+        SC_x = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['coord_SCs_x'].iloc[0]
+        SC_y = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['coord_SCs_y'].iloc[0]
+        SC_z = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['coord_SCs_z'].iloc[0]
+        probe_x = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['unit_location_x'].iloc[0]
+        probe_y = brain_locations[(brain_locations['mouse']==mouse) & (brain_locations['day']==day) & (brain_locations['cluster_id']==index)]['unit_location_y'].iloc[0]
         theta_index = theta_index_of1[theta_index_of1.cluster_id==index]['theta_index'].iloc[0]
 
         if brain_region not in disqualifying_brain_areas_for_grid_cells:
@@ -324,10 +328,10 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
 
             # print a warning if the firing rates are very different, by a factor of 10 at least
             if (cell['firing_rate_VR'].iloc[0] > 10*cell['firing_rate_OF1'].iloc[0]) or (cell['firing_rate_OF1'].iloc[0] > 10*cell['firing_rate_VR'].iloc[0]):
-                print(f'warning: firing rates are very different for cluster id {index}, VR: {cell["firing_rate_VR"].iloc[0]}, OF1: {cell["firing_rate_OF1"].iloc[0]}')
+                #print(f'warning: firing rates are very different for cluster id {index}, VR: {cell["firing_rate_VR"].iloc[0]}, OF1: {cell["firing_rate_OF1"].iloc[0]}')
                 disgard = True
             else:
-                print(f'firing rates are similar for cluster id {index}, VR: {cell["firing_rate_VR"].iloc[0]}, OF1: {cell["firing_rate_OF1"].iloc[0]}')
+                #print(f'firing rates are similar for cluster id {index}, VR: {cell["firing_rate_VR"].iloc[0]}, OF1: {cell["firing_rate_OF1"].iloc[0]}')
                 disgard = False
 
             if get_extra_info:
@@ -389,7 +393,6 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
 
 def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None, cluster_selection_epsilon=None,
                          curate_with_vr=True, curate_with_brain_region=True, source_path=None, plot_curate=False):
-    print(source_path)
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
 
@@ -430,11 +433,21 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     clusterer = hdbscan.HDBSCAN(
                 min_cluster_size=3,
                 min_samples=1,
-                cluster_selection_epsilon=0.4,
+                cluster_selection_epsilon=0.3,
                 allow_single_cluster=False,
                 metric='chebyshev'
-            )
+            ) 
     module_labels = clusterer.fit_predict(features)
+
+    # if theres only one label, attempt to make a cluster around 10 from the centroid
+    if np.unique(module_labels).size == 1 and np.unique(module_labels)[0] == -1:
+        print('Only one cluster found, attempting to create a new cluster around centroid')
+        centroid = original_features.median().values # use median to avoid outliers
+        distances = distance.cdist([centroid], original_features.values, metric='euclidean')[0]
+        close_points = np.where(distances < 10)[0]
+        if len(close_points) > min_cluster_size:
+            module_labels[close_points] = 0
+            print(f'Created a new cluster with {len(close_points)} points close to centroid at distance < 10')
 
     # merge labels if centroids are within 10 units (e.g., cm or degrees)
     centroids = original_features.groupby(module_labels).mean().values
@@ -498,7 +511,8 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
         print(f'for module {mi}, there are {len(cells)} cells with average spacing {np.nanmean(cells.field_spacing.values)}')
     grid_module_cluster_ids = [x for _, x in sorted(zip(avg_spacings, grid_module_cluster_ids))]
     grid_module_ids = [x for _, x in sorted(zip(avg_spacings, grid_module_ids))]
-
+    
+    '''
     # now curate the modules based on the VR data and anatomy
     _,_,autocorrs,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
     if curate_with_brain_region:
@@ -510,7 +524,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
                 if br in disqualifying_brain_areas_for_grid_cells:
                     module_ids.remove(id)
             grid_module_cluster_ids[grid_module_ids.index(mi)] = new_module_ids
-
+    
     if curate_with_vr:
         tolerance = 30
         prominence = 0.05
@@ -589,7 +603,7 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
                 ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
                 #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}_post_curated.pdf')
                 plt.show()
-            
+    '''       
     return  grid_module_ids, grid_module_cluster_ids
 
 
@@ -651,7 +665,11 @@ def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, m
     plt.tight_layout()
     plt.savefig(f'{figpath}/M{mouse}D{day}_GC_rate_maps_modules.pdf', dpi=1000)
     plt.close()    
- 
+
+def white_to_hex_cmap(hex_color, name='custom_cmap'):
+    return LinearSegmentedColormap.from_list(name, ['#FFFFFF', hex_color])
+
+
 def compute_vr_tcs_using_expected_spikes(mouse, day, apply_zscore=True, apply_guassian_filter=True, 
                                          source_path=None, bs_t=None, vr_type='VR', expected_spikes=None):
     if source_path is None:
@@ -764,6 +782,69 @@ def compute_vr_tcs_using_expected_spikes(mouse, day, apply_zscore=True, apply_gu
 
 
 
+def compute_of_tcs_using_expected_spikes(mouse, day, apply_zscore=True, apply_guassian_filter=True, 
+                                        source_path=None, bs_t=None, expected_spikes=None, optimal_shift=0):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    if bs_t is None:
+        bs_t = time_bs
+
+    session = 'OF1'
+    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
+    spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
+    spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
+    beh_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb"
+    shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
+    spatial_information_score_of1 = pd.read_parquet(spatial_path)
+    beh_OF = nap.load_file(beh_path)
+    clusters_OF = nap.load_file(spikes_path)
+    clusters_OF = curate_clusters(clusters_OF)
+
+    # trick to clip the tc to around the end of the ephys recording
+    last_ephys_time_bin = clusters_OF[clusters_OF.index[0]].count(bin_size=bs_t, time_units = 'ms').index[-1]
+    ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units = 's')
+ 
+    tcs = {}
+    tcs_time = {}
+    for cell in clusters_OF.index:
+        if (expected_spikes is not None) and (cell in expected_spikes):
+            print(f'using expected spikes for cell {cell}')
+            # Generate spike counts for each bin
+            spike_counts = np.random.poisson(expected_spikes[cell])
+
+            # Get the bin indices for all spikes
+            bin_indices = np.repeat(np.arange(len(spike_counts)), spike_counts)
+
+            # For each spike, add a random offset within the bin to get continuous time
+            spike_times = bin_indices * (time_bs/1000) + np.random.uniform(0, (time_bs/1000), size=len(bin_indices))
+        else:
+            spike_times = clusters_OF[cell]
+    
+        # plot for cluster on ax
+        position = np.stack([beh_OF['P_x'], beh_OF['P_y']], axis=1)
+        beh_lag = compute_travel_projected(["P_x", "P_y"], position, position, optimal_shift)
+        position_lagged = np.stack([beh_lag['P_x'], beh_lag['P_y']], axis=1)
+
+        tc = nap.compute_2d_tuning_curves(nap.TsGroup([spike_times]),
+                                          position_lagged, nb_bins=(40,40), ep=ep)[0]
+        if apply_guassian_filter:
+            tc = gaussian_filter_nan(tc[0], sigma=(2.5,2.5))
+        if apply_zscore:
+            tc = zscore(tc)
+        tcs[cell] = tc
+        tc_time = clusters_OF[cell].count(bin_size=bs_t, time_units = 'ms', ep=ep)
+        tc_time = np.array(tc_time)
+        tc_time = np.nan_to_num(tc_time).astype(np.float64)
+        if apply_guassian_filter:
+            tc_time = gaussian_filter(tc_time, sigma=2.5) # 
+        if apply_zscore:
+             tc_time = zscore(tc_time)
+        tcs_time[cell] = tc_time
+
+    return tcs, tcs_time, beh_OF, clusters_OF, ep
+
+
 
 def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None, vr_type='VR'):
     if source_path is None:
@@ -860,6 +941,55 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
     beh_trials = beh_trials[:int(last_ephys_bin/(tl/bs))]
 
     return tcs, tcs_time, autocorrs, last_ephys_bin, beh, clusters
+
+def compute_of_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None, optimal_shift=0):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    if bs_t is None:
+        bs_t = time_bs
+
+    session = 'OF1'
+    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
+    spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
+    spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
+    beh_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb"
+    shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
+    spatial_information_score_of1 = pd.read_parquet(spatial_path)
+    beh_OF = nap.load_file(beh_path)
+    clusters_OF = nap.load_file(spikes_path)
+    clusters_OF = curate_clusters(clusters_OF)
+
+    # trick to clip the tc to around the end of the ephys recording
+    last_ephys_time_bin = clusters_OF[clusters_OF.index[0]].count(bin_size=bs_t, time_units = 'ms').index[-1]
+    ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units = 's')
+ 
+    tcs = {}
+    tcs_time = {}
+    for cell in clusters_OF.index:
+
+        # plot for cluster on ax
+        position = np.stack([beh_OF['P_x'], beh_OF['P_y']], axis=1)
+        beh_lag = compute_travel_projected(["P_x", "P_y"], position, position, optimal_shift)
+        position_lagged = np.stack([beh_lag['P_x'], beh_lag['P_y']], axis=1)
+
+        tc = nap.compute_2d_tuning_curves(nap.TsGroup([clusters_OF[cell]]), 
+                                          position_lagged, nb_bins=(40,40), ep=ep)[0]
+        if apply_guassian_filter:
+            tc = gaussian_filter_nan(tc[0], sigma=(2.5,2.5))
+        if apply_zscore:
+            tc = zscore(tc)
+        tcs[cell] = tc
+        tc_time = clusters_OF[cell].count(bin_size=bs_t, time_units = 'ms', ep=ep)
+        tc_time = np.array(tc_time)
+        tc_time = np.nan_to_num(tc_time).astype(np.float64)
+        if apply_guassian_filter:
+            tc_time = gaussian_filter(tc_time, sigma=2.5) # 
+        if apply_zscore:
+             tc_time = zscore(tc_time)
+        tcs_time[cell] = tc_time
+
+    return tcs, tcs_time, beh_OF, clusters_OF, ep
 
 
 def get_time_binned_variables(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None):
@@ -1173,6 +1303,9 @@ def plot_open_field_rate_map_optimal_ax(ax, cluster_id, mouse, day, df, source_p
     #ax.text(0,-8, f'sGS: {np.round(grid_score_zero_lag, decimals=1)}', size=9)
     #ax.text(0,-2, f'oGS: {np.round(grid_score_lagged, decimals=1)}', size=9)
 
+    # clip at 99 percentile for better visualisation
+    tc = np.clip(tc, a_min=0, a_max=np.nanpercentile(tc, 99))
+
     ax.imshow(tc, cmap='viridis')
     ax.axis('off') 
 
@@ -1276,7 +1409,7 @@ def plot_individual_rate_maps_with_avg_by_trial_type_with_open_field(mouse, day,
         tc = tc[:last_ephys_bin] # only want bins with ephys data in it
         tcz = zscore(tc)
 
-        fig, ax = plt.subplots(ncols=2, nrows=3, figsize=(rm_figsize[0], rm_figsize[1]*1.7), 
+        fig, ax = plt.subplots(ncols=2, nrows=3, figsize=(rm_figsize[0], rm_figsize[1]*1.9), 
                                sharex=False, height_ratios=[0.6, 0.25, 1], width_ratios=[1,0.05])
         # plot unsorted rate map
         plot_firing_rate_map(ax[2,0], tc, bs=bs, tl=tl,p=95, sort_indices=None, cmap=cmap)
@@ -1363,7 +1496,7 @@ def plot_individual_rate_maps_with_avg_by_trial_type(mouse, day, cluster_ids, la
                 x, y = get_avg_profile(tc, bs, tl, mask=trial_groups==group)
                 ax[0,0].plot(x,y, color=trial_colors[trial_groups==group][0], linewidth=1)
         fig.savefig(f'{figpath}/M{mouse}D{day}{label}{id}_sorted_with_avg.pdf', dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.close() 
 
 
 def plot_individual_rate_maps_with_avg(mouse, day, cluster_ids, label='GC', figpath=''):
