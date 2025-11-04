@@ -184,7 +184,7 @@ for mouse, days in mouse_days.items():
         data_path = f"/exports/eddie/scratch/hclark3/COHORT12/multishank_xgboost/"
         job_name = f"M{mouse}D{day}_MSX"
 
-        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/scripts/figures/figure_4_spectrograms/multishank_xgboost.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
+        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/figure_4_spectrograms/multishank_xgboost.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
         #run_stage_script(stageout_dict, hold_jid=job_name)
 
 print('This script does not run any jobs, it is just a template for running jobs on Eddie.')
