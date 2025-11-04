@@ -95,7 +95,7 @@ cluster_ids_by_group.append(sc.cluster_id.values.tolist()) # speed cells [-1]
 
 Mouse = f'M{mouse}'
 
-tcs, tcs_time, _, last_ephys_bin, beh, clusters = compute_vr_tcs(mouse, day, apply_zscore=False, apply_guassian_filter=False)
+tcs, tcs_time, _, last_ephys_bin, beh, clusters = compute_vr_tcs(mouse, day, apply_zscore=False, apply_guassian_filter=False, source_path=source_path)
 
 last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
 
