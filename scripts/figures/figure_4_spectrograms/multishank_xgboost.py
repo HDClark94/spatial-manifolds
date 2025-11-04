@@ -15,7 +15,7 @@ from spatial_manifolds.util import gaussian_filter_nan
 from spatial_manifolds.predictive_grid import compute_travel_projected, wrap_list
 from spatial_manifolds.behaviour_plots import *
 from spatial_manifolds.detect_grids import *
-from spatial_manifolds.brainrender_helper import *
+#from spatial_manifolds.brainrender_helper import *
 from argparse import ArgumentParser
 
 import warnings
