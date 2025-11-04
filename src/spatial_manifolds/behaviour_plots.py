@@ -67,10 +67,12 @@ def remove_all_from_ax(ax):
 def plot_NP2_probe(ax, sorting_analyzer_path=None, 
                    contacts_alpha=0.0, probe_alpha=0.5, 
                    probe_color='lightgrey', probe_edgecolor='black'):
+    print('hi')
     if sorting_analyzer_path is None:
         project_path = "/Volumes/cmvm/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Chris/Cohort12/derivatives/"
         # get any sorting analyzer from this project folder
-        example_day_path = [f.path for f in os.scandir(f"{project_path}{'M25'}/") if f.is_dir()][25]
+        example_day_path = [f.path for f in os.scandir(f"{project_path}{'25'}/") if f.is_dir()][25]
+        print(example_day_path)
         sorting_analyzer_path = f"{example_day_path}/full/kilosort4/kilosort4_sa"
     #print(sorting_analyzer_path)
     sorting_analyzer = si.load_sorting_analyzer(sorting_analyzer_path, load_extensions=False)
@@ -90,7 +92,7 @@ def plot_firing_rate_map(ax, tc, bs, tl, p=99, sort_indices=None, cmap='binary')
     tc = np.clip(tc, max=p)
     bpt = tl/bs
     n_trials = int(len(tc)/(bpt))
-    print(f'n trials: {n_trials}')
+    #print(f'n trials: {n_trials}')
     trial_rate_map = []
     for i in range(n_trials):
         trial_rate_map.append(tc[int(i*bpt): int((i+1)*bpt)])

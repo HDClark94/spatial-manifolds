@@ -709,6 +709,58 @@ class MLencoding(object):
         return Y_hat, pR2_cv
 
 
+    def fit_cv_and_predefined_set(self, X, Y, train_indices, test_indices, n_cv=10, verbose=1, continuous_folds=False):
+        """
+        For train_indices, use cross-validated predictions (like fit_cv).
+        For test_indices, fit on the full training set and predict on the test set (like fit_predefined_sets).
+        Returns
+        -------
+        Y_hat: np.ndarray, predictions for all indices (train and test)
+        pR2_cv: list, pR2 for each CV fold (train_indices)
+        pR2_test: float, pR2 for test_indices
+        """
+        if np.ndim(X) == 1:
+            X = np.transpose(np.atleast_2d(X))
+
+        n_samples = X.shape[0]
+        Y_hat = np.zeros(n_samples)
+        pR2_cv = []
+
+        # --- Cross-validated predictions for train_indices ---
+        X_train = X[train_indices, :]
+        Y_train = Y[train_indices]
+        cv_kf = KFold(n_splits=n_cv, shuffle=True, random_state=42)
+        for idx_r, idx_t in cv_kf.split(X_train):
+            Xr = X_train[idx_r, :]
+            Yr = Y_train[idx_r]
+            Xt = X_train[idx_t, :]
+            Yt = Y_train[idx_t]
+            self.fit(Xr, Yr, get_history_terms=False)
+            Yt_hat = self.predict(Xt, get_history_terms=False)
+            Y_hat[train_indices[idx_t]] = Yt_hat
+            pR2 = self.poisson_pseudoR2(Yt, Yt_hat, np.mean(Yr))
+            pR2_cv.append(pR2)
+            if verbose > 1:
+                print('pR2 (train fold):', pR2)
+
+        # --- Fit on all train_indices, predict on test_indices ---
+        if len(test_indices) > 0:
+            Xr = X[train_indices, :]
+            Yr = Y[train_indices]
+            Xt = X[test_indices, :]
+            Yt = Y[test_indices]
+            self.fit(Xr, Yr, get_history_terms=False)
+            Yt_hat = self.predict(Xt, get_history_terms=False)
+            Y_hat[test_indices] = Yt_hat
+            pR2_test = self.poisson_pseudoR2(Yt, Yt_hat, np.mean(Yr))
+            if verbose > 0:
+                print('pR2 (test set):', pR2_test)
+        else:
+            pR2_test = None
+
+        return Y_hat, pR2_cv 
+
+
     def fit_predefined_sets(self, X, Y, train_indices, test_indices,
                             verbose=1, get_history_terms = True):
         """Fits the model on a predefined set of training and test indices.

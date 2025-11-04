@@ -140,10 +140,11 @@ def correct_for_left_side(probe_locs_list_CCF, do_correction=True):
     return corrected_probe_locs_list_SC, corrected_probe_locs_list_CCF
 
 
-def reconstruct_shank_id(clusters_df, mouse):
+def reconstruct_shank_id(clusters_df, mouse, colname='unit_location_x'):
     shank_ids = []
     for index, cluster in clusters_df.iterrows():
-        x_pos = cluster['unit_location_x']
+
+        x_pos = cluster[colname]
         if mouse != 21:
             if x_pos <= 150:
                 shank_id = 0
