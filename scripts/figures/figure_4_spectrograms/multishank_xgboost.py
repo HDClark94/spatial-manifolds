@@ -83,8 +83,6 @@ gcs = reconstruct_shank_id(gcs, mouse, colname='probe_x')
 g_m_ids, g_m_cluster_ids = HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=3, cluster_selection_epsilon=3, 
                                                 figpath=fig_path, curate_with_vr=False, curate_with_brain_region=True, plot_curate=False) # create grid modules using HDBSCAN    
 
-plot_grid_modules_rate_maps(gcs, g_m_ids, g_m_cluster_ids, mouse, day, figpath=fig_path)
-
 # we now have cluster ids classified into modules, non grid spatial cells and non spatial cells 
 # as defined by activity in the open field
 g_m_cluster_ids = sorted(g_m_cluster_ids, key=len, reverse=True) 
@@ -95,14 +93,9 @@ cluster_ids_by_group.append(ns.cluster_id.values.tolist()) # non spatial cells [
 cluster_ids_by_group.append(gcs.cluster_id.values.tolist()) # all grid cells [-2]
 cluster_ids_by_group.append(sc.cluster_id.values.tolist()) # speed cells [-1]
 
-for m, cluster_ids in enumerate(cluster_ids_by_group):
-    plot_vr_rate_maps(mouse, day, cluster_ids, label=f'{m}', figpath=fig_path)
-
-
-
 Mouse = f'M{mouse}'
 
-tcs, tcs_time, _, last_ephys_bin, beh, clusters = compute_vr_tcs(mouse,day, apply_zscore=False, apply_guassian_filter=False)
+tcs, tcs_time, _, last_ephys_bin, beh, clusters = compute_vr_tcs(mouse, day, apply_zscore=False, apply_guassian_filter=False)
 
 last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
 
