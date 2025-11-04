@@ -15,8 +15,39 @@ from spatial_manifolds.util import gaussian_filter_nan
 from spatial_manifolds.predictive_grid import compute_travel_projected, wrap_list
 from spatial_manifolds.behaviour_plots import *
 from spatial_manifolds.detect_grids import *
-#from spatial_manifolds.brainrender_helper import *
 from argparse import ArgumentParser
+
+
+def reconstruct_shank_id(clusters_df, mouse, colname='unit_location_x'):
+    shank_ids = []
+    for index, cluster in clusters_df.iterrows():
+
+        x_pos = cluster[colname]
+        if mouse != 21:
+            if x_pos <= 150:
+                shank_id = 0
+            elif (x_pos > 150 and x_pos <= 400):
+                shank_id = 1
+            elif (x_pos > 400 and x_pos <= 650):
+                shank_id = 2
+            elif x_pos > 650:
+                shank_id = 3
+            shank_ids.append(shank_id)
+        # set the reverse shank ids for this mouse as it was 
+        # implanted the other way round to all the other mice
+        elif mouse == 21:
+            if x_pos <= 150:
+                shank_id = 3
+            elif (x_pos > 150 and x_pos <= 400):
+                shank_id = 2
+            elif (x_pos > 400 and x_pos <= 650):
+                shank_id = 1
+            elif x_pos > 650:
+                shank_id = 0
+            shank_ids.append(shank_id)
+    clusters_df['shank_id'] = shank_ids
+    return clusters_df
+
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -43,8 +74,8 @@ if use_parser:
     source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 
 
-gcs, ngs, ns, sc, ngs_ns, all = cell_classification_of1(mouse, day, percentile_threshold=95) # subset
-mec, para, pre, sub, vis, cere, other, all_by_anatomy = cell_classification_anatomy(mouse, day)
+gcs, ngs, ns, sc, ngs_ns, all = cell_classification_of1(mouse, day, percentile_threshold=95, source_path=source_path) # subset
+mec, para, pre, sub, vis, cere, other, all_by_anatomy = cell_classification_anatomy(mouse, day, source_path=source_path)
 
 ngs = reconstruct_shank_id(ngs, mouse, colname='probe_x') 
 gcs = reconstruct_shank_id(gcs, mouse, colname='probe_x')
