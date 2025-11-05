@@ -234,7 +234,7 @@ for group_name, test_cell_ids in cell_groups:
             shank_3_ngs = ngs[ngs.shank_id == 3].cluster_id.values.tolist()
             if test_cell_id in shank_3_ngs:
                 shank_3_ngs.remove(test_cell_id)
-                
+                 
             all_cell_ids = all.cluster_id.values.tolist()
             all_cells_except_test = [cid for cid in all_cell_ids if cid != test_cell_id and cid in tcs_time]
             cov_tcs_time_shank_0_ngs = {cluster_id: tcs_time[cluster_id] for cluster_id in shank_0_ngs if cluster_id in tcs_time}
@@ -296,7 +296,7 @@ for group_name, test_cell_ids in cell_groups:
 import pickle
 
 # Suppose your dictionary is called df_dict
-results_path = f'{data_path}M{mouse}_D{day}.pkl'
+results_path = f'{data_path}M{mouse}_D{day}_anysession.pkl'
 
 with open(results_path, 'wb') as f:
     pickle.dump(all_rolling_results_by_group, f)

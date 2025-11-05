@@ -179,14 +179,15 @@ mouse_days = {28: [25]
             }
 
 
-# there are sessions with detected grid modules
-mouse_days = {21: [16,21,25,26],
-              20: [25],
-              25: [19, 20,21,22,24,25],
-              26: [15, 18,19],
+# there are multishank sessions
+mouse_days = {20: [14,15,16,17,18,19],
+              21: [15,16,17,18,22],
+              22: [37,38,39,40,41],
+              25: [16,17,18,25],
+              26: [13,15,16,19],
               27: [20,23,24,26],
-              28: [17,19,23],
-              29: [19,20,23,25],
+              28: [16,18,17,19],
+              29: [16,17,18,23,25],
             }
 
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
@@ -195,7 +196,7 @@ for mouse, days in mouse_days.items():
         data_path = f"/exports/eddie/scratch/hclark3/COHORT12/multishank_xgboost/"
         job_name = f"M{mouse}D{day}_MSX"
 
-        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/figure_4_spectrograms/multishank_xgboost.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
+        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/figure_4_spectrograms/multishank_xgboost_anysession.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
         #run_stage_script(stageout_dict, hold_jid=job_name)
 
 print('This script does not run any jobs, it is just a template for running jobs on Eddie.')
