@@ -178,6 +178,17 @@ def run_script(script_file_path):
 mouse_days = {28: [25]
             }
 
+
+# there are sessions with detected grid modules
+mouse_days = {21: [16,21,25,26],
+              20: [25],
+              25: [19, 20,21,22,24,25],
+              26: [15, 18,19],
+              27: [20,23,24,26],
+              28: [17,19,23],
+              29: [19,20,23,25],
+            }
+
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 for mouse, days in mouse_days.items():
     for day in days:
