@@ -98,7 +98,7 @@ def make_run_python_script(python_arg, username, venv=None, cores=None, email=No
         cores = 32
 
     if h_rt is None:
-        h_rt = "47:59:59"
+        h_rt = "0:59:59"
     if h_vmem is None:
         h_vmem=19
     if job_name is not None:
