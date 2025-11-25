@@ -17,8 +17,7 @@ import matplotlib.cm as cm
 from scipy.signal import find_peaks
 from scipy.signal import correlate
 from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.ticker import MaxNLocator
-  
+from matplotlib.ticker import MaxNLocator 
 from spatial_manifolds.tuning_scores.grid_score import autocorr2d
 from spatial_manifolds.data.curation import curate_clusters
 from scipy.stats import zscore
@@ -1204,6 +1203,13 @@ def plot_individual_rate_maps_with_avg_based_on_task_anchoring(mouse, day, clust
 
     # translate the labels back to trial_numbers to use in the avging of the rate map
 
+    if 'GC' in label:
+        cmap = white_to_hex_cmap('#69201a')
+    elif 'NGS' in label:
+        cmap = white_to_hex_cmap('#0d2958')
+    else:
+        cmap = 'binary' 
+
     for id in cluster_ids:
         tc = tcs[id]
         tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
@@ -1213,7 +1219,7 @@ def plot_individual_rate_maps_with_avg_based_on_task_anchoring(mouse, day, clust
         trial_labels = get_kmeans_spatial_labels(tcz, labels, bs=bs, tl=tl) # reuse kmeans function to get the labels based on the task anchoring
     
         fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(rm_figsize[0], rm_figsize[1]*1.45), sharex=True, height_ratios=[0.3, 1], width_ratios=[1,0.05], sharey='row')
-        plot_firing_rate_map(ax[1,0], tc, bs=bs, tl=tl, p=95, sort_indices=None)
+        plot_firing_rate_map(ax[1,0], tc, bs=bs, tl=tl, p=95, sort_indices=None, cmap=cmap)
         ax[1,1].axis('off')
         ax[0,1].axis('off')
         ax[1,1].scatter(np.ones(len(trial_labels)), 
@@ -1224,12 +1230,12 @@ def plot_individual_rate_maps_with_avg_based_on_task_anchoring(mouse, day, clust
                     vmin=0, 
                     vmax=1)
         ax[1,0].set_xlabel('Pos (cm)')
-        cmap = plt.get_cmap('cool')
+        cmap_ta = plt.get_cmap('cool')
 
         for group in np.unique(trial_labels):
             if len(trial_labels[trial_labels == group])>5:
                 x, y = get_avg_profile(tc, bs, tl, mask=trial_labels==group)
-                ax[0,0].plot(x,y, color=cmap(group), linewidth=1)
+                ax[0,0].plot(x,y, color=cmap_ta(group), linewidth=1)
         fig.savefig(f'{figpath}/M{mouse}D{day}{label}{id}_with_avg_task_anchoring.pdf', dpi=300, bbox_inches='tight')
         plt.close()
 

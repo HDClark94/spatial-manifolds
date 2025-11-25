@@ -29,13 +29,13 @@ The results are saved in a YAML file for further analysis.
 This assay is will be optimised for recordings which were recorded in the multishank mode ||||
 '''
 
-use_parser = True
+use_parser = False
 
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
-mouse = 25
-day = 25
+mouse = 21
+day = 15
 
 if use_parser:
     parser = ArgumentParser()
@@ -130,7 +130,7 @@ for target_id in target_cluster_ids:
         
         cov_clusters_df = all[all.cluster_id.isin(covariate_cluster_ids)]
 
-        if len(covariate_cluster_ids) > 0:
+        if min_cells > 0:
             cov_tcs_time = {cluster_id: tcs_time[cluster_id] for cluster_id in cov_clusters_df.cluster_id if cluster_id in tcs_time}
             all_x = np.vstack(list(cov_tcs_time.values())).T
             
@@ -144,7 +144,7 @@ for target_id in target_cluster_ids:
 
                 if include_position:
                     x = np.column_stack((pos_in_time, x))
-
+ 
                 # get the target variable
                 y = np.array(tcs_time[target_id])
 
