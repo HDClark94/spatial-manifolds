@@ -29,7 +29,7 @@ The results are saved in a YAML file for further analysis.
 This assay is will be optimised for recordings which were recorded in the multishank mode ||||
 '''
 
-use_parser = False
+use_parser = True
 
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
@@ -37,7 +37,7 @@ fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
 mouse = 21
 day = 15
 
-if use_parser:
+if use_parser: 
     parser = ArgumentParser()
     parser.add_argument('--mouse', type=int, required=True, help='Mouse ID')
     parser.add_argument('--day', type=int, required=True, help='Day of recording')
