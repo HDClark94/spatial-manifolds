@@ -178,7 +178,6 @@ def run_script(script_file_path):
 mouse_days = {28: [25]
             }
 
-
 # there are multishank sessions
 mouse_days = {20: [14,15,16,17,18,19],
               21: [15,16,17,18,22],
@@ -193,10 +192,10 @@ mouse_days = {20: [14,15,16,17,18,19],
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 for mouse, days in mouse_days.items():
     for day in days:
-        data_path = f"/exports/eddie/scratch/hclark3/COHORT12/multishank_xgboost/"
+        data_path = f"/exports/eddie/scratch/hclark3/COHORT12/medial_lateral_xgboost/"
         job_name = f"M{mouse}D{day}_MSX"
 
-        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/figure_4_spectrograms/multishank_xgboost_anysession.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
+        run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/figure_3_xgboost/xgboost_medial_lateral_population_assay.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=16, job_name=job_name)
         #run_stage_script(stageout_dict, hold_jid=job_name)
 
 print('This script does not run any jobs, it is just a template for running jobs on Eddie.')
