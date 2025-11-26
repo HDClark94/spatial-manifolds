@@ -171,7 +171,7 @@ def cell_classification_anatomy(mouse, day, source_path=None, verbose=True):
 
     return MEC_cells, PARA_cells, PRE_cells, SUB_cells, VIS_cells, CERE_cells, other_cells, all_cells
 
-        
+           
 
 def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=None, 
                             disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells,
@@ -183,7 +183,6 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
     last_ephys_time_bin = clusters_VR[clusters_VR.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
 
     brain_locations = pd.read_csv(source_path+'all_cluster_brain_locations_chris.csv')
-    print(mouse, day)
     session = 'OF1'
     of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
@@ -244,7 +243,8 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         x = np.linspace(-50, 50, 1000)
         kde_values = kde(x)
         optimal_travel = x[np.argmax(kde_values)]
-        print(f'optimal travel lag is {optimal_travel} cm based on kde of travel at max spatial information')
+        if verbose:
+            print(f'optimal travel lag is {optimal_travel} cm based on kde of travel at max spatial information')
         # don't allow optimal_travel to be less than -30
         if optimal_travel < -30:
             optimal_travel = 0  
@@ -252,9 +252,11 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         optimal_travel = 0
 
     if use_optimal_travel:
-        print(f'optimal travel lag is {optimal_travel} cm')
+        if verbose:
+            print(f'using travel lag of {optimal_travel} cm')
     else:
-        print(f'using travel lag of 0 cm')
+        if verbose:
+            print(f'using travel lag of 0 cm')
         optimal_travel = 0
     
 
@@ -269,6 +271,8 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         theta_index = theta_index_of1[theta_index_of1.cluster_id==index]['theta_index'].iloc[0]
 
         if brain_region not in disqualifying_brain_areas_for_grid_cells:
+            if verbose:
+                print(f'brain region {brain_region} is not disqualifying for spatial cells')
             cluster_spatial_information_of1 = spatial_information_score_of1[spatial_information_score_of1.cluster_id==index]
             cluster_shifted_grid_scores_of1 = shifted_grid_scores_of1[shifted_grid_scores_of1.cluster_id==index]
             cluster_speed_correlation_of1 = shifted_speed_score_of1[shifted_speed_score_of1.cluster_id==index]
@@ -299,8 +303,9 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
             cell = cluster_shifted_grid_scores_of1[cluster_shifted_grid_scores_of1['travel'] == np.round(optimal_travel)]
 
             if len(cell) == 0:
-                print(f'cell is empty for cluster id {index}')
-                print(f'max_grid_score_of1 is {max_grid_score_of1}')
+                if verbose:
+                    print(f'cell is empty for cluster id {index}')
+                    print(f'max_grid_score_of1 is {max_grid_score_of1}')
 
             cell = cell.reset_index(drop=True) # reset index to avoid issues with concatenation
             cell['mouse'] = mouse
@@ -370,21 +375,24 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
 
             if ((not disgard)):
                 cells = pd.concat([cells, cell], ignore_index=True)
-
+        else:
+            if verbose:
+                print(f'brain region {brain_region} is disqualifying for spatial cells')
+    
     all_cells = cells.copy()
     non_grid_and_non_spatial_cells = pd.concat([non_grid_cells, non_spatial_cells], ignore_index=True)
 
-    print(f'there are {len(non_grid_and_non_spatial_cells)} non_grid and non_spatial_cells')
-    print(f'there are {len(grid_cells)} grid_cells')
-    print(f'there are {len(non_grid_cells)} non grid spatial cells')
-    print(f'there are {len(non_spatial_cells)} non spatial cells')
-    print(f'there are {len(speed_cells)} speed cells')
-    print(f'there are {len(all_cells)} cells')
-
-    if len(non_grid_cells)>0:
-        print(f'for the non-grid spatial cells the unique locations are {np.unique(non_grid_cells.brain_region)}')  
-    if len(grid_cells)>0:
-        print(f'for the grid cells the unique locations are {np.unique(grid_cells.brain_region)}')
+    if verbose:
+        print(f'there are {len(non_grid_and_non_spatial_cells)} non_grid and non_spatial_cells')
+        print(f'there are {len(grid_cells)} grid_cells')
+        print(f'there are {len(non_grid_cells)} non grid spatial cells')
+        print(f'there are {len(non_spatial_cells)} non spatial cells')
+        print(f'there are {len(speed_cells)} speed cells')
+        print(f'there are {len(all_cells)} cells')
+        if len(non_grid_cells)>0:
+            print(f'for the non-grid spatial cells the unique locations are {np.unique(non_grid_cells.brain_region)}')  
+        if len(grid_cells)>0:
+            print(f'for the grid cells the unique locations are {np.unique(grid_cells.brain_region)}')
 
     return grid_cells, non_grid_cells, non_spatial_cells, speed_cells, non_grid_and_non_spatial_cells, all_cells
 

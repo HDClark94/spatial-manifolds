@@ -98,7 +98,7 @@ def make_run_python_script(python_arg, username, venv=None, cores=None, email=No
         cores = 32
 
     if h_rt is None:
-        h_rt = "0:59:59"
+        h_rt = "47:59:59"
     if h_vmem is None:
         h_vmem=19
     if job_name is not None:
@@ -199,6 +199,8 @@ mouse_days = {21: [15,16,17,18,22,25,26],
               28: [16,17,18,23],
               29: [16,17,18,20,23,25],
             }
+
+mouse_days = {21: [15]}
 
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 for mouse, days in mouse_days.items():
