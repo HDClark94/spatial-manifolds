@@ -200,7 +200,7 @@ mouse_days = {21: [15,16,17,18,22,25,26],
               29: [16,17,18,20,23,25],
             }
 
-mouse_days = {21: [15]}
+#mouse_days = {21: [15]}
 
 source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 for mouse, days in mouse_days.items():
