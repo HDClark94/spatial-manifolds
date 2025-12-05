@@ -104,29 +104,15 @@ for target_id in target_cluster_ids:
         continue  # skip cells outside medial and lateral MEC
 
     print(f'Processing target cell {target_id} located at {target_ML_position} um in {target_pos_label}')
-    
-    # take the minimum number of cells in either medial or lateral MEC NGS to balance the assay
-    min_cells = min([
-        len(
-            ngs[ngs['cluster_id'].isin(
-                locations[
-                    (locations['brain_region'].str.contains('ENT')) &
-                    (locations['coord_SCs_x'] >= bounds[0]) &
-                    (locations['coord_SCs_x'] < bounds[1])
-                ]['cluster_id']
-            )]
-        )
-        for bounds in [(3000, 3400), (3400, 3800)]
-    ])
 
     for covariate_pos_label, cov_bounds in zip(['medial_MEC', 'lateral_MEC'], 
-                                               [(3000, 3400), (3400, 3800)]):
+                                               [(-np.inf, 3400), (3400, np.inf)]):
         # get NGS covariate cells based on their ML position
         covariate_cluster_ids = ngs.cluster_id.values.astype(int)
         covariate_cluster_ids = covariate_cluster_ids[np.isin(covariate_cluster_ids, locations[
-                                                                    (locations['brain_region'].str.contains('ENT')) & 
-                                                                    (locations['coord_SCs_x'] >= cov_bounds[0]) & 
-                                                                    (locations['coord_SCs_x'] < cov_bounds[1])]['cluster_id'].values.astype(int))]
+            (locations['brain_region'].str.contains('ENT')) & 
+            (locations['coord_SCs_x'] >= cov_bounds[0]) & 
+            (locations['coord_SCs_x'] < cov_bounds[1])]['cluster_id'].values.astype(int))]
         
         cov_clusters_df = all[all.cluster_id.isin(covariate_cluster_ids)]
 
@@ -162,7 +148,7 @@ for target_id in target_cluster_ids:
             tmp['pR2_cv'] = [avg_pR2]
             tmp['mouse'] = [mouse]
             tmp['day'] = [day]
-
+ 
             results_df = pd.concat([results_df, tmp], ignore_index=True)
         else:
             print(f'No covariate cells found for position {covariate_pos_label}, skipping.')

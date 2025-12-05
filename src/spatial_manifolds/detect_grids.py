@@ -176,7 +176,7 @@ def cell_classification_anatomy(mouse, day, source_path=None, verbose=True):
 def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=None, 
                             disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells,
                             disqualifying_brain_areas_for_spatial_cells=disqualifying_brain_areas_for_grid_cells, 
-                            use_optimal_travel=True, get_extra_info=False, verbose=True):
+                            use_optimal_travel=True, get_extra_info=False, verbose=True): 
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
@@ -271,8 +271,9 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
         theta_index = theta_index_of1[theta_index_of1.cluster_id==index]['theta_index'].iloc[0]
 
         if brain_region not in disqualifying_brain_areas_for_grid_cells:
-            if verbose:
-                print(f'brain region {brain_region} is not disqualifying for spatial cells')
+            if verbose: 
+                print(f'brain region {brain_region} qualifies for spatial cells')
+
             cluster_spatial_information_of1 = spatial_information_score_of1[spatial_information_score_of1.cluster_id==index]
             cluster_shifted_grid_scores_of1 = shifted_grid_scores_of1[shifted_grid_scores_of1.cluster_id==index]
             cluster_speed_correlation_of1 = shifted_speed_score_of1[shifted_speed_score_of1.cluster_id==index]
@@ -2366,6 +2367,8 @@ def get_annotation_colors_2D(annotations):
                 annotation_colors[y, x] = 'lightslategrey'
             elif 'ECT' in str(annotations[y, x]):
                 annotation_colors[y, x] = 'lightslategrey'
+            elif 'APr' in str(annotations[y, x]):
+                annotation_colors[y, x] = 'darkgrey'
             else:
                 annotation_colors[y, x] = 'white'
     return annotation_colors
