@@ -88,9 +88,12 @@ target_cluster_ids = gcs.cluster_id.values.astype(int)
 # set up xgboost history model
 xgb_history = MLencoding(tunemodel = 'xgboost', cov_history = True, spike_history=False, 
                          window = time_bs, n_filters = nfilters, max_time = history_length)
- 
+
+print('Starting XGBoost medial-lateral MEC lateralisation assay...')
+print('Number of target grid cells:', len(target_cluster_ids))
+
 # loop over all grid cells in a session
-results_df = pd.DataFrame()
+results_df = pd.DataFrame() 
 for target_id in target_cluster_ids:
     
     # determione if the grid cell is medial, middle or lateral MEC (250 um bins) starting at 3000
@@ -154,5 +157,8 @@ for target_id in target_cluster_ids:
             print(f'No covariate cells found for position {covariate_pos_label}, skipping.')
 
 results_df.to_pickle(f'{data_path}/xgboost_MEC_lateralisation_assay{mouse}_day{day}.pkl')
+
+print('XGBoost medial-lateral MEC lateralisation assay complete.')
+print(f'results_df has shape: {results_df.shape}')
 print(f'Results saved successfully @ {data_path}/xgboost_MEC_lateralisation_assay{mouse}_day{day}.pkl')
 
