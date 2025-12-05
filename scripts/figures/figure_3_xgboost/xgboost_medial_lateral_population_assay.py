@@ -36,6 +36,7 @@ data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
 mouse = 21
 day = 15
+medial_lateral_boundary = 3400  # um in SCs coordinates
 
 if use_parser: 
     parser = ArgumentParser()
@@ -99,9 +100,9 @@ for target_id in target_cluster_ids:
     # determione if the grid cell is medial, middle or lateral MEC (250 um bins) starting at 3000
     target_location = locations[(locations['mouse'] == mouse) & (locations['day'] == day) & (locations['cluster_id'] == target_id)]
     target_ML_position = target_location['coord_SCs_x'].iloc[0]
-    if (target_ML_position <= 3000 and target_ML_position < 3400):
+    if (target_ML_position < medial_lateral_boundary):
         target_pos_label = 'medial_MEC'
-    elif (target_ML_position >= 3400 and target_ML_position < 3800):
+    elif (target_ML_position >= medial_lateral_boundary):
         target_pos_label = 'lateral_MEC'
     else:
         continue  # skip cells outside medial and lateral MEC
@@ -109,7 +110,7 @@ for target_id in target_cluster_ids:
     print(f'Processing target cell {target_id} located at {target_ML_position} um in {target_pos_label}')
 
     for covariate_pos_label, cov_bounds in zip(['medial_MEC', 'lateral_MEC'], 
-                                               [(-np.inf, 3400), (3400, np.inf)]):
+                                               [(-np.inf, medial_lateral_boundary), (medial_lateral_boundary, np.inf)]):
         # get NGS covariate cells based on their ML position
         covariate_cluster_ids = ngs.cluster_id.values.astype(int)
         covariate_cluster_ids = covariate_cluster_ids[np.isin(covariate_cluster_ids, locations[
