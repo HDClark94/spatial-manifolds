@@ -125,9 +125,6 @@ for target_id in target_cluster_ids:
             include_position = False
         
             x = all_x.copy()
-            # randomly select covariate cells to match the minimum number of cells
-            # do this by shuffling the all_x array along the second axis and then selecting the first min_cells columns
-
             if include_position:
                 x = np.column_stack((pos_in_time, x))
 
@@ -137,7 +134,7 @@ for target_id in target_cluster_ids:
             # fit the model
             Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose = 0, continuous_folds = True)
 
-            print(f'Target ID: {target_id}, Target Pos: {target_pos_label}, Covariate Pos: {covariate_pos_label}, Include Position: {include_position}, pR2_cv = {np.nanmean(pR2_cv)}, using {min_cells} covariate cells')                
+            print(f'Target ID: {target_id}, Target Pos: {target_pos_label}, Covariate Pos: {covariate_pos_label}, Include Position: {include_position}, pR2_cv = {np.nanmean(pR2_cv)}, using {len(covariate_cluster_ids)} covariate cells')                
             
             tmp = pd.DataFrame()
             avg_pR2 = np.nanmean(pR2_cv)
