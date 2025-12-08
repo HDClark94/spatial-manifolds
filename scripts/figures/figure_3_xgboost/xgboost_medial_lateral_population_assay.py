@@ -124,11 +124,16 @@ for target_id in target_cluster_ids:
             cov_tcs_time = {cluster_id: tcs_time[cluster_id] for cluster_id in cov_clusters_df.cluster_id if cluster_id in tcs_time}
             all_x = np.vstack(list(cov_tcs_time.values())).T
             
-            for include_position in [True, False]:
+            for use_cells, include_position in zip([False, True, True], [True, True, False]):
                 x = all_x.copy()
                 if include_position:
                     x = np.column_stack((pos_in_time, x))
-
+                if (use_cells == False):
+                    x = pos_in_time.reshape(-1, 1)
+                    n_cells = 0
+                else:
+                    n_cells = len(covariate_cluster_ids)
+  
                 # get the target variable
                 y = np.array(tcs_time[target_id])
 
@@ -144,7 +149,7 @@ for target_id in target_cluster_ids:
                 tmp['target_pos_label'] = [target_pos_label]
                 tmp['covariate_pos_label'] = [covariate_pos_label]
                 tmp['covariate_cell_type'] = ['NGS']
-                tmp['n_covariate_cells'] = [len(covariate_cluster_ids)]
+                tmp['n_covariate_cells'] = [n_cells]
                 tmp['include_position'] = [include_position]
                 tmp['pR2_cv'] = [avg_pR2]
                 tmp['mouse'] = [mouse]
