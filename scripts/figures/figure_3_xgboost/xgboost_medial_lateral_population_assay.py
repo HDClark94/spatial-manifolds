@@ -96,7 +96,7 @@ print('Number of target grid cells:', len(target_cluster_ids))
 # loop over all grid cells in a session
 results_df = pd.DataFrame() 
 for target_id in target_cluster_ids:
-    
+      
     # determione if the grid cell is medial, middle or lateral MEC (250 um bins) starting at 3000
     target_location = locations[(locations['mouse'] == mouse) & (locations['day'] == day) & (locations['cluster_id'] == target_id)]
     target_ML_position = target_location['coord_SCs_x'].iloc[0]
@@ -123,34 +123,34 @@ for target_id in target_cluster_ids:
         if len(covariate_cluster_ids) > 0:
             cov_tcs_time = {cluster_id: tcs_time[cluster_id] for cluster_id in cov_clusters_df.cluster_id if cluster_id in tcs_time}
             all_x = np.vstack(list(cov_tcs_time.values())).T
-            include_position = False
-        
-            x = all_x.copy()
-            if include_position:
-                x = np.column_stack((pos_in_time, x))
-
-            # get the target variable
-            y = np.array(tcs_time[target_id])
-
-            # fit the model
-            Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose = 0, continuous_folds = True)
-
-            print(f'Target ID: {target_id}, Target Pos: {target_pos_label}, Covariate Pos: {covariate_pos_label}, Include Position: {include_position}, pR2_cv = {np.nanmean(pR2_cv)}, using {len(covariate_cluster_ids)} covariate cells')                
             
-            tmp = pd.DataFrame()
-            avg_pR2 = np.nanmean(pR2_cv)
-            tmp['target_cluster_id'] = [target_id]
-            tmp['target_cell_type'] = ['GC']
-            tmp['target_pos_label'] = [target_pos_label]
-            tmp['covariate_pos_label'] = [covariate_pos_label]
-            tmp['covariate_cell_type'] = ['NGS']
-            tmp['n_covariate_cells'] = [len(covariate_cluster_ids)]
-            tmp['include_position'] = [include_position]
-            tmp['pR2_cv'] = [avg_pR2]
-            tmp['mouse'] = [mouse]
-            tmp['day'] = [day]
+            for include_position in [True, False]:
+                x = all_x.copy()
+                if include_position:
+                    x = np.column_stack((pos_in_time, x))
+
+                # get the target variable
+                y = np.array(tcs_time[target_id])
+
+                # fit the model
+                Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose = 0, continuous_folds = True)
+
+                print(f'Target ID: {target_id}, Target Pos: {target_pos_label}, Covariate Pos: {covariate_pos_label}, Include Position: {include_position}, pR2_cv = {np.nanmean(pR2_cv)}, using {len(covariate_cluster_ids)} covariate cells')                
+                
+                tmp = pd.DataFrame()
+                avg_pR2 = np.nanmean(pR2_cv)
+                tmp['target_cluster_id'] = [target_id]
+                tmp['target_cell_type'] = ['GC']
+                tmp['target_pos_label'] = [target_pos_label]
+                tmp['covariate_pos_label'] = [covariate_pos_label]
+                tmp['covariate_cell_type'] = ['NGS']
+                tmp['n_covariate_cells'] = [len(covariate_cluster_ids)]
+                tmp['include_position'] = [include_position]
+                tmp['pR2_cv'] = [avg_pR2]
+                tmp['mouse'] = [mouse]
+                tmp['day'] = [day]
  
-            results_df = pd.concat([results_df, tmp], ignore_index=True)
+                results_df = pd.concat([results_df, tmp], ignore_index=True)
         else:
             print(f'No covariate cells found for position {covariate_pos_label}, skipping.')
 
