@@ -2372,3 +2372,35 @@ def get_annotation_colors_2D(annotations):
             else:
                 annotation_colors[y, x] = 'white'
     return annotation_colors
+
+
+
+def reconstruct_shank_id(clusters_df, mouse, colname='unit_location_x'):
+    shank_ids = []
+    for index, cluster in clusters_df.iterrows():
+
+        x_pos = cluster[colname]
+        if mouse != 21:
+            if x_pos <= 150:
+                shank_id = 0
+            elif (x_pos > 150 and x_pos <= 400):
+                shank_id = 1
+            elif (x_pos > 400 and x_pos <= 650):
+                shank_id = 2
+            elif x_pos > 650:
+                shank_id = 3
+            shank_ids.append(shank_id)
+        # set the reverse shank ids for this mouse as it was 
+        # implanted the other way round to all the other mice
+        elif mouse == 21:
+            if x_pos <= 150:
+                shank_id = 3
+            elif (x_pos > 150 and x_pos <= 400):
+                shank_id = 2
+            elif (x_pos > 400 and x_pos <= 650):
+                shank_id = 1
+            elif x_pos > 650:
+                shank_id = 0
+            shank_ids.append(shank_id)
+    clusters_df['shank_id'] = shank_ids
+    return clusters_df
