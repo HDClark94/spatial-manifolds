@@ -116,7 +116,7 @@ def spectral_analysis(tcs, tl, bs, windowsize=8):
         avg_corrs.append(RR[grid_cell_idxs][:, grid_cell_idxs].mean())
     avg_corrs = np.stack(avg_corrs)
     module_idxs = np.where(avg_corrs > 0.01)[0]
-    print("Identified {} candidate modules".format(len(module_idxs)))
+    #print("Identified {} candidate modules".format(len(module_idxs)))
 
     f_modules, phi_modules, grid_cell_idxs_modules = [], [], []
     for mi in module_idxs:
