@@ -56,8 +56,8 @@ use_parser = True
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
-mouse = 26
-day = 19
+mouse = 29
+day = 23
 
 if use_parser: 
     parser = ArgumentParser()
@@ -121,12 +121,21 @@ print('Number of target grid cells:', len(target_cluster_ids))
 # loop over all grid cells in a session
 results_df = pd.DataFrame()
 for target_id in target_cluster_ids:
-    task_anchored_labels = compute_task_anchored_labels(cluster_id=target_id, 
-                                                        tcs=tcs, 
-                                                        tl=tl, 
-                                                        bs=bs, 
-                                                        last_ephys_bin=last_ephys_bin)
-    
+    try:
+        task_anchored_labels = compute_task_anchored_labels(
+            cluster_id=target_id, 
+            tcs=tcs, 
+            tl=tl, 
+            bs=bs, 
+            last_ephys_bin=last_ephys_bin
+        )
+        if task_anchored_labels is None:
+            print(f"Warning: compute_task_anchored_labels failed for cell {target_id}. Skipping.")
+            continue
+    except Exception as e:
+        print(f"Exception for cell {target_id}: {e}. Skipping.")
+        continue
+
     # get trial ta labels but in time
     trial_labels_in_time = np.zeros(len(trial_number_in_time), dtype=int)
     trial_labels_trial_numbers = np.arange(trial_number_in_time[0], len(task_anchored_labels)+trial_number_in_time[0], 1)
@@ -163,7 +172,6 @@ for target_id in target_cluster_ids:
             else:
                 shank_relation = 'unknown'
         else:
-            # For combos, check if all are medial, all lateral, all same, or mixed
             if np.all(shank_combo == target_shank):
                 shank_relation = 'same'
             elif np.all(shank_combo < target_shank):
@@ -190,7 +198,6 @@ for target_id in target_cluster_ids:
                 y = np.array(tcs_time[target_id])
                 Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose=0, continuous_folds=True)
 
-                # For each unique task-anchored label, compute mask, pr2, and proportion
                 for label in np.unique(trial_labels_in_time):
                     mask = (trial_labels_in_time == label)
                     if np.sum(mask) == 0:

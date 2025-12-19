@@ -205,7 +205,7 @@ for mouse, days in mouse_days.items():
     for day in days:
         data_path = f"/exports/eddie/scratch/hclark3/COHORT12/multishank_xgboost/"
         job_name = f"M{mouse}D{day}_MSX"
-        
+
         run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/figure_3_xgboost/xgboost_medial_lateral_population_task_anchoring_assay.py --mouse={mouse} --day={day} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=16, job_name=job_name)
         #run_stage_script(stageout_dict, hold_jid=job_name)
 
