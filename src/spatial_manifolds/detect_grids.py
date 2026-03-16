@@ -280,6 +280,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
             cluster_optimal_lag = cluster_spatial_information_of1.travel.values[np.nanargmax(cluster_spatial_information_of1.spatial_information)]
             cluster_optimal_lag_grid_score = cluster_shifted_grid_scores_of1.travel.values[np.nanargmax(cluster_shifted_grid_scores_of1.grid_score)]
 
+            grid_scores = np.array(cluster_shifted_grid_scores_of1[cluster_shifted_grid_scores_of1.cluster_id == index].grid_score).tolist()
             id_scores = np.array(spatial_information_score_of1[spatial_information_score_of1.cluster_id == index].spatial_information).tolist()
             hd_scores = np.array(head_direction_of1[head_direction_of1.cluster_id == index].hd_information).tolist()
             speed_scores = np.array(shifted_speed_score_of1[shifted_speed_score_of1.cluster_id == index].speed_correlation).tolist()
@@ -340,6 +341,9 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
                 disgard = False
 
             if get_extra_info:
+                cell['grid_travel_scores'] = None
+                cell = cell.astype({'grid_travel_scores': 'object'})
+
                 cell['grid_shuffles_scores'] = None
                 cell = cell.astype({'grid_shuffles_scores': 'object'})
                 
@@ -358,6 +362,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
                 cell['spatial_information_travel'] = None
                 cell = cell.astype({'spatial_information_travel': 'object'})
 
+                cell.at[0, 'grid_travel_scores'] = grid_scores
                 cell.at[0, 'grid_shuffles_scores'] = grid_shuffle_scores
                 cell.at[0, 'head_direction_travel_scores'] = hd_scores
                 cell.at[0, 'spatial_information_shuffles_scores'] = spatial_info_shuffle_scores
@@ -1293,7 +1298,7 @@ def plot_individual_rate_maps_with_avg_k_means_grouped_spectrogram(mouse, day, c
         plt.close()
 
 
-def plot_open_field_rate_map_optimal_ax(ax, cluster_id, mouse, day, df, source_path=None):
+def plot_open_field_rate_map_optimal_ax(ax, cluster_id, mouse, day, df, source_path=None, optimal_method='median'):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     session = 'OF1'
@@ -1307,7 +1312,14 @@ def plot_open_field_rate_map_optimal_ax(ax, cluster_id, mouse, day, df, source_p
     beh_OF = nap.load_file(beh_path)
     clusters_OF = nap.load_file(spikes_path)
     # plot for cluster on ax
-    optimal_lag = df[df.cluster_id==cluster_id].travel.values[0]
+
+    if optimal_method == 'median':
+        optimal_lag = df[df.cluster_id==cluster_id].travel.values[0]
+    elif optimal_method == 'best_grid_score':
+        optimal_lag = df[df.cluster_id==cluster_id].optimal_travel_lag_grid_score.values[0]
+    elif optimal_method == 'best_spatial_information':
+        optimal_lag = df[df.cluster_id==cluster_id].optimal_travel_lag.values[0]
+
     grid_score_zero_lag = shifted_grid_scores_of1[(shifted_grid_scores_of1.cluster_id==cluster_id) & (shifted_grid_scores_of1.travel==0)].grid_score.values[0]
     grid_score_lagged = shifted_grid_scores_of1[(shifted_grid_scores_of1.cluster_id==cluster_id) & (shifted_grid_scores_of1.travel==optimal_lag)].grid_score.values[0]
     position = np.stack([beh_OF['P_x'], beh_OF['P_y']], axis=1)
