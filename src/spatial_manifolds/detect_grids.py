@@ -856,7 +856,84 @@ def compute_of_tcs_using_expected_spikes(mouse, day, apply_zscore=True, apply_gu
         tcs_time[cell] = tc_time
 
     return tcs, tcs_time, beh_OF, clusters_OF, ep
+ 
+def get_theta_trace(
+    mouse,
+    day,
+    cluster_id,
+    time_bs=10,
+    resample_bs=10,
+    vr_type='VR',
+    source_path=None,
+    bs_t=None,
+    channel=None,
+):
+    if source_path is None:
+        source_path = '/Users/harryclark/Downloads/COHORT12/'
+    if bs_t is None:
+        bs_t = time_bs
+    if vr_type == 'MCVR':
+        tl = mcvr_tl
+    else:
+        tl = vr_tl
+        
+    vr_folder = f'{source_path}M{mouse}/D{day:02}/{vr_type}/'
+    beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_beh.nwb"
+    vr_folder = f'{source_path}M{mouse}/D{day:02}/{vr_type}/'
+    spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_srt-kilosort4_clusters.npz"
+    beh = nap.load_file(beh_path)
+    clusters = nap.load_file(spikes_path)
+    clusters = curate_clusters(clusters)
 
+    tns = beh['trial_number']
+    dt = beh['travel'] - ((tns[0] - 1) * tl)
+    n_bins = int(int(((np.ceil(np.nanmax(dt)) // tl) + 1) * tl) / bs)
+    max_bound = int(((np.ceil(np.nanmax(dt)) // tl) + 1) * tl)
+    min_bound = 0
+
+    # trick to clip the tc to around the end of the ephys recording
+    tc = nap.compute_1d_tuning_curves(
+        nap.TsGroup([clusters[clusters.index[np.nanargmax(clusters.firing_rate)]]]),
+        dt,
+        nb_bins=n_bins,
+        minmax=[min_bound, max_bound],
+        ep=beh["moving"],
+    )[0]
+    
+    tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
+    last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=bs_t, time_units='ms').index[-1]
+    ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units='s')
+
+    theta = nap.load_file(f'/Users/harryclark/Downloads/M{mouse}/D{day:02}/VR/sub-M{mouse}_ses-D{day:02}_typ-VR_lfp.npz')
+    channel_arrays = pd.read_csv('/Users/harryclark/Downloads/all_cluster_brain_locations_chris.csv')
+    extrema_channel = channel_arrays[
+        (channel_arrays['mouse'] == mouse) &
+        (channel_arrays['day'] == day) &
+        (channel_arrays['cluster_id'] == cluster_id)
+    ]['channel_id'].values[0]
+    
+    if channel is not None:
+        theta_trace = theta[channel]
+    else:
+        theta_trace = theta[extrema_channel]
+
+    # Bin at bs_t (ms)
+    binned = theta_trace.bin_average(bin_size=bs_t, time_units='ms', ep=ep)
+
+    # Optional resampling by interpolation to a new bin size (resample_bs in ms)
+    # This converts the binned series to a numpy array, builds time axes, and interpolates.
+    if resample_bs is not None and resample_bs != bs_t:
+        binned_np = np.array(binned)
+        if binned_np.size > 1:
+            # Original time axis in seconds
+            t_orig = np.arange(len(binned_np)) * (bs_t / 1000.0)
+            # New time axis with desired resolution
+            t_new = np.arange(t_orig[0], t_orig[-1] + 1e-9, resample_bs / 1000.0)
+            binned_np = np.interp(t_new, t_orig, binned_np)
+        binned = binned_np
+        bs_t = resample_bs  # update effective bin size for downstream indexing
+
+    return binned
 
 
 def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None, vr_type='VR'):
