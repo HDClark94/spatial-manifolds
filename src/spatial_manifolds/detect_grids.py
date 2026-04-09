@@ -1032,7 +1032,8 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
 
     return tcs, tcs_time, autocorrs, last_ephys_bin, beh, clusters
 
-def compute_of_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None, optimal_shift=0):
+def compute_of_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, fill_nans_from_neighbors=True,
+                   source_path=None, bs_t=None, optimal_shift=0):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     if bs_t is None:
@@ -1064,10 +1065,13 @@ def compute_of_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
         position_lagged = np.stack([beh_lag['P_x'], beh_lag['P_y']], axis=1)
 
         tc = nap.compute_2d_tuning_curves(nap.TsGroup([clusters_OF[cell]]), 
-                                          position_lagged, nb_bins=(40,40), ep=ep)[0]
+                                          position_lagged, nb_bins=(40,40), ep=ep)[0][0]
+
+        if fill_nans_from_neighbors:
+            tc = _fill_nans_from_neighbors(tc)
         if apply_guassian_filter:
-            tc = gaussian_filter_nan(tc[0], sigma=(2.5,2.5))
-        if apply_zscore:
+            tc = gaussian_filter_nan(tc, sigma=(2.5,2.5))
+        if apply_zscore: 
             tc = zscore(tc)
         tcs[cell] = tc
         tc_time = clusters_OF[cell].count(bin_size=bs_t, time_units = 'ms', ep=ep)
@@ -1413,6 +1417,60 @@ def plot_open_field_rate_map_optimal_ax(ax, cluster_id, mouse, day, df, source_p
     ax.imshow(tc, cmap='viridis')
     ax.axis('off') 
 
+def _fill_nans_from_neighbors(rm):
+    """
+    For a 2D rate map rm:
+      - If a NaN has any non-NaN neighbor in its 3x3 neighborhood,
+        fill it with the nearest (Euclidean) non-NaN neighbor in that neighborhood.
+      - If *all* neighbors in 3x3 are NaN, leave it as NaN.
+
+    The neighbor search is done on a fixed reference copy of the map,
+    and all fills are written into a separate output array, so that
+    newly filled values are not used as neighbors for other NaNs
+    in the same pass.
+    """
+    # Reference copy (never modified) and output copy (where we write fills)
+    ref = np.array(rm, copy=True)
+    out = np.array(rm, copy=True)
+
+    nan_mask = np.isnan(ref)
+    if not nan_mask.any():
+        return out
+
+    n_rows, n_cols = ref.shape
+
+    # Loop over all NaN pixels using the original mask on the reference map
+    for i, j in np.argwhere(nan_mask):
+        # 3x3 neighborhood bounds
+        r0 = max(0, i - 1)
+        r1 = min(n_rows - 1, i + 1)
+        c0 = max(0, j - 1)
+        c1 = min(n_cols - 1, j + 1)
+
+        neighborhood = ref[r0:r1+1, c0:c1+1]
+        # Coordinates of non-NaN neighbors in the neighborhood (local indices)
+        local_coords = np.argwhere(~np.isnan(neighborhood))
+
+        # If there are no valid neighbors, leave this pixel as NaN
+        if local_coords.size == 0:
+            continue
+
+        # Convert local neighbor coords to global image coords
+        global_coords = local_coords + np.array([r0, c0])
+
+        # Distances from (i, j) to each valid neighbor
+        dists = np.sqrt(
+            (global_coords[:, 0] - i) ** 2 +
+            (global_coords[:, 1] - j) ** 2
+        )
+        nearest_idx = np.argmin(dists)
+        vi, vj = global_coords[nearest_idx]
+
+        # Fill NaN in the *output* array with the value of the nearest valid neighbor
+        out[i, j] = ref[vi, vj]
+
+    return out
+
 
 def plot_vr_rate_map_trials_ax(ax, cluster_id, mouse, day, df, source_path=None):
     tcs, _, _ , last_ephys_bin, beh, _ = compute_vr_tcs(mouse, day, apply_zscore=False) 
@@ -1549,7 +1607,7 @@ def plot_individual_rate_maps_with_avg_by_trial_type(mouse, day, cluster_ids, la
         return
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
-    if vr_type is 'MCVR':
+    if vr_type == 'MCVR':
         tl = mcvr_tl
     else:
         tl = vr_tl
