@@ -28,7 +28,7 @@ from spatial_manifolds.behaviour_plots import trial_cat_priority
 from spatial_manifolds.anaylsis_parameters import *
 import hdbscan
 from sklearn.preprocessing import StandardScaler
-from spatial_manifolds.anaylsis_parameters import tl, vr_tl, mcvr_tl, bs, time_bs, rm_figsize, disqualifying_brain_areas_for_grid_cells
+from spatial_manifolds.anaylsis_parameters import tl, vr_tl, mcvr_tl, bs, time_bs, rm_figsize, disqualifying_brain_areas_for_grid_cells, other_areas
  
 
 import matplotlib as mpl
@@ -171,19 +171,85 @@ def cell_classification_anatomy(mouse, day, source_path=None, verbose=True):
 
     return MEC_cells, PARA_cells, PRE_cells, SUB_cells, VIS_cells, CERE_cells, other_cells, all_cells
 
-           
+
+
+def classify_cells_both_sessions(mouse, day, percentile_threshold=95, source_path=None, verbose=False,
+                                 disqualifying_regions=disqualifying_brain_areas_for_grid_cells):
+    """
+    Classify cells using both OF1 and OF2 sessions.
+    For each session, we attempt to classify cells as grid cells (GCs) or non-grid spatial cells (NGS) using the specified percentile threshold.
+    We then combine the classifications from both sessions to create a unified classification scheme:
+    - GCs: any cell classified as a GC in either OF1 or OF2.
+    - NGS: any cell classified as NGS in either OF1 or OF2, but not classified as GC in either session.
+    The function returns three DataFrames:
+    - gcs_comb: combined grid cells from both sessions.
+    - ngs_comb: combined non-grid spatial cells from both sessions, excluding any cells classified as GCs.
+    - all_1: the full classification DataFrame from OF1, which
+    """
+    
+    try:
+        gcs_1, ngs_1, _, _, _, all_1 = cell_classification_of1(
+            mouse, day, percentile_threshold=percentile_threshold,
+            source_path=source_path, verbose=verbose, session='OF1', 
+            disqualifying_brain_areas_for_grid_cells=disqualifying_regions,
+            disqualifying_brain_areas_for_spatial_cells=disqualifying_regions,
+        )
+    except FileNotFoundError:
+        gcs_1, ngs_1, all_1 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        if verbose:
+            print(f"  M{mouse} D{day}: OF1 files not found.")
+
+    try:
+        gcs_2, ngs_2, _, _, _, all_2 = cell_classification_of1(
+            mouse, day, percentile_threshold=percentile_threshold,
+            source_path=source_path, verbose=verbose, session='OF2',
+            disqualifying_brain_areas_for_grid_cells=disqualifying_regions,
+            disqualifying_brain_areas_for_spatial_cells=disqualifying_regions,
+        )
+    except FileNotFoundError:
+        gcs_2, ngs_2, all_2 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        if verbose:
+            print(f"  M{mouse} D{day}: OF2 files not found.")
+
+    # --- Explicit combined ID sets ---
+    gc1_ids  = set(gcs_1['cluster_id']) if len(gcs_1)  > 0 else set()
+    gc2_ids  = set(gcs_2['cluster_id']) if len(gcs_2)  > 0 else set()
+    ngs1_ids = set(ngs_1['cluster_id']) if len(ngs_1)  > 0 else set()
+    ngs2_ids = set(ngs_2['cluster_id']) if len(ngs_2)  > 0 else set()
+
+    combined_gc_ids  = gc1_ids | gc2_ids
+    combined_ngs_ids = (ngs1_ids | ngs2_ids) - combined_gc_ids
+
+    # --- Combined scheme: select rows from all_1 and annotate classification session ---
+    if len(all_1) > 0:
+        gcs_comb = all_1[all_1['cluster_id'].isin(combined_gc_ids)].copy().reset_index(drop=True)
+        ngs_comb = all_1[all_1['cluster_id'].isin(combined_ngs_ids)].copy().reset_index(drop=True)
+
+        # 'classified_by': OF1 if the cell was a GC/NGS in OF1, else OF2
+        gcs_comb['classified_by'] = gcs_comb['cluster_id'].apply(
+            lambda cid: 'OF1' if cid in gc1_ids else 'OF2'
+        )
+        ngs_comb['classified_by'] = ngs_comb['cluster_id'].apply(
+            lambda cid: 'OF1' if cid in ngs1_ids else 'OF2'
+        )
+    else:
+        gcs_comb = pd.DataFrame()
+        ngs_comb = pd.DataFrame()
+
+    return gcs_comb, ngs_comb, all_1
+
+
 
 def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=None, 
                             disqualifying_brain_areas_for_grid_cells=disqualifying_brain_areas_for_grid_cells,
                             disqualifying_brain_areas_for_spatial_cells=disqualifying_brain_areas_for_grid_cells, 
-                            use_optimal_travel=True, get_extra_info=False, verbose=True): 
+                            use_optimal_travel=True, get_extra_info=False, verbose=True, session='OF1'):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
     last_ephys_time_bin = clusters_VR[clusters_VR.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
 
     brain_locations = pd.read_csv(source_path+'all_cluster_brain_locations_chris.csv')
-    session = 'OF1'
     of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score_manual_smooth.parquet"
@@ -405,15 +471,16 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
 
 
 def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None, cluster_selection_epsilon=None,
-                         curate_with_vr=True, curate_with_brain_region=True, source_path=None, plot_curate=False):
+                         curate_with_vr=True, curate_with_brain_region=True, source_path=None, plot_curate=False,
+                         verbose=True, ax=None):
     if source_path is None:
         source_path = '/Users/harryclark/Downloads/COHORT12/'
 
-    if min_cluster_size is not None:
-        print(f'params min_cluster_size and cluster_selection_epsilon are deprecated, these are now set to default values of 3 and 0.4 respectively')
+    _min_cluster_size = min_cluster_size if min_cluster_size is not None else 3
+    _epsilon = cluster_selection_epsilon if cluster_selection_epsilon is not None else 0.3
     
     if len(gcs) <= 1:
-        return [], []
+        return [], [], None
     
     gcs['field_spacing'] = pd.to_numeric(gcs['field_spacing'], errors='coerce')
     gcs['orientation'] = pd.to_numeric(gcs['orientation'], errors='coerce')
@@ -444,9 +511,9 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
     
     # Perform HDBSCAN clustering
     clusterer = hdbscan.HDBSCAN(
-                min_cluster_size=3,
+                min_cluster_size=_min_cluster_size,
                 min_samples=1,
-                cluster_selection_epsilon=0.3,
+                cluster_selection_epsilon=_epsilon,
                 allow_single_cluster=False,
                 metric='chebyshev'
             ) 
@@ -454,13 +521,15 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
 
     # if theres only one label, attempt to make a cluster around 10 from the centroid
     if np.unique(module_labels).size == 1 and np.unique(module_labels)[0] == -1:
-        print('Only one cluster found, attempting to create a new cluster around centroid')
+        if verbose:
+            print('Only one cluster found, attempting to create a new cluster around centroid')
         centroid = original_features.median().values # use median to avoid outliers
         distances = distance.cdist([centroid], original_features.values, metric='euclidean')[0]
         close_points = np.where(distances < 10)[0]
-        if len(close_points) > min_cluster_size:
+        if len(close_points) > _min_cluster_size:
             module_labels[close_points] = 0
-            print(f'Created a new cluster with {len(close_points)} points close to centroid at distance < 10')
+            if verbose:
+                print(f'Created a new cluster with {len(close_points)} points close to centroid at distance < 10')
 
     # merge labels if centroids are within 10 units (e.g., cm or degrees)
     centroids = original_features.groupby(module_labels).mean().values
@@ -472,44 +541,49 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
             if j <= i or label_i == -1 or label_j == -1:
                 continue
             if (distance.euclidean(centroids[i], centroids[j]) < 10):
-                print(f"Merging labels {label_i} and {label_j} with distance {distance.euclidean(centroids[i], centroids[j])}")
+                if verbose:
+                    print(f"Merging labels {label_i} and {label_j} with distance {distance.euclidean(centroids[i], centroids[j])}")
                 merged_labels[merged_labels == label_j] = label_i
             else:
-                print(f"Not merging labels {label_i} and {label_j} with distance {distance.euclidean(centroids[i], centroids[j])}")
+                if verbose:
+                    print(f"Not merging labels {label_i} and {label_j} with distance {distance.euclidean(centroids[i], centroids[j])}")
     module_labels = merged_labels.copy()
     
     X["cluster"] = module_labels
 
-    print(f'Found {len(np.unique(module_labels))} modules with HDBSCAN for mouse {mouse} day {day}')
-    print(f'for each module , the number of points is: {np.unique(module_labels, return_counts=True)[1]}')
+    if verbose:
+        print(f'Found {len(np.unique(module_labels))} modules with HDBSCAN for mouse {mouse} day {day}')
+        print(f'for each module , the number of points is: {np.unique(module_labels, return_counts=True)[1]}')
     
-    # Plot the results
-    plt.figure(figsize=(3, 3))
-    sns.scatterplot(data=X, x="field_spacing", y="orientation", hue="cluster", palette="tab10", s=25, legend=False,linewidth=0)
+    # Plot the results — into a provided axis or a new figure
+    if ax is None:
+        fig = plt.figure(figsize=(4.2, 3))
+        ax_plot = fig.gca()
+        standalone = True
+    else:
+        fig = ax.get_figure()
+        ax_plot = ax
+        standalone = False
 
-    #label_colors = {label: cm.get_cmap('viridis', len(np.unique(module_labels)))(i) for i, label in enumerate(np.unique(module_labels))}
-    #for mi in np.unique(module_labels):
-    #    mask = module_labels == mi
-    #    print(f'for mi{mi}, there are {np.sum(mask)} points')
-    #    plt.scatter(np.array(X['field_spacing'])[mask], 
-    #                np.array(X['orientation'])[mask], c=label_colors[mi], s=20, cmap='viridis', label='Clustered Points')
-    
+    sns.scatterplot(data=X, x="field_spacing", y="orientation", hue="cluster", palette="tab10",
+                    s=25, legend=False, linewidth=0, ax=ax_plot)
+
     # Highlight unassigned points (label -1)
-    plt.scatter(np.array(X['field_spacing'])[module_labels == -1], 
-                np.array(X['orientation'])[module_labels == -1], s=21, color='black', label='Unassigned Points')
-    plt.scatter(all['field_spacing'], all['orientation'], s=20, color='tab:grey', alpha=0.5,zorder=-1)
+    ax_plot.scatter(np.array(X['field_spacing'])[module_labels == -1],
+                    np.array(X['orientation'])[module_labels == -1], s=21, color='black', label='Unassigned Points')
+    ax_plot.scatter(all['field_spacing'], all['orientation'], s=20, color='tab:grey', alpha=0.5, zorder=-1)
 
-    #plt.legend()
-    plt.xlabel('Grid spacing (cm)')
-    plt.ylabel('Grid orientation ($^\circ$)')
-    plt.ylim(0,60)
-    plt.title(f'HDBSCAN M{mouse}D{day}')
-    plt.tight_layout()
-    plt.show()
+    ax_plot.set_ylim(0, 60)
+    if standalone:
+        ax_plot.set_xlabel('Grid spacing (cm)')
+        ax_plot.set_ylabel('Grid orientation ($^\circ$)')
+        ax_plot.set_title(f'M{mouse}D{day}  ε={_epsilon}')
+        plt.tight_layout()
+        plt.show()
 
     if np.unique(module_labels).size == 1 and np.unique(module_labels)[0] == -1:
         module_labels[:] = 0  # Assign all points to a single cluster if no clusters were found
-        return [], []
+        return [], [], fig
     
     # put cluster ids into modules then rearange from smallest spacing to larger
     grid_module_cluster_ids = []
@@ -521,103 +595,12 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
         avg_spacings.append(np.nanmean(cells.field_spacing.values))
         grid_module_cluster_ids.append(cells['cluster_id'].tolist())
         grid_module_ids.append(mi)
-        print(f'for module {mi}, there are {len(cells)} cells with average spacing {np.nanmean(cells.field_spacing.values)}')
+        if verbose:
+            print(f'for module {mi}, there are {len(cells)} cells with average spacing {np.nanmean(cells.field_spacing.values)}')
     grid_module_cluster_ids = [x for _, x in sorted(zip(avg_spacings, grid_module_cluster_ids))]
     grid_module_ids = [x for _, x in sorted(zip(avg_spacings, grid_module_ids))]
-    
-    '''
-    # now curate the modules based on the VR data and anatomy
-    _,_,autocorrs,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
-    if curate_with_brain_region:
-        for mi, module_ids in zip(grid_module_ids, grid_module_cluster_ids):
-            print(f'module {mi} contains cells from {np.unique(clusters_VR[module_ids].brain_region)}')
-            new_module_ids = module_ids.copy()
-            for id in module_ids:
-                br = clusters_VR.brain_region[id]
-                if br in disqualifying_brain_areas_for_grid_cells:
-                    module_ids.remove(id)
-            grid_module_cluster_ids[grid_module_ids.index(mi)] = new_module_ids
-    
-    if curate_with_vr:
-        tolerance = 30
-        prominence = 0.05
-        # before performing the median peak check, plot the histogram of peaks
-        for mi, module_ids in zip(grid_module_ids, grid_module_cluster_ids):
-            matrix = np.array(list(autocorrs.values()))
-            matrix_cluster_ids = np.array(list(autocorrs.keys()))
-            cluster_id_of_interest = module_ids
-            matrix = matrix[np.isin(matrix_cluster_ids, cluster_id_of_interest)]
-            matrix_cluster_ids = matrix_cluster_ids[np.isin(matrix_cluster_ids, cluster_id_of_interest)]
-            peaks = []
-            for array in matrix:
-                if len(find_peaks(array,prominence=prominence)[0])>0:
-                    peak = find_peaks(array,prominence=prominence)[0][0]
-                else:
-                    peak = np.nan
-                    
-                if plot_curate:
-                    plt.plot(array, alpha=0.5)
-                    plt.axvline(peak, linestyle='--', alpha=0.5)
-                    plt.show()
-
-                peaks.append(peak)
-            peaks = np.array(peaks)*bs
-            median_peak = np.nanmedian(peaks)
-            
-            if plot_curate:
-                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(2,2), squeeze=False)
-                if median_peak < 200:
-                    max_r = 200
-                else:
-                    max_r = 400
-                ax[0,0].hist(peaks, bins=25, range=(0, max_r))
-                ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
-                ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
-                #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}.pdf')
-                plt.show()
-
-            # now check if the peaks are within 30cm of the median peak
-            # also check if the rate is really low and should be considered
-            for peak, cluster_id in zip(peaks, matrix_cluster_ids):
-                if not np.abs(peak-median_peak)<(tolerance): # 30cm tolerance
-                    module_ids.remove(cluster_id)
-                    print(f'removing cluster {cluster_id} from module {mi} because peak {peak} is not within tolerance of median peak {median_peak}')
-                elif nap.TsGroup([clusters_VR[cluster_id]]).rates[0] < 1:
-                    module_ids.remove(cluster_id)
-                    print(f'removing cluster {cluster_id} from module {mi} because rate is too low (below 1 Hz)')
-
-            grid_module_cluster_ids[grid_module_ids.index(mi)] = module_ids
-
-        # now plot the histogram of peaks again 
-        for mi, module_ids in zip(grid_module_ids, grid_module_cluster_ids):
-            matrix = np.array(list(autocorrs.values()))
-            matrix_cluster_ids = np.array(list(autocorrs.keys()))
-            cluster_id_of_interest = module_ids
-            matrix = matrix[np.isin(matrix_cluster_ids, cluster_id_of_interest)]
-            matrix_cluster_ids = matrix_cluster_ids[np.isin(matrix_cluster_ids, cluster_id_of_interest)]
-            peaks = []
-            for array in matrix:
-                if len(find_peaks(array,prominence=prominence)[0])>0:
-                    peak = find_peaks(array,prominence=prominence)[0][0]
-                else:
-                    peak = np.nan
-                peaks.append(peak)
-            peaks = np.array(peaks)*bs
-            median_peak = np.nanmedian(peaks)
-
-            if plot_curate:
-                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(2,2), squeeze=False)
-                if median_peak < 200:
-                    max_r = 200
-                else:
-                    max_r = 400
-                ax[0,0].hist(peaks, bins=25, range=(0, max_r))
-                ax[0,0].axvline(median_peak-tolerance, color='grey', linestyle='--')
-                ax[0,0].axvline(median_peak+tolerance, color='grey', linestyle='--')
-                #plt.savefig(f'{figpath}/GC_peaks_{mi}_{mouse}D{day}_post_curated.pdf')
-                plt.show()
-    '''       
-    return  grid_module_ids, grid_module_cluster_ids
+          
+    return grid_module_ids, grid_module_cluster_ids, fig
 
 
 def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, mouse, day, figpath, source_path=None):
@@ -678,6 +661,105 @@ def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, m
     plt.tight_layout()
     plt.savefig(f'{figpath}/M{mouse}D{day}_GC_rate_maps_modules.pdf', dpi=1000)
     plt.close()    
+
+
+def plot_grid_modules(gcs, grid_module_ids, grid_module_cluster_ids, mouse, day,
+                      figpath='', source_path=None, session='OF1', ncols=10, verbose=False):
+    """
+    Plot OF rate maps for grid cells arranged by module (sorted smallest→largest spacing).
+
+    Parameters
+    ----------
+    gcs : DataFrame
+        Grid cell DataFrame with at least cluster_id and travel columns.
+    grid_module_ids : list of int
+        Module IDs sorted from smallest to largest average spacing
+        (as returned by HDBSCAN_grid_modules).
+    grid_module_cluster_ids : list of list of int
+        cluster_ids belonging to each module, parallel to grid_module_ids.
+    mouse, day : int
+        Session identifiers.
+    figpath : str
+        Directory to save the figure. Pass '' to skip saving.
+    session : str
+        'OF1' or 'OF2'.
+    ncols : int
+        Number of columns in the rate-map grid.
+    verbose : bool
+        Print per-module cell counts.
+    """
+    if not grid_module_ids:
+        print('No modules to plot.')
+        return
+
+    # Determine session-level optimal shift from gcs
+    optimal_shift = float(gcs['travel'].iloc[0]) if len(gcs) > 0 and 'travel' in gcs.columns else 0
+
+    # Load all rate maps in one pass
+    try:
+        tcs, _, _, _, _ = compute_of_tcs(
+            mouse, day,
+            apply_zscore=False,
+            apply_guassian_filter=True,
+            fill_nans_from_neighbors=True,
+            source_path=source_path,
+            optimal_shift=optimal_shift,
+            session=session,
+        )
+    except Exception as e:
+        print(f'Failed to load {session} rate maps for M{mouse}D{day}: {e}')
+        return
+
+    # Build layout: one block of rows per module, separated by a spacer row
+    rows_per_module = {
+        mi: max(int(np.ceil(len(ids) / ncols)), 1)
+        for mi, ids in zip(grid_module_ids, grid_module_cluster_ids)
+    }
+    n_spacers = max(len(grid_module_ids) - 1, 0)
+    nrows = sum(rows_per_module.values()) + n_spacers
+
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols,
+                             figsize=(ncols * 0.5, nrows * 0.55), squeeze=False)
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+
+    row_cursor = 0
+    for loop_idx, (mi, module_cluster_ids) in enumerate(zip(grid_module_ids, grid_module_cluster_ids)):
+        module_gcs = gcs[gcs['cluster_id'].isin(module_cluster_ids)]
+        if verbose:
+            avg_sp = np.nanmean(module_gcs['field_spacing'].values) if 'field_spacing' in module_gcs.columns else float('nan')
+            print(f'Module {mi}: {len(module_gcs)} cells, avg spacing {avg_sp:.1f} cm')
+
+        counter = 0
+        for row_offset in range(rows_per_module[mi]):
+            for col in range(ncols):
+                ax = axes[row_cursor + row_offset, col]
+                if counter < len(module_cluster_ids):
+                    cid = module_cluster_ids[counter]
+                    if cid in tcs:
+                        ax.imshow(tcs[cid], cmap='viridis', origin='lower')
+                    counter += 1
+                ax.axis('off')
+
+        row_cursor += rows_per_module[mi]
+
+        # Spacer row between modules
+        if loop_idx < len(grid_module_ids) - 1:
+            for col in range(ncols):
+                axes[row_cursor, col].axis('off')
+            row_cursor += 1
+
+    # Turn off any remaining axes
+    for r in range(row_cursor, nrows):
+        for col in range(ncols):
+            axes[r, col].axis('off')
+
+    fig.suptitle(f'Grid modules M{mouse}D{day}  ({session})', fontsize=9)
+    plt.tight_layout(rect=[0, 0, 0.3, 0.3])
+
+    if figpath:
+        plt.savefig(f'{figpath}GC_rate_maps_modules_M{mouse}D{day}.pdf', dpi=300)
+    plt.show()
+
 
 def white_to_hex_cmap(hex_color, name='custom_cmap'):
     return LinearSegmentedColormap.from_list(name, ['#FFFFFF', hex_color])
@@ -1033,13 +1115,12 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
     return tcs, tcs_time, autocorrs, last_ephys_bin, beh, clusters
 
 def compute_of_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, fill_nans_from_neighbors=True,
-                   source_path=None, bs_t=None, optimal_shift=0):
+                   source_path=None, bs_t=None, optimal_shift=0, session='OF1'):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = '/Users/harryclark/Downloads/COHORT12/' 
     if bs_t is None:
         bs_t = time_bs
 
-    session = 'OF1'
     of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
