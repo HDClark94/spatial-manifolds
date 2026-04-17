@@ -986,8 +986,8 @@ def get_theta_trace(
     last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=bs_t, time_units='ms').index[-1]
     ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units='s')
 
-    theta = nap.load_file(f'/Users/harryclark/Downloads/M{mouse}/D{day:02}/VR/sub-M{mouse}_ses-D{day:02}_typ-VR_lfp.npz')
-    channel_arrays = pd.read_csv('/Users/harryclark/Downloads/all_cluster_brain_locations_chris.csv')
+    theta = nap.load_file(f'{source_path}LFP/M{mouse}/D{day:02}/VR/sub-M{mouse}_ses-D{day:02}_typ-VR_lfp.npz')
+    channel_arrays = pd.read_csv(f'{source_path}all_cluster_brain_locations_chris.csv')
     extrema_channel = channel_arrays[
         (channel_arrays['mouse'] == mouse) &
         (channel_arrays['day'] == day) &
