@@ -394,8 +394,8 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
             cell['theta_index'] = theta_index
             cell['firing_rate'] = clusters_VR.firing_rate[index]
 
-            cell['firing_rate_OF1'] = len(clusters_OF1[index])/beh_OF1['head_x'].index[-1]
-            cell['firing_rate_VR'] = len(clusters_VR[index])/last_ephys_time_bin
+            cell['firing_rate_OF1'] = clusters_OF1.rate[index]
+            cell['firing_rate_VR'] = clusters_VR.rate[index]
 
 
             # print a warning if the firing rates are very different, by a factor of 10 at least
