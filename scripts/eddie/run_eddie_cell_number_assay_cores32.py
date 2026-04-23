@@ -183,16 +183,26 @@ mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
               27: [16,17,18,19,20,21,22,23,24,25,26],
               28: [16,17,18,19,20,21,22,23,24],
               29: [16,17,18,19,20,21,22,23,25],
-            } 
+            }
 
+# need extra compute
+mouse_days_more_cores = {20: [26,20,14,18,19,16,21,22,23],
+              21: [15,16,17,19,20,18,22,23,24,21,26],
+              22: [33,37,38],
+              25: [23,18,22,24],
+              26: [12,15,11,13,19],
+              27: [24,],
+              28: [20,23],
+              29: [21,20,23,25],
+            }
 
 for assay_mode in ["GC", "NGS"]:  # 'GC' for grid cells, 'NGS' for non grid spatial cells
-    for mouse, days in mouse_days.items(): 
+    for mouse, days in mouse_days.items():
         for day in days:
             data_path = f"/exports/eddie/scratch/hclark3/data/xgboost_cell_number_assay_{assay_mode}/"
             stageout_dict = {
                 data_path: f'/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_cell_number_assay_{assay_mode}/'
             }
-            job_name = f"M{mouse}D{day}X_{assay_mode}"
-            run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_cell_number_assay_extra.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=16, job_name=job_name)
+            job_name = f"M{mouse}D{day}_xgboost_{assay_mode}"
+            run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_cell_number_assay.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=32, job_name=job_name)
             run_stage_script(stageout_dict, hold_jid=job_name)
