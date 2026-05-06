@@ -2604,31 +2604,37 @@ def get_annotation_colors_2D(annotations):
 
 
 def reconstruct_shank_id(clusters_df, mouse, colname='unit_location_x'):
+    # M21 was implanted in reverse: remap probe_x values so shank 0 is at the
+    # left (low x) and shank 3 at the right (high x), matching all other mice.
+    # The 8 unique probe_x values and their flipped counterparts:
+    _M21_X_REMAP = {
+        0.: 782., 32.: 750.,
+        250.: 532., 282.: 500.,
+        500.: 282., 532.: 250.,
+        750.: 32.,  782.: 0.,
+    }
+
+    if mouse == 21:
+        unique_before = sorted(clusters_df[colname].dropna().unique())
+        print(f"M21 unique {colname} values (before remap): {unique_before}")
+        clusters_df = clusters_df.copy()
+        clusters_df[colname] = clusters_df[colname].apply(
+            lambda v: _M21_X_REMAP.get(float(v), v)
+        )
+        unique_after = sorted(clusters_df[colname].dropna().unique())
+        print(f"M21 unique {colname} values (after remap):  {unique_after}")
+
     shank_ids = []
     for index, cluster in clusters_df.iterrows():
-
         x_pos = cluster[colname]
-        if mouse != 21:
-            if x_pos <= 150:
-                shank_id = 0
-            elif (x_pos > 150 and x_pos <= 400):
-                shank_id = 1
-            elif (x_pos > 400 and x_pos <= 650):
-                shank_id = 2
-            elif x_pos > 650:
-                shank_id = 3
-            shank_ids.append(shank_id)
-        # set the reverse shank ids for this mouse as it was 
-        # implanted the other way round to all the other mice
-        elif mouse == 21:
-            if x_pos <= 150:
-                shank_id = 3
-            elif (x_pos > 150 and x_pos <= 400):
-                shank_id = 2
-            elif (x_pos > 400 and x_pos <= 650):
-                shank_id = 1
-            elif x_pos > 650:
-                shank_id = 0
-            shank_ids.append(shank_id)
+        if x_pos <= 150:
+            shank_id = 0
+        elif x_pos <= 400:
+            shank_id = 1
+        elif x_pos <= 650:
+            shank_id = 2
+        else:
+            shank_id = 3
+        shank_ids.append(shank_id)
     clusters_df['shank_id'] = shank_ids
     return clusters_df

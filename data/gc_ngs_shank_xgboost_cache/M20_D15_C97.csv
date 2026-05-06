@@ -1,0 +1,6 @@
+mouse,day,target_cluster_id,target_shank_id,target_cell_type,cov_shank_id,n_ngs_cells,covariate_type,pR2_cv,mean_dist_to_ngs_um
+20,15,97,1,NG,,,pos,0.002841159670164717,
+20,15,97,1,NG,0.0,1.0,pos+ngs_shank,0.006581059133674472,221.17182075787076
+20,15,97,1,NG,1.0,23.0,pos+ngs_shank,0.0096875915420384,140.21739130434779
+20,15,97,1,NG,2.0,10.0,pos+ngs_shank,0.0041332292188267835,238.91392537330836
+20,15,97,1,NG,3.0,15.0,pos+ngs_shank,0.005466953704127242,469.73312512495175

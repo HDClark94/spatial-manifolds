@@ -1,0 +1,4 @@
+mouse,day,grid_module,target_cluster_id,cov_cluster_id,covariate_type,pR2_cv,euclidean_distance_um
+26,19,1,313,,pos,0.009081364414242121,
+26,19,1,313,282.0,pos+cell,0.010718384705169792,149.99999999999974
+26,19,1,313,355.0,pos+cell,0.007321768366957149,150.00000000000048

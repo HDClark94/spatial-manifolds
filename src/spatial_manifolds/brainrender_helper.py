@@ -141,34 +141,41 @@ def correct_for_left_side(probe_locs_list_CCF, do_correction=True):
 
 
 def reconstruct_shank_id(clusters_df, mouse, colname='unit_location_x'):
+    # M21 was implanted in reverse: remap probe_x values so shank 0 is at the
+    # left (low x) and shank 3 at the right (high x), matching all other mice.
+    # The 8 unique probe_x values and their flipped counterparts:
+    _M21_X_REMAP = {
+        0.: 782., 32.: 750.,
+        250.: 532., 282.: 500.,
+        500.: 282., 532.: 250.,
+        750.: 32.,  782.: 0.,
+    }
+
+    if mouse == 21:
+        unique_before = sorted(clusters_df[colname].dropna().unique())
+        print(f"M21 unique {colname} values (before remap): {unique_before}")
+        clusters_df = clusters_df.copy()
+        clusters_df[colname] = clusters_df[colname].apply(
+            lambda v: _M21_X_REMAP.get(float(v), v)
+        )
+        unique_after = sorted(clusters_df[colname].dropna().unique())
+        print(f"M21 unique {colname} values (after remap):  {unique_after}")
+
     shank_ids = []
     for index, cluster in clusters_df.iterrows():
-
         x_pos = cluster[colname]
-        if mouse != 21:
-            if x_pos <= 150:
-                shank_id = 0
-            elif (x_pos > 150 and x_pos <= 400):
-                shank_id = 1
-            elif (x_pos > 400 and x_pos <= 650):
-                shank_id = 2
-            elif x_pos > 650:
-                shank_id = 3
-            shank_ids.append(shank_id)
-        # set the reverse shank ids for this mouse as it was 
-        # implanted the other way round to all the other mice
-        elif mouse == 21:
-            if x_pos <= 150:
-                shank_id = 3
-            elif (x_pos > 150 and x_pos <= 400):
-                shank_id = 2
-            elif (x_pos > 400 and x_pos <= 650):
-                shank_id = 1
-            elif x_pos > 650:
-                shank_id = 0
-            shank_ids.append(shank_id)
+        if x_pos <= 150:
+            shank_id = 0
+        elif x_pos <= 400:
+            shank_id = 1
+        elif x_pos <= 650:
+            shank_id = 2
+        else:
+            shank_id = 3
+        shank_ids.append(shank_id)
     clusters_df['shank_id'] = shank_ids
     return clusters_df
+
 
 
 def brain_coord_from_xy(x_pos, y_pos, probe_locs_list_SC, shank_id):
@@ -230,4 +237,66 @@ def get_annotation_colors(cluster_annotations):
             #print(f'I couldnt assign a color for {cluster_annotations[i]}, so I made it red')
             color = (255, 255, 255, 255)
         annotation_colors.append(color)
+
+
+def make_annotations(mouse, path=None):
+    """Build (or load from cache) a 2-D annotation array and matching color array
+    for a given mouse, covering the probe x/y display space.
+
+    Returns
+    -------
+    annotations       : np.ndarray, shape (len(ys), len(xs)), dtype=object  — brain-region acronym per pixel
+    annotation_colors : np.ndarray, shape (len(ys), len(xs))               — hex color per pixel
+    xs                : np.ndarray  — x-axis values (µm, probe space)
+    ys                : np.ndarray  — y-axis values (µm, probe space)
+    """
+    import os
+    from spatial_manifolds.detect_grids import get_annotation_colors_2D
+
+    ymin = -300; ymax = 3000
+    xmin = -200; xmax = 1000
+    xs = np.arange(xmin, xmax, 1)
+    ys = np.arange(ymin, ymax, 1)
+
+    ann_path   = f"{path}/M{mouse}_annotations.npy"
+    color_path = f"{path}/M{mouse}_annotation_colors.npy"
+
+    if os.path.exists(ann_path) and os.path.exists(color_path):
+        annotations       = np.load(ann_path,   allow_pickle=True)
+        annotation_colors = np.load(color_path, allow_pickle=True)
+        return annotations, annotation_colors, xs, ys
+
+    # ── Build from probe registration files ───────────────────────────────
+    data_paths = [
+        f"/Users/harryclark/Documents/brainrender/probe_data/M{mouse}_probe_locations_{a}.mat"
+        for a in [1, 2, 3, 4]
+    ]
+    shank_offsets_SC = pd.read_csv(
+        '/Users/harryclark/Documents/brainrender/probe_data/shank_offsets.csv'
+    )
+    shank_offsets_SC = shank_offsets_SC[shank_offsets_SC['mouse'] == mouse]
+
+    probes_locs = [read_probe_mat(p) for p in data_paths]
+    adjusted_probes_locs_CCF = np.array([adjust_probe_locs(pl) for pl in probes_locs])
+    adjusted_probe_locs_SC, adjusted_probe_locs_CCF = correct_for_left_side(adjusted_probes_locs_CCF)
+    adjusted_probe_locs_SC, adjusted_probe_locs_CCF = adjust_to_shank_offsets(
+        adjusted_probe_locs_SC, shank_offsets_SC
+    )
+
+    annotations = np.zeros((len(ys), len(xs)), dtype=object)
+    for yi, y in enumerate(ys):
+        for xi, x in enumerate(xs):
+            coord_SC, coord_CCF = brain_coord_from_xy(x, y, adjusted_probe_locs_SC, shank_id=0)
+            z_CCF, y_CCF, x_CCF = np.round(coord_CCF / 10).astype(int)
+            annotation_index = annotations_set[z_CCF, y_CCF, x_CCF]
+            matches = structure_set[structure_set['id'] == annotation_index]
+            annotations[yi, xi] = matches['acronym'].iloc[0] if len(matches) == 1 else 'root'
+
+    annotation_colors = get_annotation_colors_2D(annotations)
+
+    np.save(ann_path,   annotations)
+    np.save(color_path, annotation_colors)
+    print(f"  [make_annotations] Saved to {path}")
+
+    return annotations, annotation_colors, xs, ys
     return annotation_colors
