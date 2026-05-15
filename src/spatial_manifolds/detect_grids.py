@@ -174,7 +174,8 @@ def cell_classification_anatomy(mouse, day, source_path=None, verbose=True):
 
 
 def classify_cells_both_sessions(mouse, day, percentile_threshold=95, source_path=None, verbose=False,
-                                 disqualifying_regions=disqualifying_brain_areas_for_grid_cells):
+                                 disqualifying_regions=disqualifying_brain_areas_for_grid_cells, 
+                                 use_optimal_travel=True, get_extra_info=False):
     """
     Classify cells using both OF1 and OF2 sessions.
     For each session, we attempt to classify cells as grid cells (GCs) or non-grid spatial cells (NGS) using the specified percentile threshold.
@@ -192,7 +193,8 @@ def classify_cells_both_sessions(mouse, day, percentile_threshold=95, source_pat
             mouse, day, percentile_threshold=percentile_threshold,
             source_path=source_path, verbose=verbose, session='OF1', 
             disqualifying_brain_areas_for_grid_cells=disqualifying_regions,
-            disqualifying_brain_areas_for_spatial_cells=disqualifying_regions,
+                disqualifying_brain_areas_for_spatial_cells=disqualifying_regions,
+                use_optimal_travel=use_optimal_travel, get_extra_info=get_extra_info
         )
     except FileNotFoundError:
         gcs_1, ngs_1, all_1 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
@@ -205,6 +207,7 @@ def classify_cells_both_sessions(mouse, day, percentile_threshold=95, source_pat
             source_path=source_path, verbose=verbose, session='OF2',
             disqualifying_brain_areas_for_grid_cells=disqualifying_regions,
             disqualifying_brain_areas_for_spatial_cells=disqualifying_regions,
+            use_optimal_travel=use_optimal_travel, get_extra_info=get_extra_info
         )
     except FileNotFoundError:
         gcs_2, ngs_2, all_2 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()

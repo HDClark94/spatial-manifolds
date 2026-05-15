@@ -126,7 +126,7 @@ BASELINE_COV_NAMES = ['pos', 'speed', 'lfp', 'pos_speed', 'pos_lfp', 'speed_lfp'
 N_BASELINE_COVS = len(BASELINE_COV_NAMES)
 
 # n_neurons_nonzero: cell conditions only (n > 0)
-n_neurons_nonzero = np.arange(1, len(cov_cell_population_cluster_ids), 2)
+n_neurons_nonzero = np.arange(1, min(11, len(cov_cell_population_cluster_ids)))
 
 # baseline_pR2s: shape (n_conditions, N_BASELINE_COVS, n_cells)
 # cell_pR2s:     shape (n_conditions, len(n_neurons_nonzero), n_cells)
@@ -140,6 +140,11 @@ baseline_pR2s_non_grids    = np.full((N_CONDITIONS, N_BASELINE_COVS, len(non_gri
 cell_pR2s_comodular    = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(grid_module_population_cluster_ids)), np.nan)
 cell_pR2s_non_comodular = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(grid_non_module_population_cluster_ids)), np.nan)
 cell_pR2s_non_grids    = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(non_grid_population_cluster_ids)), np.nan)
+
+# pos-only baseline + n cells
+cell_pR2s_pos_comodular    = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(grid_module_population_cluster_ids)), np.nan)
+cell_pR2s_pos_non_comodular = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(grid_non_module_population_cluster_ids)), np.nan)
+cell_pR2s_pos_non_grids    = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(non_grid_population_cluster_ids)), np.nan)
 
 def _condition_pR2s(y, Y_hat, beh, trial_number_in_time):
     """Return length-16 array of per-condition pR2, last entry = mean across all trials."""
@@ -163,10 +168,11 @@ def _condition_pR2s(y, Y_hat, beh, trial_number_in_time):
     return out
 
 # loop over the three cell populations
-for test_population_cluster_ids, baseline_pR2s, cell_pR2s, label in zip(
+for test_population_cluster_ids, baseline_pR2s, cell_pR2s, cell_pR2s_pos, label in zip(
     [grid_module_population_cluster_ids, grid_non_module_population_cluster_ids, non_grid_population_cluster_ids],
     [baseline_pR2s_comodular, baseline_pR2s_non_comodular, baseline_pR2s_non_grids],
     [cell_pR2s_comodular, cell_pR2s_non_comodular, cell_pR2s_non_grids],
+    [cell_pR2s_pos_comodular, cell_pR2s_pos_non_comodular, cell_pR2s_pos_non_grids],
     ['cmGC', 'ncmGC', 'NGS'],
 ):
     for i, id in enumerate(test_population_cluster_ids):
@@ -254,6 +260,16 @@ for test_population_cluster_ids, baseline_pR2s, cell_pR2s, label in zip(
             cond_pR2s[-1] = np.nanmean(pR2_cv)
             cell_pR2s[:, j, i] = cond_pR2s
 
+        # --- Cell conditions: pos-only base + n cells ---
+        for j, n in enumerate(n_neurons_nonzero):
+            np.random.seed(j)
+            x = np.column_stack((pos[:, None], all_x[:, :n]))
+            Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose=0, continuous_folds=True)
+            print(f'  [pos-only] n_cells={n} pR2 = {np.nanmean(pR2_cv):.4f}')
+            cond_pR2s = _condition_pR2s(y, Y_hat, beh, trial_number_in_time)
+            cond_pR2s[-1] = np.nanmean(pR2_cv)
+            cell_pR2s_pos[:, j, i] = cond_pR2s
+
     # --- Save results for this population ---
     baseline_results = {
         str(int(test_population_cluster_ids[i])): {
@@ -269,7 +285,15 @@ for test_population_cluster_ids, baseline_pR2s, cell_pR2s, label in zip(
         }
         for i in range(len(test_population_cluster_ids))
     }
+    cell_results_pos = {
+        str(int(test_population_cluster_ids[i])): {
+            f'n{int(n)}': cell_pR2s_pos[:, j, i].tolist()
+            for j, n in enumerate(n_neurons_nonzero)
+        }
+        for i in range(len(test_population_cluster_ids))
+    }
     yaml_out = {'baseline_covariates': baseline_results, 'cell_covariates': cell_results,
+                'cell_covariates_pos_only': cell_results_pos,
                 'baseline_cov_names': BASELINE_COV_NAMES,
                 'n_neurons_nonzero': n_neurons_nonzero.tolist()}
 
