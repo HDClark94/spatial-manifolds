@@ -1,36 +1,40 @@
 import numpy as np
-from matplotlib import pyplot as plt
 import pandas as pd
-from sklearn.metrics import confusion_matrix
 import pynapple as nap
-from spatial_manifolds.toroidal import *
-from spatial_manifolds.behaviour_plots import *
+from matplotlib import pyplot as plt
 from spatial_manifolds.mlencoding import *
-from spatial_manifolds.circular_decoder import circular_decoder, cross_validate_decoder, cross_validate_decoder_time, circular_nanmean
-from spatial_manifolds.data.curation import curate_clusters
-from scipy.stats import zscore
-from spatial_manifolds.util import gaussian_filter_nan
-from spatial_manifolds.predictive_grid import compute_travel_projected, wrap_list
-from spatial_manifolds.behaviour_plots import *
 from spatial_manifolds.detect_grids import *
 from argparse import ArgumentParser
-
 import warnings
 warnings.filterwarnings('ignore')
 
-import yaml
 
-'''
-This script performs an xgboost assay to assess the influence of grid cells or non grid cells 
-on the encoding of a reference cell in a VR environment with respect to the distance of the grid cells
-or non grid cells to the reference cell.
-It uses a subset of grid cells and non-grid spatial cells to predict the reference cells firing 
-based on their activity, position and the history of their activity and position. 
-The results are saved in a YAML file for further analysis.
+"""
+XGBoost Cell Number Assay (pR², batched cell runs)
+------------------------------------------------------------------
+This script fits XGBoost models to predict the firing of reference cells (grid or non-grid spatial)
+in VR, using different covariate sets, and is designed to be run in batches (e.g. 20 cells per run) for time-limited cluster jobs.
 
-This assay is will be optimised for recordings which were recorded in the multishank mode ||||
-'''
+Key features:
+    - Accepts a range of target cell indices (e.g. --cell_start 0 --cell_end 20) to process only a subset of cells per run.
+    - Loops over both 'GC' and 'NGS' covariate cell types for each reference cell.
+    - Appends a suffix to the output CSV indicating the cell index range (e.g. _0_20.csv).
+    - For each reference cell, fits baseline models (pos, speed, lfp, etc) and cell models (baseline + N covariate cells), recording cross-validated pseudo-R² (pR²) for each fit.
+
+Resulting DataFrame columns:
+    - mouse, day: session identifiers
+    - target_cluster_id: reference cell ID
+    - covariate_type: 'cmGC', 'ncmGC', 'NGS', or 'GC' (see logic)
+    - baseline: name of baseline covariate set (e.g. 'pos', 'pos_speed', ...)
+    - n_covariate_cells: number of covariate cells used (0 for baseline)
+    - covariate_cell_type: 'GC' or 'NGS' (type of covariate cells used)
+    - pR2_cv: cross-validated pseudo-R²
+
+Each row represents a single XGBoost fit for a given target cell and covariate set.
+Run this script multiple times with different cell index ranges to cover all cells in a session.
+"""
  
+
 use_parser = True
 
 source_path = '/Users/harryclark/Downloads/COHORT12/'
@@ -38,21 +42,23 @@ data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
 mouse = 25
 day = 24
-assay_mode = 'GC'         # 'GC' for grid cells, 
-                          # 'NGS' for non grid spatial cells
+cell_start = 0
+cell_end = 20
 
 if use_parser:
     parser = ArgumentParser()
     parser.add_argument('--mouse', type=int, required=True, help='Mouse ID')
     parser.add_argument('--day', type=int, required=True, help='Day of recording')
-    parser.add_argument('--assay_mode', type=str, required=True, help='Assay mode: GC or NGS')
     parser.add_argument('--data_path', type=str, required=True, help='Path to data directory')
+    parser.add_argument('--cell_start', type=int, required=True, help='Start index of target cells (inclusive)')
+    parser.add_argument('--cell_end', type=int, required=True, help='End index of target cells (exclusive)')
     args = parser.parse_args()
 
     mouse = args.mouse
     day = args.day
-    assay_mode = args.assay_mode
     data_path = args.data_path
+    cell_start = args.cell_start
+    cell_end = args.cell_end
     source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 
 
@@ -111,127 +117,120 @@ grid_module_population_cluster_ids = np.array(cluster_ids_by_group[0].copy())
 grid_non_module_population_cluster_ids = np.setdiff1d(gcs.cluster_id.values, grid_module_population_cluster_ids).astype(int)
 non_grid_population_cluster_ids = ngs.cluster_id.values.astype(int).astype(int)
 
-# set the covariate cell population cluster ids based on the assay mode
-if assay_mode == 'GC':
-    cov_cell_population_cluster_ids = grid_module_population_cluster_ids
-elif assay_mode == 'NGS':
-    cov_cell_population_cluster_ids = non_grid_population_cluster_ids
+
+# Prepare covariate cell sets for both GC and NGS
+covariate_sets = [
+    ('GC', grid_module_population_cluster_ids),
+    ('NGS', non_grid_population_cluster_ids)
+]
 
 # set up xgboost history model
 xgb_history = MLencoding(tunemodel = 'xgboost', cov_history = True, spike_history=False, 
                          window = time_bs, n_filters = nfilters, max_time = history_length)
 
-# All 7 covariate combinations of pos / speed / lfp (used for baselines, n=0)
-BASELINE_COV_NAMES = ['pos', 'speed', 'lfp', 'pos_speed', 'pos_lfp', 'speed_lfp', 'pos_speed_lfp']
-N_BASELINE_COVS = len(BASELINE_COV_NAMES)
 
-# n_neurons_nonzero: cell conditions only (n > 0)
-n_neurons_nonzero = np.arange(1, min(11, len(cov_cell_population_cluster_ids)))
+# --- Results DataFrame: one row per XGBoost fit ---
+results_rows = []
 
-# baseline_pR2s: shape (n_conditions, N_BASELINE_COVS, n_cells)
-# cell_pR2s:     shape (n_conditions, len(n_neurons_nonzero), n_cells)
-# last condition row (-1) stores mean pR2 across all trials
-N_CONDITIONS = 16
+# --- Helper function for covariate_type logic ---
+def get_covariate_type(target_id, target_type, covariate_cell_type, g_m_cluster_ids, gcs, ngs):
+    if target_type == 'GC':
+        in_module = any(target_id in module for module in g_m_cluster_ids)
+        if covariate_cell_type == 'GC':
+            return 'cmGC' if in_module else 'ncmGC'
+        elif covariate_cell_type == 'NGS':
+            return 'NGS'
+    elif target_type == 'NGS':
+        return covariate_cell_type
+    return 'unknown'
 
-baseline_pR2s_comodular    = np.full((N_CONDITIONS, N_BASELINE_COVS, len(grid_module_population_cluster_ids)), np.nan)
-baseline_pR2s_non_comodular = np.full((N_CONDITIONS, N_BASELINE_COVS, len(grid_non_module_population_cluster_ids)), np.nan)
-baseline_pR2s_non_grids    = np.full((N_CONDITIONS, N_BASELINE_COVS, len(non_grid_population_cluster_ids)), np.nan)
+all_target_cells = np.concatenate([
+    grid_module_population_cluster_ids,
+    grid_non_module_population_cluster_ids,
+    non_grid_population_cluster_ids
+])
 
-cell_pR2s_comodular    = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(grid_module_population_cluster_ids)), np.nan)
-cell_pR2s_non_comodular = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(grid_non_module_population_cluster_ids)), np.nan)
-cell_pR2s_non_grids    = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(non_grid_population_cluster_ids)), np.nan)
+# Apply batching: select only the requested range of target cells
+if cell_end is None:
+    cell_end = len(all_target_cells)
+target_cells_batch = all_target_cells[cell_start:cell_end]
 
-# pos-only baseline + n cells
-cell_pR2s_pos_comodular    = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(grid_module_population_cluster_ids)), np.nan)
-cell_pR2s_pos_non_comodular = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(grid_non_module_population_cluster_ids)), np.nan)
-cell_pR2s_pos_non_grids    = np.full((N_CONDITIONS, len(n_neurons_nonzero), len(non_grid_population_cluster_ids)), np.nan)
+for idx, id in enumerate(target_cells_batch):
+    print(f'Processing reference cell {id} ({cell_start+idx+1}/{cell_end})')
 
-def _condition_pR2s(y, Y_hat, beh, trial_number_in_time):
-    """Return length-16 array of per-condition pR2, last entry = mean across all trials."""
-    out = np.full(N_CONDITIONS, np.nan)
-    c = 0
-    for context in ['rz1', 'rz2']:
-        for ttype in ['b', 'nb']:
-            for perf in ['hit', 'try', 'run', 'slow']:
-                trial_numbers = np.array(
-                    beh['trials'][
-                        (beh['trials']['type'] == ttype) &
-                        (beh['trials']['context'] == context) &
-                        (beh['trials']['performance'] == perf)
-                    ]['number']
-                )
-                if len(trial_numbers) > 0:
-                    mask = np.isin(trial_number_in_time, trial_numbers)
-                    out[c] = poisson_pseudoR2(y[mask], Y_hat[mask], ynull=np.nanmean(y))
-                c += 1
-    out[-1] = np.nanmean(poisson_pseudoR2(y, Y_hat, ynull=np.nanmean(y)))
-    return out
+    # Get the target variable (reference cell spike train)
+    y = np.array(tcs_time[id])
+    T = len(y)
 
-# loop over the three cell populations
-for test_population_cluster_ids, baseline_pR2s, cell_pR2s, cell_pR2s_pos, label in zip(
-    [grid_module_population_cluster_ids, grid_non_module_population_cluster_ids, non_grid_population_cluster_ids],
-    [baseline_pR2s_comodular, baseline_pR2s_non_comodular, baseline_pR2s_non_grids],
-    [cell_pR2s_comodular, cell_pR2s_non_comodular, cell_pR2s_non_grids],
-    [cell_pR2s_pos_comodular, cell_pR2s_pos_non_comodular, cell_pR2s_pos_non_grids],
-    ['cmGC', 'ncmGC', 'NGS'],
-):
-    for i, id in enumerate(test_population_cluster_ids):
-        print(f'[{label}] Processing reference cell {id} ({i+1}/{len(test_population_cluster_ids)})')
+    # --- Theta (LFP) trace for this cell's best channel ---
+    try:
+        theta = get_theta_trace(
+            mouse=mouse,
+            day=day,
+            cluster_id=id,
+            time_bs=50,
+            resample_bs=time_bs,
+            vr_type='VR',
+            source_path=source_path,
+        )
+        theta = np.array(theta)
+        if len(theta) < T:
+            theta = np.pad(theta, (0, T - len(theta)), mode='constant')
+        else:
+            theta = theta[:T]
+    except Exception as e:
+        print(f"    Could not load theta for cluster {id}: {e}. Using zeros.")
+        theta = np.zeros(T)
 
-        # get the target variable
-        y = np.array(tcs_time[id])
-        T = len(y)
+    # Align speed and pos to length T
+    pos   = pos_in_time[:T]
+    speed = speed_in_time[:T]
+    if len(pos) < T:
+        pos   = np.pad(pos,   (0, T - len(pos)),   mode='constant')
+    if len(speed) < T:
+        speed = np.pad(speed, (0, T - len(speed)), mode='constant')
 
-        # --- Theta (LFP) trace for this cell's best channel ---
-        try:
-            theta = get_theta_trace(
+    # --- Baselines: all 7 covariate combos of pos / speed / lfp ---
+    BASELINE_COV_NAMES = ['pos', 'speed', 'lfp', 'pos_speed', 'pos_lfp', 'speed_lfp', 'pos_speed_lfp']
+    baseline_xs = [
+        pos[:, None],                              # pos
+        speed[:, None],                            # speed
+        theta[:, None],                            # lfp
+        np.column_stack((pos, speed)),             # pos_speed
+        np.column_stack((pos, theta)),             # pos_lfp
+        np.column_stack((speed, theta)),           # speed_lfp
+        np.column_stack((pos, speed, theta)),      # pos_speed_lfp
+    ]
+
+    for b_idx, x_b in enumerate(baseline_xs):
+        Y_hat_b, pR2_cv_b = xgb_history.fit_cv(x_b, y, verbose=0, continuous_folds=True)
+        # Determine target_type for this cell
+        if id in gcs.cluster_id.values:
+            target_type = 'GC'
+        elif id in ngs.cluster_id.values:
+            target_type = 'NGS'
+        else:
+            target_type = 'unknown'
+        # For baseline fits, covariate_cell_type is not meaningful, but we loop over both for consistency
+        for covariate_cell_type, _ in covariate_sets:
+            cov_type = get_covariate_type(id, target_type, covariate_cell_type, g_m_cluster_ids, gcs, ngs)
+            print(f'  baseline [{BASELINE_COV_NAMES[b_idx]}] pR2 = {np.nanmean(pR2_cv_b):.4f} covariate_type={cov_type} covariate_cell_type={covariate_cell_type}')
+            results_rows.append(dict(
                 mouse=mouse,
                 day=day,
-                cluster_id=id,
-                time_bs=50,
-                resample_bs=time_bs,
-                vr_type='VR',
-                source_path=source_path,
-            )
-            theta = np.array(theta)
-            if len(theta) < T:
-                theta = np.pad(theta, (0, T - len(theta)), mode='constant')
-            else:
-                theta = theta[:T]
-        except Exception as e:
-            print(f"    Could not load theta for cluster {id}: {e}. Using zeros.")
-            theta = np.zeros(T)
+                target_cluster_id=id,
+                covariate_type=cov_type,
+                baseline=BASELINE_COV_NAMES[b_idx],
+                n_covariate_cells=0,
+                covariate_cell_type=covariate_cell_type,
+                pR2_cv=float(np.nanmean(pR2_cv_b)),
+            ))
 
-        # Align speed and pos to length T
-        pos   = pos_in_time[:T]
-        speed = speed_in_time[:T]
-        if len(pos) < T:
-            pos   = np.pad(pos,   (0, T - len(pos)),   mode='constant')
-        if len(speed) < T:
-            speed = np.pad(speed, (0, T - len(speed)), mode='constant')
+    # --- Cell models: BASELINE + n covariate cells ---
+    SC_x_ref = all[all.cluster_id == id].SC_x.values[0]
+    SC_y_ref = all[all.cluster_id == id].SC_y.values[0]
 
-        # --- Baselines: all 7 covariate combos of pos / speed / lfp ---
-        baseline_xs = [
-            pos[:, None],                              # pos
-            speed[:, None],                            # speed
-            theta[:, None],                            # lfp
-            np.column_stack((pos, speed)),             # pos_speed
-            np.column_stack((pos, theta)),             # pos_lfp
-            np.column_stack((speed, theta)),           # speed_lfp
-            np.column_stack((pos, speed, theta)),      # pos_speed_lfp
-        ]
-        for b_idx, x_b in enumerate(baseline_xs):
-            Y_hat_b, pR2_cv_b = xgb_history.fit_cv(x_b, y, verbose=0, continuous_folds=True)
-            print(f'  baseline [{BASELINE_COV_NAMES[b_idx]}] pR2 = {np.nanmean(pR2_cv_b):.4f}')
-            cond_pR2s = _condition_pR2s(y, Y_hat_b, beh, trial_number_in_time)
-            cond_pR2s[-1] = np.nanmean(pR2_cv_b)
-            baseline_pR2s[:, b_idx, i] = cond_pR2s
-
-        # --- Cell conditions: pos + speed + theta + n cells ---
-        # prepare covariate cell matrix (randomised order, same seed per n index)
-        SC_x_ref = all[all.cluster_id == id].SC_x.values[0]
-        SC_y_ref = all[all.cluster_id == id].SC_y.values[0]
-
+    for covariate_cell_type, cov_cell_population_cluster_ids in covariate_sets:
         cov_cluster_ids = cov_cell_population_cluster_ids.copy()
         if id in cov_cluster_ids:
             cov_cluster_ids = np.setdiff1d(cov_cluster_ids, id)
@@ -247,59 +246,56 @@ for test_population_cluster_ids, baseline_pR2s, cell_pR2s, cell_pR2s_pos, label 
             for cluster_id in cov_clusters_df.cluster_id
             if cluster_id in tcs_time
         }
+        if len(cov_tcs_time) == 0:
+            continue
         all_x = np.vstack(list(cov_tcs_time.values())).T[:T]  # shape (T, n_available)
 
-        base_x = np.column_stack((pos, speed, theta))  # pos + speed + theta base
+        n_neurons_nonzero = np.arange(1, min(11, len(cov_cluster_ids)+1))
 
-        for j, n in enumerate(n_neurons_nonzero):
-            np.random.seed(j)
-            x = np.column_stack((base_x, all_x[:, :n]))
-            Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose=0, continuous_folds=True)
-            print(f'  n_cells={n} pR2 = {np.nanmean(pR2_cv):.4f}')
-            cond_pR2s = _condition_pR2s(y, Y_hat, beh, trial_number_in_time)
-            cond_pR2s[-1] = np.nanmean(pR2_cv)
-            cell_pR2s[:, j, i] = cond_pR2s
+        for b_idx, x_b in enumerate(baseline_xs):
+            for j, n in enumerate(n_neurons_nonzero):
+                np.random.seed(j)
+                x = np.column_stack((x_b, all_x[:, :n]))
+                Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose=0, continuous_folds=True)
+                if id in gcs.cluster_id.values:
+                    target_type = 'GC'
+                elif id in ngs.cluster_id.values:
+                    target_type = 'NGS'
+                else:
+                    target_type = 'unknown'
+                cov_type = get_covariate_type(id, target_type, covariate_cell_type, g_m_cluster_ids, gcs, ngs)
+                print(f'  n_cells={n} pR2 = {np.nanmean(pR2_cv):.4f} covariate_type={cov_type} covariate_cell_type={covariate_cell_type}')
+                results_rows.append(dict(
+                    mouse=mouse,
+                    day=day,
+                    target_cluster_id=id,
+                    covariate_type=cov_type,
+                    baseline=BASELINE_COV_NAMES[b_idx],
+                    n_covariate_cells=int(n),
+                    covariate_cell_type=covariate_cell_type,
+                    pR2_cv=float(np.nanmean(pR2_cv)),
+                ))
 
-        # --- Cell conditions: pos-only base + n cells ---
-        for j, n in enumerate(n_neurons_nonzero):
-            np.random.seed(j)
-            x = np.column_stack((pos[:, None], all_x[:, :n]))
-            Y_hat, pR2_cv = xgb_history.fit_cv(x, y, verbose=0, continuous_folds=True)
-            print(f'  [pos-only] n_cells={n} pR2 = {np.nanmean(pR2_cv):.4f}')
-            cond_pR2s = _condition_pR2s(y, Y_hat, beh, trial_number_in_time)
-            cond_pR2s[-1] = np.nanmean(pR2_cv)
-            cell_pR2s_pos[:, j, i] = cond_pR2s
 
-    # --- Save results for this population ---
-    baseline_results = {
-        str(int(test_population_cluster_ids[i])): {
-            cov_name: baseline_pR2s[:, b_idx, i].tolist()
-            for b_idx, cov_name in enumerate(BASELINE_COV_NAMES)
-        }
-        for i in range(len(test_population_cluster_ids))
-    }
-    cell_results = {
-        str(int(test_population_cluster_ids[i])): {
-            f'n{int(n)}': cell_pR2s[:, j, i].tolist()
-            for j, n in enumerate(n_neurons_nonzero)
-        }
-        for i in range(len(test_population_cluster_ids))
-    }
-    cell_results_pos = {
-        str(int(test_population_cluster_ids[i])): {
-            f'n{int(n)}': cell_pR2s_pos[:, j, i].tolist()
-            for j, n in enumerate(n_neurons_nonzero)
-        }
-        for i in range(len(test_population_cluster_ids))
-    }
-    yaml_out = {'baseline_covariates': baseline_results, 'cell_covariates': cell_results,
-                'cell_covariates_pos_only': cell_results_pos,
-                'baseline_cov_names': BASELINE_COV_NAMES,
-                'n_neurons_nonzero': n_neurons_nonzero.tolist()}
+# --- Save results DataFrame as CSV ---
+results_df = pd.DataFrame(results_rows)
+suffix = f'_{cell_start}_{cell_end}'
+csv_path = f'{data_path}/xgboost_cell_number_assay_extra_M{mouse}_D{day}{suffix}.csv'
+results_df.to_csv(csv_path, index=False)
+print(f'Saved results DataFrame to {csv_path}')
 
-    out_path = f'{data_path}/xgboost_{assay_mode}_cell_number_assay_extra_M{mouse}_D{day}_{label}.yaml'
-    with open(out_path, 'w') as f:
-        yaml.dump(yaml_out, f)
-    print(f'Saved {out_path}')
+# ---
+# Each row in results_df represents a single XGBoost fit for a given target cell and covariate set:
+#   - Baseline fits (covariate_type='baseline') have n_covariate_cells=0 and specify the baseline set.
+#   - Cell fits (covariate_type='cell') have n_covariate_cells > 0 and specify the baseline set used.
+#   - Columns:
+#       mouse, day: session
+#       target_cluster_id: reference cell
+#       assay_mode: 'GC' or 'NGS' (covariate cell type)
+#       covariate_type: 'baseline' or 'cell'
+#       baseline: covariate set name
+#       n_covariate_cells: number of covariate cells used
+#       covariate_cell_type: type of covariate cells
+#       pR2_cv: cross-validated pseudo-R²
 
 

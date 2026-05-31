@@ -1,0 +1,9 @@
+mouse,day,target_cluster_id,target_shank_id,target_cell_type,cov_shank_id,n_ngs_cells,covariate_type,anchor_mode,prop_anchor_mode,pR2_cond,pR2_pos_cond,delta_pR2
+20,19,173,1,NG,0,3,pos+ngs_shank,anchored,0.0,,,
+20,19,173,1,NG,0,3,pos+ngs_shank,non_anchored,1.0,0.01528343334127169,-0.00387528325235742,0.01915871659362911
+20,19,173,1,NG,1,24,pos+ngs_shank,anchored,0.0,,,
+20,19,173,1,NG,1,24,pos+ngs_shank,non_anchored,1.0,0.1889809441126845,-0.00387528325235742,0.19285622736504193
+20,19,173,1,NG,2,44,pos+ngs_shank,anchored,0.0,,,
+20,19,173,1,NG,2,44,pos+ngs_shank,non_anchored,1.0,0.0037940180951420155,-0.00387528325235742,0.007669301347499435
+20,19,173,1,NG,3,19,pos+ngs_shank,anchored,0.0,,,
+20,19,173,1,NG,3,19,pos+ngs_shank,non_anchored,1.0,-0.006128119721880543,-0.00387528325235742,-0.002252836469523123

@@ -1,0 +1,3 @@
+mouse,day,target_cluster_id,target_shank_id,target_cell_type,cov_shank_id,n_ngs_cells,covariate_type,anchor_mode,prop_anchor_mode,pR2_cond,pR2_pos_cond,delta_pR2
+20,20,197,1,NG,1,87,pos+ngs_shank,anchored,0.06365840696206736,0.022668651205237866,0.00415201271377541,0.018516638491462456
+20,20,197,1,NG,1,87,pos+ngs_shank,non_anchored,0.9363415930379326,0.02154802260539912,0.0042221723869870775,0.017325850218412042

@@ -186,13 +186,27 @@ mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
             } 
 
 
-for assay_mode in ["GC", "NGS"]:  # 'GC' for grid cells, 'NGS' for non grid spatial cells
-    for mouse, days in mouse_days.items(): 
-        for day in days:
-            data_path = f"/exports/eddie/scratch/hclark3/data/xgboost_cell_number_assay_{assay_mode}/"
-            stageout_dict = {
-                data_path: f'/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_cell_number_assay_{assay_mode}/'
-            }
-            job_name = f"M{mouse}D{day}X_{assay_mode}"
-            run_python_script(f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_cell_number_assay_extra.py --mouse={mouse} --day={day} --assay_mode={assay_mode} --data_path={data_path}", username="hclark3", email="hclark3@ed.ac.uk", cores=16, job_name=job_name)
+# Read cell classifications to determine number of cells per session
+cell_class_path = "/exports/eddie/scratch/hclark3/spatial-manifolds/data/cell_classifications.csv"
+cell_class_df = pd.read_csv(cell_class_path)
+
+BATCH_SIZE = 20
+for mouse, days in mouse_days.items():
+    for day in days:
+        # Subset for this session
+        session_cells = cell_class_df[(cell_class_df['mouse'] == mouse) & (cell_class_df['day'] == day)]
+        n_cells = len(session_cells)
+        n_batches = (n_cells + BATCH_SIZE - 1) // BATCH_SIZE
+        data_path = f"/exports/eddie/scratch/hclark3/data/xgboost_cell_number_assay/"
+        stageout_dict = {
+            data_path: '/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost_cell_number_assay/'
+        }
+        for batch_idx in range(n_batches):
+            cell_start = batch_idx * BATCH_SIZE
+            cell_end = min((batch_idx + 1) * BATCH_SIZE, n_cells)
+            job_name = f"M{mouse}D{day}X_{cell_start}_{cell_end}"
+            run_python_script(
+                f"/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures/xgboost_cell_number_assay_extra.py --mouse={mouse} --day={day} --data_path={data_path} --cell_start={cell_start} --cell_end={cell_end}",
+                username="hclark3", email="hclark3@ed.ac.uk", cores=16, job_name=job_name
+            )
             run_stage_script(stageout_dict, hold_jid=job_name)
