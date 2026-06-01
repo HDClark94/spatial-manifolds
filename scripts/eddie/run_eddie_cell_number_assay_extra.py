@@ -185,6 +185,7 @@ mouse_days = {20: [14,15,16,17,18,19,20,21,22,23,24,25,26],
               29: [16,17,18,19,20,21,22,23,25],
             } 
 
+mouse_days = {25: [24]}
 
 # Read cell classifications to determine number of cells per session
 cell_class_path = "/exports/eddie/scratch/hclark3/spatial-manifolds/data/cell_classifications.csv"
