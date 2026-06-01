@@ -61,6 +61,7 @@ if use_parser:
     cell_end = args.cell_end
     source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 
+print(f"Running XGBoost Cell Number Assay for Mouse {mouse} Day {day} on cells {cell_start} to {cell_end-1}")
 
 # xgboost parameters 
 nfilters = 5 # number of features to represent the covariate history per covariate
