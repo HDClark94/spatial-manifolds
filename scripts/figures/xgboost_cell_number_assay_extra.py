@@ -42,8 +42,8 @@ data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
 mouse = 25
 day = 24
-cell_start = 0
-cell_end = 20
+cell_start = 60
+cell_end = 80
 
 if use_parser:
     parser = ArgumentParser()
@@ -129,7 +129,6 @@ covariate_sets = [
 xgb_history = MLencoding(tunemodel = 'xgboost', cov_history = True, spike_history=False, 
                          window = time_bs, n_filters = nfilters, max_time = history_length)
 
-
 # --- Results DataFrame: one row per XGBoost fit ---
 results_rows = []
 
@@ -143,18 +142,16 @@ def get_covariate_type(target_id, target_type, covariate_cell_type, g_m_cluster_
             return 'NGS'
     elif target_type == 'NGS':
         return covariate_cell_type
+    elif target_type == 'NS':
+        return covariate_cell_type
     return 'unknown'
 
-all_target_cells = np.concatenate([
-    grid_module_population_cluster_ids,
-    grid_non_module_population_cluster_ids,
-    non_grid_population_cluster_ids
-])
+all_target_cell_ids = np.array(all.cluster_id.values)
 
 # Apply batching: select only the requested range of target cells
 if cell_end is None:
-    cell_end = len(all_target_cells)
-target_cells_batch = all_target_cells[cell_start:cell_end]
+    cell_end = len(all_target_cell_ids)
+target_cells_batch = all_target_cell_ids[cell_start:cell_end]
 
 for idx, id in enumerate(target_cells_batch):
     print(f'Processing reference cell {id} ({cell_start+idx+1}/{cell_end})')
@@ -211,7 +208,8 @@ for idx, id in enumerate(target_cells_batch):
         elif id in ngs.cluster_id.values:
             target_type = 'NGS'
         else:
-            target_type = 'unknown'
+            target_type = 'NS'
+
         # For baseline fits, covariate_cell_type is not meaningful, but we loop over both for consistency
         for covariate_cell_type, _ in covariate_sets:
             cov_type = get_covariate_type(id, target_type, covariate_cell_type, g_m_cluster_ids, gcs, ngs)
@@ -263,7 +261,7 @@ for idx, id in enumerate(target_cells_batch):
                 elif id in ngs.cluster_id.values:
                     target_type = 'NGS'
                 else:
-                    target_type = 'unknown'
+                    target_type = 'NS'
                 cov_type = get_covariate_type(id, target_type, covariate_cell_type, g_m_cluster_ids, gcs, ngs)
                 print(f'  n_cells={n} pR2 = {np.nanmean(pR2_cv):.4f} covariate_type={cov_type} covariate_cell_type={covariate_cell_type}')
                 results_rows.append(dict(
@@ -292,7 +290,7 @@ print(f'Saved results DataFrame to {csv_path}')
 #   - Columns:
 #       mouse, day: session
 #       target_cluster_id: reference cell
-#       assay_mode: 'GC' or 'NGS' (covariate cell type)
+#       assay_mode: 'GC', 'NGS', or 'NS' (covariate cell type)
 #       covariate_type: 'baseline' or 'cell'
 #       baseline: covariate set name
 #       n_covariate_cells: number of covariate cells used
