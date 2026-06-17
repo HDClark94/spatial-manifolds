@@ -5,7 +5,7 @@ tl=200
 ngs_color = '#2171b5'   # blue — NGS cells
 gc_color  = '#c04744'   # red  — grid cells
 ngs_color_dark = '#0d2958'  # darker blue for NGS cells
-gc_color_dark = '#69201a'   # darker red for grid cells
+gc_color_dark = '#90312a'   # darker red for grid cells
 
 vr_tl = 200
 mcvr_tl = 230

@@ -45,9 +45,12 @@ def get_spectrogram(tcs, tl, bs, windowsize=8):
     
     Sxs, phase_grams = [], []
     for mp in zmaps:
-        f, t, Sxx = spectrogram(mp.ravel(), nperseg=nperseg, noverlap=1400)
+        _pad = nperseg // 2
+        _mp  = np.pad(mp.ravel(), _pad, mode='constant')
+        f, t, Sxx = spectrogram(_mp, nperseg=nperseg, noverlap=1400)
+        t = t - _pad
         _, _, phase_gram = spectrogram(
-            mp.ravel(), nperseg=nperseg, mode="angle", noverlap=1400
+            _mp, nperseg=nperseg, mode="angle", noverlap=1400,
         )
         Sxs.append(Sxx[(min_freq < f) & (f <= max_freq)])
         phase_grams.append(phase_gram[(min_freq < f) & (f <= max_freq)])
@@ -59,7 +62,7 @@ def get_spectrogram(tcs, tl, bs, windowsize=8):
 
 
 
-def spectral_analysis(tcs, tl, bs, windowsize=8):
+def spectral_analysis(tcs, tl, bs, windowsize=8, nperseg=1600, noverlap=1400):
     """
     tcs: list of 1d np.array
     tl: track length
@@ -74,14 +77,14 @@ def spectral_analysis(tcs, tl, bs, windowsize=8):
     zmaps = list(tcs.values())
     trial_starts = (0, len(zmaps[0])) # unused in our data as we dont have a dark only epoch
     min_freq, max_freq = 1 / 500, 1 / 20  # cm^-1
-    nperseg = windowsize * L
-    nperseg = 1600
-
     Sxs, phase_grams = [], []
     for mp in zmaps:
-        f, t, Sxx = spectrogram(mp.ravel(), nperseg=nperseg, noverlap=1400)
+        _pad = nperseg // 2
+        _mp  = np.pad(mp.ravel(), _pad, mode='constant')
+        f, t, Sxx = spectrogram(_mp, nperseg=nperseg, noverlap=noverlap)
+        t = t - _pad
         _, _, phase_gram = spectrogram(
-            mp.ravel(), nperseg=nperseg, mode="angle", noverlap=1400
+            _mp, nperseg=nperseg, mode="angle", noverlap=noverlap,
         )
         Sxs.append(Sxx[(min_freq < f) & (f <= max_freq)])
         phase_grams.append(phase_gram[(min_freq < f) & (f <= max_freq)])

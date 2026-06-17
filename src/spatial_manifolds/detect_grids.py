@@ -1309,7 +1309,7 @@ def get_avg_profile(tc, bs=bs, tl=tl, mask=None):
 
 
 
-def get_kmeans_spatial_labels(tc, labels, bs, tl):
+def get_kmeans_spatial_labels(tc, labels, bs, tl, nperseg = 1600, noverlap = 1400):
     """
     Assign spatial labels using k-means labels allowed applied to the spectrogram.
     tc: 1D numpy array of shape (n_bins)
@@ -1320,8 +1320,6 @@ def get_kmeans_spatial_labels(tc, labels, bs, tl):
 
     n_bins = len(tc)
     n_windows = len(labels)
-    nperseg = 1600
-    noverlap = 1400
     step = nperseg-noverlap  # nperseg - noverlap
 
     trial_centres = []

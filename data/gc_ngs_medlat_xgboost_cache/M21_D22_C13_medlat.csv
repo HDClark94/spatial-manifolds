@@ -1,0 +1,3 @@
+mouse,day,target_cluster_id,target_cell_type,target_medlat,target_SC_x_abs,cov_region,n_ngs_cells,covariate_type,pR2_cv,same_region
+21,22,13,GC,lateral,3737.71457207509,,,pos,-0.0017059440817103534,
+21,22,13,GC,lateral,3737.71457207509,lateral,100.0,pos+ngs_lateral,0.042399947758295274,True
