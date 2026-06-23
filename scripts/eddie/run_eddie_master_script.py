@@ -169,7 +169,7 @@ medlat_configs = [
     ("xgboost_cell_number_assay_medlat_ngs_of.py",  "xgboost_medlat_ngs_of",  "mlOF"),
 ]
 
-BATCH_SIZE = 20
+BATCH_SIZE = 10
 
 def submit_assay(mouse, day, script_name, data_subfolder, job_prefix):
     session_cells = cell_class_df[(cell_class_df['mouse'] == mouse) & (cell_class_df['day'] == day)]
