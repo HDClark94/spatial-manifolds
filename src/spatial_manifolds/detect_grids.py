@@ -223,17 +223,51 @@ def classify_cells_both_sessions(mouse, day, percentile_threshold=95, source_pat
     combined_gc_ids  = gc1_ids | gc2_ids
     combined_ngs_ids = (ngs1_ids | ngs2_ids) - combined_gc_ids
 
+    # --- Merge OF2 scores into all_1 before extracting combined dataframes ---
+    # Cells classified by OF2 would otherwise carry their (potentially negative) OF1 scores.
+    if len(all_1) > 0:
+        all_1 = all_1.copy()
+        all_1['grid_score_of1'] = all_1['grid_score']
+        all_1['spatial_information_score_of1'] = all_1['spatial_information_score']
+        all_1['field_spacing_of1'] = all_1.get('field_spacing', pd.NA)
+        all_1['orientation_of1'] = all_1.get('orientation', pd.NA)
+
+        if len(all_2) > 0:
+            of2_cols = ['grid_score', 'spatial_information_score']
+            of2_rename = {
+                'grid_score': 'grid_score_of2',
+                'spatial_information_score': 'spatial_information_score_of2',
+            }
+            if 'field_spacing' in all_2.columns:
+                of2_cols.append('field_spacing')
+                of2_rename['field_spacing'] = 'field_spacing_of2'
+            if 'orientation' in all_2.columns:
+                of2_cols.append('orientation')
+                of2_rename['orientation'] = 'orientation_of2'
+            of2_lookup = all_2.set_index('cluster_id')[of2_cols].rename(columns=of2_rename)
+            all_1 = all_1.join(of2_lookup, on='cluster_id')
+        else:
+            all_1['grid_score_of2'] = pd.NA
+            all_1['spatial_information_score_of2'] = pd.NA
+            all_1['field_spacing_of2'] = pd.NA
+            all_1['orientation_of2'] = pd.NA
+
+        all_1['grid_score_best'] = all_1[['grid_score_of1', 'grid_score_of2']].max(axis=1)
+        all_1['spatial_information_score_best'] = all_1[['spatial_information_score_of1', 'spatial_information_score_of2']].max(axis=1)
+
     # --- Combined scheme: select rows from all_1 and annotate classification session ---
     if len(all_1) > 0:
         gcs_comb = all_1[all_1['cluster_id'].isin(combined_gc_ids)].copy().reset_index(drop=True)
         ngs_comb = all_1[all_1['cluster_id'].isin(combined_ngs_ids)].copy().reset_index(drop=True)
 
-        # 'classified_by': OF1 if the cell was a GC/NGS in OF1, else OF2
+        # 'classified_by': both/OF1/OF2 depending on which sessions qualify the cell
         gcs_comb['classified_by'] = gcs_comb['cluster_id'].apply(
-            lambda cid: 'OF1' if cid in gc1_ids else 'OF2'
+            lambda cid: 'both' if (cid in gc1_ids and cid in gc2_ids)
+                        else ('OF1' if cid in gc1_ids else 'OF2')
         )
         ngs_comb['classified_by'] = ngs_comb['cluster_id'].apply(
-            lambda cid: 'OF1' if cid in ngs1_ids else 'OF2'
+            lambda cid: 'both' if (cid in ngs1_ids and cid in ngs2_ids)
+                        else ('OF1' if cid in ngs1_ids else 'OF2')
         )
     else:
         gcs_comb = pd.DataFrame()
