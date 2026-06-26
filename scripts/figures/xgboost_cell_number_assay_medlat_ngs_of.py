@@ -29,6 +29,10 @@ day = 24
 cell_start = 60
 cell_end = 80
 medial_lateral_boundary = 3400
+# xgboost parameters
+nfilters = 5
+history_length = 1000
+max_cells = 10
 
 if use_parser:
     parser = ArgumentParser()
@@ -39,6 +43,7 @@ if use_parser:
     parser.add_argument('--cell_end', type=int, required=True, help='End index of target cells (exclusive)')
     parser.add_argument('--history_length', type=int, default=1000, help='History length in ms')
     parser.add_argument('--nfilters', type=int, default=5, help='Number of history filters per covariate')
+    parser.add_argument('--max_cells', type=int, default=10, help='Max number of covariate cells to add')
     args = parser.parse_args()
 
     mouse = args.mouse
@@ -48,12 +53,10 @@ if use_parser:
     cell_end = args.cell_end
     nfilters = args.nfilters
     history_length = args.history_length
+    max_cells = args.max_cells
     source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 
 print(f"Running XGBoost Medial/Lateral NGS Assay (OF1) for Mouse {mouse} Day {day} on cells {cell_start} to {cell_end-1} (history={history_length}ms, nfilters={nfilters})")
-
-nfilters = nfilters if use_parser else 5
-history_length = history_length if use_parser else 1000
 
 gcs, ngs, all = classify_cells_both_sessions(mouse, day, percentile_threshold=95, source_path=source_path)
 g_m_ids, g_m_cluster_ids, _ = HDBSCAN_grid_modules(gcs, all, mouse, day, min_cluster_size=3, cluster_selection_epsilon=3,
@@ -234,7 +237,7 @@ for idx, id in enumerate(target_cells_batch):
             continue
         all_x = np.vstack(list(cov_tcs_time.values())).T[:T]
 
-        n_neurons_nonzero = np.arange(1, min(11, len(cov_cluster_ids)+1))
+        n_neurons_nonzero = np.arange(1, min(max_cells+1, len(cov_cluster_ids)+1))
 
         for b_idx, x_b in enumerate(baseline_xs):
             for j, n in enumerate(n_neurons_nonzero):

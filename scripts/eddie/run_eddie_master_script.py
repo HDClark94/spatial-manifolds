@@ -172,8 +172,9 @@ medlat_configs = [
 BATCH_SIZE = 10
 HISTORY_LENGTHS = [30, 200, 1000]
 NFILTERS = 5
+MAX_CELLS = 10
 
-def submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, nfilters):
+def submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, nfilters, max_cells):
     session_cells = cell_class_df[(cell_class_df['mouse'] == mouse) & (cell_class_df['day'] == day)]
     n_cells = len(session_cells)
     n_batches = (n_cells + BATCH_SIZE - 1) // BATCH_SIZE
@@ -186,7 +187,7 @@ def submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_le
         cell_end = min((batch_idx + 1) * BATCH_SIZE, n_cells)
         job_name = f"M{mouse}D{day}{job_prefix}_h{history_length}_{cell_start}_{cell_end}"
         run_python_script(
-            f"{scripts_base}/{script_name} --mouse={mouse} --day={day} --data_path={data_path} --cell_start={cell_start} --cell_end={cell_end} --history_length={history_length} --nfilters={nfilters}",
+            f"{scripts_base}/{script_name} --mouse={mouse} --day={day} --data_path={data_path} --cell_start={cell_start} --cell_end={cell_end} --history_length={history_length} --nfilters={nfilters} --max_cells={max_cells}",
             username="hclark3", email="hclark3@ed.ac.uk", cores=16, job_name=job_name
         )
         run_stage_script(stageout_dict, hold_jid=job_name)
@@ -196,10 +197,10 @@ for history_length in HISTORY_LENGTHS:
     for mouse, days in all_mouse_days.items():
         for day in days:
             for script_name, data_subfolder, job_prefix in all_session_configs:
-                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, NFILTERS)
+                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, NFILTERS, MAX_CELLS)
 
     # submit medial/lateral NGS assays for multishank sessions only
     for mouse, days in multishank_mouse_days.items():
         for day in days:
             for script_name, data_subfolder, job_prefix in medlat_configs:
-                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, NFILTERS)
+                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, NFILTERS, MAX_CELLS)
