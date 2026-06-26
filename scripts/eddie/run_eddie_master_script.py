@@ -170,8 +170,10 @@ medlat_configs = [
 ]
 
 BATCH_SIZE = 10
+HISTORY_LENGTHS = [30, 200, 1000]
+NFILTERS = 5
 
-def submit_assay(mouse, day, script_name, data_subfolder, job_prefix):
+def submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, nfilters):
     session_cells = cell_class_df[(cell_class_df['mouse'] == mouse) & (cell_class_df['day'] == day)]
     n_cells = len(session_cells)
     n_batches = (n_cells + BATCH_SIZE - 1) // BATCH_SIZE
@@ -182,21 +184,22 @@ def submit_assay(mouse, day, script_name, data_subfolder, job_prefix):
     for batch_idx in range(n_batches):
         cell_start = batch_idx * BATCH_SIZE
         cell_end = min((batch_idx + 1) * BATCH_SIZE, n_cells)
-        job_name = f"M{mouse}D{day}{job_prefix}_{cell_start}_{cell_end}"
+        job_name = f"M{mouse}D{day}{job_prefix}_h{history_length}_{cell_start}_{cell_end}"
         run_python_script(
-            f"{scripts_base}/{script_name} --mouse={mouse} --day={day} --data_path={data_path} --cell_start={cell_start} --cell_end={cell_end}",
+            f"{scripts_base}/{script_name} --mouse={mouse} --day={day} --data_path={data_path} --cell_start={cell_start} --cell_end={cell_end} --history_length={history_length} --nfilters={nfilters}",
             username="hclark3", email="hclark3@ed.ac.uk", cores=16, job_name=job_name
         )
         run_stage_script(stageout_dict, hold_jid=job_name)
 
-# submit VR and OF extra assays for all sessions
-for mouse, days in all_mouse_days.items():
-    for day in days:
-        for script_name, data_subfolder, job_prefix in all_session_configs:
-            submit_assay(mouse, day, script_name, data_subfolder, job_prefix)
+# submit VR and OF extra assays for all sessions, looping over history lengths
+for history_length in HISTORY_LENGTHS:
+    for mouse, days in all_mouse_days.items():
+        for day in days:
+            for script_name, data_subfolder, job_prefix in all_session_configs:
+                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, NFILTERS)
 
-# submit medial/lateral NGS assays for multishank sessions only
-for mouse, days in multishank_mouse_days.items():
-    for day in days:
-        for script_name, data_subfolder, job_prefix in medlat_configs:
-            submit_assay(mouse, day, script_name, data_subfolder, job_prefix)
+    # submit medial/lateral NGS assays for multishank sessions only
+    for mouse, days in multishank_mouse_days.items():
+        for day in days:
+            for script_name, data_subfolder, job_prefix in medlat_configs:
+                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, NFILTERS)
