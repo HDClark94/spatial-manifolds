@@ -186,7 +186,7 @@ pairwise_data_subfolder = "xgboost_pairwise"
 pairwise_job_prefix = "PW"
 
 BATCH_SIZE = 10
-PAIRWISE_BATCH_SIZE = 5
+PAIRWISE_BATCH_SIZE = 10
 HISTORY_LENGTHS = [30, 200, 1000]
 TIME_BS = 10  # ms, must match time_bs in anaylsis_parameters.py
 MAX_CELLS = 10
