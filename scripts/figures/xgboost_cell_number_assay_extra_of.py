@@ -43,8 +43,8 @@ cell_start = 140
 cell_end = 150
 
 # xgboost parameters
-nfilters = 5
 history_length = 30
+nfilters = int(history_length / time_bs)
 max_cells = 10
 
 if use_parser:
@@ -55,7 +55,7 @@ if use_parser:
     parser.add_argument('--cell_start', type=int, required=True, help='Start index of target cells (inclusive)')
     parser.add_argument('--cell_end', type=int, required=True, help='End index of target cells (exclusive)')
     parser.add_argument('--history_length', type=int, default=1000, help='History length in ms')
-    parser.add_argument('--nfilters', type=int, default=5, help='Number of history filters per covariate')
+    parser.add_argument('--nfilters', type=int, default=None, help='Number of history filters per covariate (default: history_length/time_bs)')
     parser.add_argument('--max_cells', type=int, default=10, help='Max number of covariate cells to add')
     args = parser.parse_args()
 
@@ -64,8 +64,10 @@ if use_parser:
     data_path = args.data_path
     cell_start = args.cell_start
     cell_end = args.cell_end
-    nfilters = args.nfilters
     history_length = args.history_length
+    nfilters = args.nfilters
+    if nfilters is None:
+        nfilters = int(history_length / time_bs)
     max_cells = args.max_cells
     source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 

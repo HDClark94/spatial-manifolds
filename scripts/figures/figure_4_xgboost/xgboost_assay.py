@@ -53,8 +53,8 @@ if use_parser:
 
 
 # xgboost parameters 
-nfilters = 5 # number of features to represent the covariate history per covariate
 history_length = 1000 # in ms
+nfilters = int(history_length / time_bs)
 
 # good examples include 
 #mice = [25, 25, 26, 27, 29, 28]

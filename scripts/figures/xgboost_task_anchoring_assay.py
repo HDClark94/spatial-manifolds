@@ -41,8 +41,8 @@ if use_parser:
     source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 
 # xgboost parameters 
-nfilters = 5 # number of features to represent the covariate history per covariate
 history_length = 1000 # in ms
+nfilters = int(history_length / time_bs)
 
 # set up xgboost history model
 xgb_history = MLencoding(tunemodel = 'xgboost', cov_history = True, spike_history=False, 

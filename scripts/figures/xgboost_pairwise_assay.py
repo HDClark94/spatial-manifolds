@@ -37,8 +37,8 @@ cell_start = 0
 cell_end = 5
 session_type = 'VR'
 
-nfilters = 5
 history_length = 1000
+nfilters = int(history_length / time_bs)
 
 if use_parser:
     parser = ArgumentParser()
@@ -48,7 +48,7 @@ if use_parser:
     parser.add_argument('--cell_start', type=int, required=True)
     parser.add_argument('--cell_end', type=int, required=True)
     parser.add_argument('--history_length', type=int, default=1000)
-    parser.add_argument('--nfilters', type=int, default=5)
+    parser.add_argument('--nfilters', type=int, default=None)
     parser.add_argument('--session_type', type=str, default='VR', choices=['VR', 'OF1'])
     args = parser.parse_args()
 
@@ -59,6 +59,8 @@ if use_parser:
     cell_end = args.cell_end
     history_length = args.history_length
     nfilters = args.nfilters
+    if nfilters is None:
+        nfilters = int(history_length / time_bs)
     session_type = args.session_type
     source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 

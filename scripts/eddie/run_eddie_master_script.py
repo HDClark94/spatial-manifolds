@@ -188,7 +188,7 @@ pairwise_job_prefix = "PW"
 BATCH_SIZE = 10
 PAIRWISE_BATCH_SIZE = 5
 HISTORY_LENGTHS = [30, 200, 1000]
-NFILTERS = 5
+TIME_BS = 10  # ms, must match time_bs in anaylsis_parameters.py
 MAX_CELLS = 10
 
 def submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, nfilters, max_cells):
@@ -231,19 +231,21 @@ def submit_pairwise_assay(mouse, day, history_length, nfilters, session_type):
 
 # submit VR and OF extra assays for all sessions, looping over history lengths
 for history_length in HISTORY_LENGTHS:
+    nfilters = int(history_length / TIME_BS)
+
     for mouse, days in all_mouse_days.items():
         for day in days:
             for script_name, data_subfolder, job_prefix in all_session_configs:
-                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, NFILTERS, MAX_CELLS)
+                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, nfilters, MAX_CELLS)
 
     # submit medial/lateral NGS assays for multishank sessions only
     for mouse, days in multishank_mouse_days.items():
         for day in days:
             for script_name, data_subfolder, job_prefix in medlat_configs:
-                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, NFILTERS, MAX_CELLS)
+                submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, nfilters, MAX_CELLS)
 
     # submit pairwise assays for all sessions, both VR and OF1
     for mouse, days in all_mouse_days.items():
         for day in days:
             for session_type in ['VR', 'OF1']:
-                submit_pairwise_assay(mouse, day, history_length, NFILTERS, session_type)
+                submit_pairwise_assay(mouse, day, history_length, nfilters, session_type)

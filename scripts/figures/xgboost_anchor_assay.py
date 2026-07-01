@@ -84,8 +84,8 @@ print(f"Running Anchor Assay for Mouse {mouse} Day {day:02d} on cells {cell_star
 # ── Config ────────────────────────────────────────────────────────────────────
 MIN_ANCHOR_TRIALS = 10        # minimum time-bins required per anchoring mode
 PEAK_INDICES      = [12, 28, 44, 60, 76]  # task-locked harmonic indices
-nfilters          = 5
 history_length    = 1000      # ms
+nfilters          = int(history_length / time_bs)
 
 # ── Output paths ──────────────────────────────────────────────────────────────
 os.makedirs(data_path, exist_ok=True)

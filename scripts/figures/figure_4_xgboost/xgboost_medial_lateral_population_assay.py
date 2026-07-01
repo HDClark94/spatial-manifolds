@@ -52,8 +52,8 @@ if use_parser:
  
 
 # xgboost parameters 
-nfilters = 5 # number of features to represent the covariate history per covariate
 history_length = 1000 # in ms
+nfilters = int(history_length / time_bs)
 
 locations = pd.read_csv(f'{source_path}/all_cluster_brain_locations_chris.csv')
 locations = locations[(locations['mouse'] == mouse) & (locations['day'] == day)]

@@ -28,8 +28,8 @@ mouse_days = {27: [23,26],
               26: [18,19],
             }
 
-nfilters = 5
 history_length = 1000
+nfilters = int(history_length / time_bs)
 
 # set up xgboost history model
 xgb_history = MLencoding(tunemodel = 'xgboost', cov_history = True, spike_history=False, 
