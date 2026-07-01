@@ -155,7 +155,17 @@ cell_class_path = "/exports/eddie/scratch/hclark3/spatial-manifolds/data/cell_cl
 cell_class_df = pd.read_csv(cell_class_path)
 
 scripts_base = "/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures"
-datastore_base = "/exports/cmvm/datastore/sbms/groups/INCR-NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data"
+datastore_base = "/exports/cmvm/datastore/sbms/groups/INCR-NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost"
+
+scratch_data_subfolders = [
+    "xgboost_cell_number_assay",
+    "xgboost_cell_number_assay_of",
+    "xgboost_medlat_ngs_vr",
+    "xgboost_medlat_ngs_of",
+    "xgboost_pairwise",
+]
+for subfolder in scratch_data_subfolders:
+    os.makedirs(f"/exports/eddie/scratch/hclark3/data/{subfolder}", exist_ok=True)
 
 # all sessions: VR and OF extra assays
 all_session_configs = [

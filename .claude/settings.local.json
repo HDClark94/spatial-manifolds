@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(ls /Users/harryclark/Documents/data/xgboost_cell_number_assay/xgboost_cell_number_assay/ | head -30)",
+      "Read(//Users/harryclark/Documents/data/xgboost_cell_number_assay/xgboost_cell_number_assay/**)",
+      "Bash(jupyter nbconvert *)",
+      "Bash(grep -r \"def plot_xgboost_traces\" /Users/harryclark/Documents/spatial-manifolds --include=\"*.py\" -l 2>/dev/null; grep -r \"def plot_xgboost_traces\" /Users/harryclark/miniconda3 --include=\"*.py\" -l 2>/dev/null | head -5)",
+      "Read(//Users/harryclark/**)",
+      "Bash(python -c \"import plotly; print\\(plotly.__version__\\)\")",
+      "Bash(python -c \"import vedo; print\\(vedo.__version__\\)\")"
+    ]
+  }
+}
