@@ -164,6 +164,7 @@ scratch_data_subfolders = [
     "xgboost_medlat_ngs_of",
     "xgboost_pairwise",
 ]
+
 for subfolder in scratch_data_subfolders:
     os.makedirs(f"/exports/eddie/scratch/hclark3/data/{subfolder}", exist_ok=True)
 
