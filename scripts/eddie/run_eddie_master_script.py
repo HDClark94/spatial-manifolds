@@ -155,7 +155,7 @@ cell_class_path = "/exports/eddie/scratch/hclark3/spatial-manifolds/data/cell_cl
 cell_class_df = pd.read_csv(cell_class_path)
 
 scripts_base = "/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures"
-datastore_base = "/exports/cmvm/datastore/sbms/groups/CDBS_SIDB_storage/NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data"
+datastore_base = "/exports/cmvm/datastore/sbms/groups/INCR-NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data"
 
 # all sessions: VR and OF extra assays
 all_session_configs = [
@@ -169,7 +169,13 @@ medlat_configs = [
     ("xgboost_cell_number_assay_medlat_ngs_of.py",  "xgboost_medlat_ngs_of",  "mlOF"),
 ]
 
+# all sessions: pairwise cell assay (VR and OF1)
+pairwise_script = "xgboost_pairwise_assay.py"
+pairwise_data_subfolder = "xgboost_pairwise"
+pairwise_job_prefix = "PW"
+
 BATCH_SIZE = 10
+PAIRWISE_BATCH_SIZE = 5
 HISTORY_LENGTHS = [30, 200, 1000]
 NFILTERS = 5
 MAX_CELLS = 10
@@ -192,6 +198,26 @@ def submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_le
         )
         run_stage_script(stageout_dict, hold_jid=job_name)
 
+
+def submit_pairwise_assay(mouse, day, history_length, nfilters, session_type):
+    session_cells = cell_class_df[(cell_class_df['mouse'] == mouse) & (cell_class_df['day'] == day)]
+    n_cells = len(session_cells)
+    n_batches = (n_cells + PAIRWISE_BATCH_SIZE - 1) // PAIRWISE_BATCH_SIZE
+    data_path = f"/exports/eddie/scratch/hclark3/data/{pairwise_data_subfolder}/"
+    stageout_dict = {data_path: f'{datastore_base}/{pairwise_data_subfolder}/'}
+    for batch_idx in range(n_batches):
+        cell_start = batch_idx * PAIRWISE_BATCH_SIZE
+        cell_end = min((batch_idx + 1) * PAIRWISE_BATCH_SIZE, n_cells)
+        st_tag = 'VR' if session_type == 'VR' else 'OF'
+        job_name = f"M{mouse}D{day}{pairwise_job_prefix}{st_tag}_h{history_length}_{cell_start}_{cell_end}"
+        run_python_script(
+            f"{scripts_base}/{pairwise_script} --mouse={mouse} --day={day} --data_path={data_path} "
+            f"--cell_start={cell_start} --cell_end={cell_end} --history_length={history_length} "
+            f"--nfilters={nfilters} --session_type={session_type}",
+            username="hclark3", email="hclark3@ed.ac.uk", cores=16, job_name=job_name
+        )
+        run_stage_script(stageout_dict, hold_jid=job_name)
+
 # submit VR and OF extra assays for all sessions, looping over history lengths
 for history_length in HISTORY_LENGTHS:
     for mouse, days in all_mouse_days.items():
@@ -204,3 +230,9 @@ for history_length in HISTORY_LENGTHS:
         for day in days:
             for script_name, data_subfolder, job_prefix in medlat_configs:
                 submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, NFILTERS, MAX_CELLS)
+
+    # submit pairwise assays for all sessions, both VR and OF1
+    for mouse, days in all_mouse_days.items():
+        for day in days:
+            for session_type in ['VR', 'OF1']:
+                submit_pairwise_assay(mouse, day, history_length, NFILTERS, session_type)
