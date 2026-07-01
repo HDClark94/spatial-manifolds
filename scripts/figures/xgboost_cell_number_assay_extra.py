@@ -45,8 +45,8 @@ day = 24
 cell_start = 60
 cell_end = 80
 # xgboost parameters
-nfilters = int(history_length / time_bs)
 history_length = 1000
+nfilters = int(history_length / time_bs)
 max_cells = 10
 
 if use_parser:
@@ -66,10 +66,10 @@ if use_parser:
     data_path = args.data_path
     cell_start = args.cell_start
     cell_end = args.cell_end
+    history_length = args.history_length
     nfilters = args.nfilters
     if nfilters is None:
         nfilters = int(history_length / time_bs)
-    history_length = args.history_length
     max_cells = args.max_cells
     source_path = '/exports/eddie/scratch/hclark3/COHORT12/'
 
