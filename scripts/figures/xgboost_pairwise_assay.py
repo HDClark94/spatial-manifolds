@@ -111,7 +111,7 @@ if session_type == 'VR':
         if len(speed) < T: speed = np.pad(speed, (0, T - len(speed)), mode='constant')
         names = ['null', 'pos', 'speed', 'lfp', 'pos_speed', 'pos_lfp', 'speed_lfp', 'pos_speed_lfp']
         xs = [
-            np.ones((T, 1)),
+            np.zeros((T, 1)),
             pos[:, None],
             speed[:, None],
             theta[:, None],
@@ -153,7 +153,7 @@ else:  # OF1
             'pos_hd_hing', 'pos_speed_hd_hing', 'pos_speed_hd_hing_lfp',
         ]
         xs = [
-            np.ones((T, 1)),
+            np.zeros((T, 1)),
             np.column_stack((px, py)),
             sp[:, None],
             hd[:, None],
@@ -194,7 +194,7 @@ for idx, target_id in enumerate(target_cells_batch):
         theta = get_theta_trace(
             mouse=mouse, day=day, cluster_id=target_id,
             time_bs=50, resample_bs=time_bs,
-            vr_type=session_type, source_path=source_path,
+            session_type=session_type, source_path=source_path,
         )
         theta = np.array(theta)
         if len(theta) < T:

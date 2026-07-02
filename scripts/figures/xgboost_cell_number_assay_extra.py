@@ -176,7 +176,7 @@ for idx, id in enumerate(target_cells_batch):
             cluster_id=id,
             time_bs=50,
             resample_bs=time_bs,
-            vr_type='VR',
+            session_type='VR',
             source_path=source_path,
         )
         theta = np.array(theta)
@@ -196,9 +196,10 @@ for idx, id in enumerate(target_cells_batch):
     if len(speed) < T:
         speed = np.pad(speed, (0, T - len(speed)), mode='constant')
 
-    # --- Baselines: all 7 covariate combos of pos / speed / lfp ---
-    BASELINE_COV_NAMES = ['pos', 'speed', 'lfp', 'pos_speed', 'pos_lfp', 'speed_lfp', 'pos_speed_lfp']
+    # --- Baselines: null + all covariate combos of pos / speed / lfp ---
+    BASELINE_COV_NAMES = ['null', 'pos', 'speed', 'lfp', 'pos_speed', 'pos_lfp', 'speed_lfp', 'pos_speed_lfp']
     baseline_xs = [
+        np.zeros((T, 1)),                          # null
         pos[:, None],                              # pos
         speed[:, None],                            # speed
         theta[:, None],                            # lfp

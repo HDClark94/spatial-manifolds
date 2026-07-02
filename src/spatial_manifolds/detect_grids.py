@@ -982,7 +982,7 @@ def get_theta_trace(
     cluster_id,
     time_bs=10,
     resample_bs=10,
-    vr_type='VR',
+    session_type='VR',
     source_path=None,
     bs_t=None,
     channel=None,
@@ -991,26 +991,31 @@ def get_theta_trace(
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     if bs_t is None:
         bs_t = time_bs
-    if vr_type == 'MCVR':
+    if session_type == 'MCVR':
         tl = mcvr_tl
     else:
         tl = vr_tl
-        
-    vr_folder = f'{source_path}M{mouse}/D{day:02}/{vr_type}/'
-    beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_beh.nwb"
-    vr_folder = f'{source_path}M{mouse}/D{day:02}/{vr_type}/'
-    spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_srt-kilosort4_clusters.npz"
-    beh = nap.load_file(beh_path)
+
+    # Load behaviour and spike data for this session so we can determine
+    # the ephys recording length and build the epoch interval.
+    session_folder = f'{source_path}M{mouse}/D{day:02}/{session_type}/'
+    beh_path    = session_folder + f"sub-{mouse}_day-{day:02}_ses-{session_type}_beh.nwb"
+    spikes_path = session_folder + f"sub-{mouse}_day-{day:02}_ses-{session_type}_srt-kilosort4_clusters.npz"
+    beh      = nap.load_file(beh_path)
     clusters = nap.load_file(spikes_path)
     clusters = curate_clusters(clusters)
 
+    # Build linearised travel distance, used only to determine the last
+    # position bin so the epoch interval is clipped to the ephys recording.
     tns = beh['trial_number']
     dt = beh['travel'] - ((tns[0] - 1) * tl)
     n_bins = int(int(((np.ceil(np.nanmax(dt)) // tl) + 1) * tl) / bs)
     max_bound = int(((np.ceil(np.nanmax(dt)) // tl) + 1) * tl)
     min_bound = 0
 
-    # trick to clip the tc to around the end of the ephys recording
+    # Use the highest-firing cell's tuning curve to find where the ephys
+    # recording ends (last occupied position bin), clipping the epoch to
+    # avoid blank LFP beyond the end of the recording.
     tc = nap.compute_1d_tuning_curves(
         nap.TsGroup([clusters[clusters.index[np.nanargmax(clusters.firing_rate)]]]),
         dt,
@@ -1018,39 +1023,46 @@ def get_theta_trace(
         minmax=[min_bound, max_bound],
         ep=beh["moving"],
     )[0]
-    
+
     tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
     last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=bs_t, time_units='ms').index[-1]
     ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units='s')
 
-    theta = nap.load_file(f'{source_path}LFP/M{mouse}/D{day:02}/VR/sub-M{mouse}_ses-D{day:02}_typ-VR_lfp.npz')
+    # Load the broadband LFP file for this session.
+    # The file contains one trace per electrode channel across the whole probe.
+    # Path: {source_path}/LFP/M{mouse}/D{day}/{session_type}/sub-M{mouse}_ses-D{day}_typ-{session_type}_lfp.npz
+    theta = nap.load_file(f'{source_path}LFP/M{mouse}/D{day:02}/{session_type}/sub-M{mouse}_ses-D{day:02}_typ-{session_type}_lfp.npz')
+
+    # Look up which electrode channel is closest to this cell's recording site.
+    # channel_id comes from the spike-sorting brain location table and identifies
+    # the channel with the largest spike amplitude for this unit, which is used
+    # as a proxy for the local LFP at that cell's location.
     channel_arrays = pd.read_csv(f'{source_path}all_cluster_brain_locations_chris.csv')
     extrema_channel = channel_arrays[
         (channel_arrays['mouse'] == mouse) &
         (channel_arrays['day'] == day) &
         (channel_arrays['cluster_id'] == cluster_id)
     ]['channel_id'].values[0]
-    
+
+    # Allow overriding the channel if a specific electrode is preferred.
     if channel is not None:
         theta_trace = theta[channel]
     else:
         theta_trace = theta[extrema_channel]
 
-    # Bin at bs_t (ms)
+    # Bin LFP at bs_t ms resolution, restricted to the ephys epoch.
     binned = theta_trace.bin_average(bin_size=bs_t, time_units='ms', ep=ep)
 
-    # Optional resampling by interpolation to a new bin size (resample_bs in ms)
-    # This converts the binned series to a numpy array, builds time axes, and interpolates.
+    # Optionally resample to a different bin size (e.g. load at 50 ms then
+    # downsample to time_bs=10 ms) via linear interpolation.
     if resample_bs is not None and resample_bs != bs_t:
         binned_np = np.array(binned)
         if binned_np.size > 1:
-            # Original time axis in seconds
             t_orig = np.arange(len(binned_np)) * (bs_t / 1000.0)
-            # New time axis with desired resolution
-            t_new = np.arange(t_orig[0], t_orig[-1] + 1e-9, resample_bs / 1000.0)
+            t_new  = np.arange(t_orig[0], t_orig[-1] + 1e-9, resample_bs / 1000.0)
             binned_np = np.interp(t_new, t_orig, binned_np)
         binned = binned_np
-        bs_t = resample_bs  # update effective bin size for downstream indexing
+        bs_t = resample_bs
 
     return binned
 

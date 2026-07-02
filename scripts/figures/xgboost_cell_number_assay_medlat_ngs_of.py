@@ -145,7 +145,7 @@ for idx, id in enumerate(target_cells_batch):
     try:
         theta = get_theta_trace(
             mouse=mouse, day=day, cluster_id=id,
-            time_bs=50, resample_bs=time_bs, vr_type='OF1', source_path=source_path,
+            time_bs=50, resample_bs=time_bs, session_type='OF1', source_path=source_path,
         )
         theta = np.array(theta)
         if len(theta) < T:
@@ -174,13 +174,14 @@ for idx, id in enumerate(target_cells_batch):
         hing = np.pad(hing, (0, T - len(hing)), mode='constant')
 
     BASELINE_COV_NAMES = [
-        'pos', 'speed', 'hd', 'hing', 'lfp',
+        'null', 'pos', 'speed', 'hd', 'hing', 'lfp',
         'pos_speed', 'pos_hd', 'pos_hing', 'pos_lfp',
         'pos_speed_hd', 'pos_speed_hing', 'pos_speed_lfp',
         'pos_hd_hing', 'pos_speed_hd_hing',
         'pos_speed_hd_hing_lfp',
     ]
     baseline_xs = [
+        np.zeros((T, 1)),
         np.column_stack((pos_x, pos_y)),
         speed[:, None],
         hd[:, None],

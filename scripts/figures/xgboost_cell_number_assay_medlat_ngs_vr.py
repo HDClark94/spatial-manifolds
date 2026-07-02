@@ -141,7 +141,7 @@ for idx, id in enumerate(target_cells_batch):
     try:
         theta = get_theta_trace(
             mouse=mouse, day=day, cluster_id=id,
-            time_bs=50, resample_bs=time_bs, vr_type='VR', source_path=source_path,
+            time_bs=50, resample_bs=time_bs, session_type='VR', source_path=source_path,
         )
         theta = np.array(theta)
         if len(theta) < T:
@@ -159,8 +159,9 @@ for idx, id in enumerate(target_cells_batch):
     if len(speed) < T:
         speed = np.pad(speed, (0, T - len(speed)), mode='constant')
 
-    BASELINE_COV_NAMES = ['pos', 'speed', 'lfp', 'pos_speed', 'pos_lfp', 'speed_lfp', 'pos_speed_lfp']
+    BASELINE_COV_NAMES = ['null', 'pos', 'speed', 'lfp', 'pos_speed', 'pos_lfp', 'speed_lfp', 'pos_speed_lfp']
     baseline_xs = [
+        np.zeros((T, 1)),
         pos[:, None],
         speed[:, None],
         theta[:, None],
