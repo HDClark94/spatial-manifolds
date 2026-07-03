@@ -185,12 +185,13 @@ pairwise_script = "xgboost_pairwise_assay.py"
 pairwise_data_subfolder = "xgboost_pairwise"
 pairwise_job_prefix = "PW"
 
-EXTRA_BATCH_SIZE   = 50   # VR and OF extra assays
-MEDLAT_BATCH_SIZE  = 20   # medial/lateral NGS assays
-PAIRWISE_BATCH_SIZE = 10  # pairwise cell assay
-HISTORY_LENGTHS = [1000]
-TIME_BS = 10  # ms, must match time_bs in anaylsis_parameters.py
-MAX_CELLS = 10
+EXTRA_BATCH_SIZE    = 50   # VR and OF extra assays
+MEDLAT_BATCH_SIZE   = 30   # medial/lateral NGS assays
+PAIRWISE_BATCH_SIZE = 10   # pairwise cell assay
+HISTORY_LENGTHS = [100]
+TIME_BS         = 10   # ms, must match time_bs in anaylsis_parameters.py
+FIXED_NFILTERS  = 5    # fixed across all history lengths for fair comparison
+MAX_CELLS       = 10
 
 def submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, nfilters, max_cells, batch_size=EXTRA_BATCH_SIZE):
     session_cells = cell_class_df[(cell_class_df['mouse'] == mouse) & (cell_class_df['day'] == day)]
@@ -231,7 +232,7 @@ def submit_pairwise_assay(mouse, day, history_length, nfilters, session_type):
         run_stage_script(stageout_dict, hold_jid=job_name)
 
 for history_length in HISTORY_LENGTHS:
-    nfilters = int(history_length / TIME_BS)
+    nfilters = FIXED_NFILTERS
 
     # OF extra assay
     for mouse, days in all_mouse_days.items():
