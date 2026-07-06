@@ -32,7 +32,7 @@ Resulting DataFrame columns:
 """
 
 
-use_parser = False
+use_parser = True
 
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
