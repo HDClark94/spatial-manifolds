@@ -24,7 +24,7 @@ DATASTORE_BASE = (
     "SpatialLocationManifolds2025/data/xgboost"
 )
 LOCAL_BASE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     "data", "eddie"
 )
 
@@ -34,6 +34,7 @@ SUBFOLDERS = [
     "xgboost_medlat_ngs_vr",
     "xgboost_medlat_ngs_of",
     "xgboost_pairwise",
+    "xgboost_validation",
 ]
 
 
@@ -60,19 +61,23 @@ def count_files(path):
 
 
 def rsync_subfolder(subfolder, dry_run=False):
-    src = os.path.join(DATASTORE_BASE, subfolder) + "/"   # trailing / = contents
+    # Files sit one level deeper on the datastore:
+    # e.g. xgboost_cell_number_assay_of/xgboost_cell_number_assay_of/*.csv
+    src = os.path.join(DATASTORE_BASE, subfolder, subfolder) + "/"
     dst = os.path.join(LOCAL_BASE, subfolder) + "/"
 
-    n_src_before = count_files(src)
-    n_dst_before = count_files(dst)
-
-    if n_src_before == 0:
-        print(f"  [{subfolder}]  No files on datastore yet — skipping")
+    # os.walk can return empty on SMB mounts even when files exist.
+    # Use os.path.isdir as the only gate — if the directory exists, run rsync
+    # and let rsync report what it found.
+    if not os.path.isdir(src.rstrip('/')):
+        print(f"  [{subfolder}]  Source directory not found on datastore — skipping")
         return 0, 0
+
+    n_dst_before = count_files(dst)
 
     cmd = [
         "rsync",
-        "--archive",          # preserve timestamps, permissions
+        "--archive",
         "--verbose",
         "--progress",
         "--human-readable",
@@ -85,7 +90,7 @@ def rsync_subfolder(subfolder, dry_run=False):
 
     print(f"\n{'='*60}")
     print(f"  {subfolder}")
-    print(f"  src: {src}  ({n_src_before} files)")
+    print(f"  src: {src}")
     print(f"  dst: {dst}  ({n_dst_before} files already)")
     if dry_run:
         print("  *** DRY RUN — no files will be transferred ***")
@@ -98,7 +103,7 @@ def rsync_subfolder(subfolder, dry_run=False):
 
     n_dst_after = count_files(dst)
     new_files = n_dst_after - n_dst_before
-    return n_src_before, new_files
+    return 1, new_files   # return 1 for src to indicate directory was found
 
 
 def main():

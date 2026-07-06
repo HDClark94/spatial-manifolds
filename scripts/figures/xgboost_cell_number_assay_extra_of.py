@@ -32,19 +32,19 @@ Resulting DataFrame columns:
 """
 
 
-use_parser = True
+use_parser = False
 
 source_path = '/Users/harryclark/Downloads/COHORT12/'
 data_path = '/Users/harryclark/Documents/data/'
 fig_path = '/Users/harryclark/Documents/figs/FIGURE1/'
-mouse = 20
-day = 14
+mouse = 29
+day = 23
 cell_start = 140
 cell_end = 150
 
 # xgboost parameters
-history_length = 30
-nfilters = int(history_length / time_bs)
+history_length = 1000
+nfilters = 5
 max_cells = 10
 
 if use_parser:

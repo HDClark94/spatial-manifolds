@@ -991,11 +991,6 @@ def get_theta_trace(
         source_path = '/Users/harryclark/Downloads/COHORT12/'
     if bs_t is None:
         bs_t = time_bs
-    if session_type == 'MCVR':
-        tl = mcvr_tl
-    else:
-        tl = vr_tl
-
     # Load behaviour and spike data for this session so we can determine
     # the ephys recording length and build the epoch interval.
     session_folder = f'{source_path}M{mouse}/D{day:02}/{session_type}/'
@@ -1005,26 +1000,6 @@ def get_theta_trace(
     clusters = nap.load_file(spikes_path)
     clusters = curate_clusters(clusters)
 
-    # Build linearised travel distance, used only to determine the last
-    # position bin so the epoch interval is clipped to the ephys recording.
-    tns = beh['trial_number']
-    dt = beh['travel'] - ((tns[0] - 1) * tl)
-    n_bins = int(int(((np.ceil(np.nanmax(dt)) // tl) + 1) * tl) / bs)
-    max_bound = int(((np.ceil(np.nanmax(dt)) // tl) + 1) * tl)
-    min_bound = 0
-
-    # Use the highest-firing cell's tuning curve to find where the ephys
-    # recording ends (last occupied position bin), clipping the epoch to
-    # avoid blank LFP beyond the end of the recording.
-    tc = nap.compute_1d_tuning_curves(
-        nap.TsGroup([clusters[clusters.index[np.nanargmax(clusters.firing_rate)]]]),
-        dt,
-        nb_bins=n_bins,
-        minmax=[min_bound, max_bound],
-        ep=beh["moving"],
-    )[0]
-
-    tc = gaussian_filter(np.nan_to_num(tc).astype(np.float64), sigma=2.5)
     last_ephys_time_bin = clusters[clusters.index[0]].count(bin_size=bs_t, time_units='ms').index[-1]
     ep = nap.IntervalSet(start=0, end=last_ephys_time_bin, time_units='s')
 

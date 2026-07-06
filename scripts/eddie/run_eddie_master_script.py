@@ -157,12 +157,17 @@ cell_class_df = pd.read_csv(cell_class_path)
 scripts_base = "/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures"
 datastore_base = "/exports/cmvm/datastore/sbms/groups/INCR-NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost"
 
+# ── Representative session for parameter validation ───────────────────────────
+REP_MOUSE = 29
+REP_DAY   = 23
+
 scratch_data_subfolders = [
     "xgboost_cell_number_assay",
     "xgboost_cell_number_assay_of",
     "xgboost_medlat_ngs_vr",
     "xgboost_medlat_ngs_of",
     "xgboost_pairwise",
+    "xgboost_validation",
 ]
 
 for subfolder in scratch_data_subfolders:
@@ -230,6 +235,28 @@ def submit_pairwise_assay(mouse, day, history_length, nfilters, session_type):
             username="hclark3", email="hclark3@ed.ac.uk", cores=16, job_name=job_name
         )
         run_stage_script(stageout_dict, hold_jid=job_name)
+
+
+def submit_validation(mouse, day):
+    """Submit parameter validation script for both VR and OF1 sessions."""
+    val_script    = "xgboost_parameter_validation.py"
+    val_subfolder = "xgboost_validation"
+    data_path     = f"/exports/eddie/scratch/hclark3/data/{val_subfolder}/"
+    stageout_dict = {data_path: f'{datastore_base}/{val_subfolder}/'}
+    for session_type in ['VR', 'OF1']:
+        st_tag   = 'VR' if session_type == 'VR' else 'OF'
+        job_name = f"VAL_M{mouse}D{day}_{st_tag}"
+        run_python_script(
+            f"{scripts_base}/{val_script} --mouse={mouse} --day={day} "
+            f"--data_path={data_path} --session_type={session_type}",
+            username="hclark3", email="hclark3@ed.ac.uk", cores=16,
+            h_rt="47:59:59", job_name=job_name
+        )
+        run_stage_script(stageout_dict, hold_jid=job_name)
+
+
+# ── Submit parameter validation FIRST (representative session) ────────────────
+submit_validation(REP_MOUSE, REP_DAY)
 
 for history_length in HISTORY_LENGTHS:
     nfilters = FIXED_NFILTERS
