@@ -15,7 +15,7 @@ import subprocess
 from datetime import datetime
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-USERNAME      = "hclark3"
+USERNAME      = "chalcrow"
 SCRATCH_BASE  = f"/exports/eddie/scratch/{USERNAME}"
 SOURCE_PATH   = f"{SCRATCH_BASE}/COHORT12/"
 SCRATCH_OUT   = f"{SCRATCH_BASE}/data/border_scores_of/"
