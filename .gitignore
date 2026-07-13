@@ -28,3 +28,6 @@ src/spatial_manifolds/tuning_scores/__pycache__/theta_index.cpython-311.pyc
 src/spatial_manifolds/tuning_scores/__pycache__/tuning_scores.cpython-311.pyc
 .DS_Store
 *.pdf
+data/eddie/
+data/xgboost_cell_number_assay_master*.csv
+**/__pycache__/
