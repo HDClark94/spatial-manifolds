@@ -238,8 +238,11 @@ class MLencoding(object):
             model = GLM(**self.params)
             model.fit(X, Y)
 
-            # we want the last of the regularization path
-            self.model = model[-1]
+            # scalar reg_lambda → single model; array → regularization path, take last
+            try:
+                self.model = model[-1]
+            except TypeError:
+                self.model = model
 
         elif self.tunemodel == 'feedforward_nn':
 
