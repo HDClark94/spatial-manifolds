@@ -232,6 +232,7 @@ for idx, id in enumerate(target_cells_batch):
                 n_covariate_cells=0,
                 covariate_cell_type=covariate_cell_type,
                 pR2_cv=float(np.nanmean(pR2_cv_b)),
+                **{f'pR2_cv_fold_{i}': float(v) for i, v in enumerate(pR2_cv_b)},
             ))
 
     # --- Cell models: BASELINE + n covariate cells ---
@@ -282,6 +283,7 @@ for idx, id in enumerate(target_cells_batch):
                     n_covariate_cells=int(n),
                     covariate_cell_type=covariate_cell_type,
                     pR2_cv=float(np.nanmean(pR2_cv)),
+                    **{f'pR2_cv_fold_{i}': float(v) for i, v in enumerate(pR2_cv)},
                 ))
 
 

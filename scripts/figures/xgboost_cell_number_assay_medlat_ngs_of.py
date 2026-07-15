@@ -213,6 +213,7 @@ for idx, id in enumerate(target_cells_batch):
                 n_covariate_cells=0,
                 covariate_location=cov_location,
                 pR2_cv=float(np.nanmean(pR2_cv_b)),
+                **{f'pR2_cv_fold_{i}': float(v) for i, v in enumerate(pR2_cv_b)},
             ))
 
     # cell models: baseline + n covariate cells from each location
@@ -255,6 +256,7 @@ for idx, id in enumerate(target_cells_batch):
                     n_covariate_cells=int(n),
                     covariate_location=cov_location,
                     pR2_cv=float(np.nanmean(pR2_cv)),
+                    **{f'pR2_cv_fold_{i}': float(v) for i, v in enumerate(pR2_cv)},
                 ))
 
 results_df = pd.DataFrame(results_rows)
