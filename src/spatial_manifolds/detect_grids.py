@@ -404,6 +404,7 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
             spatial_info_no_lag = cluster_spatial_information_of1[cluster_spatial_information_of1['travel'] == 0]['spatial_information'].iloc[0]
 
             speed_correlation = cluster_speed_correlation_of1[cluster_speed_correlation_of1['travel'] == 0]['speed_correlation'].iloc[0]
+            head_direction_score = head_direction_of1[(head_direction_of1.cluster_id == index) & (head_direction_of1['travel'] == 0)]['hd_information'].iloc[0]
 
             cell = cluster_shifted_grid_scores_of1[cluster_shifted_grid_scores_of1['travel'] == np.round(optimal_travel)]
 
@@ -429,6 +430,8 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
             cell['probe_x'] = probe_x
             cell['probe_y'] = probe_y
             cell['theta_index'] = theta_index
+            cell['head_direction_score'] = head_direction_score
+            cell['speed_score'] = speed_correlation
             cell['firing_rate'] = clusters_VR.firing_rate[index]
 
             cell['firing_rate_OF1'] = clusters_OF1.rate[index]
