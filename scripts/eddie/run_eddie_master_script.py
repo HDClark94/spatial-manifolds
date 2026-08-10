@@ -4,6 +4,8 @@ import pandas as pd
 import pynapple as nap
 import warnings
 import os
+import glob
+import re
 
 
 def curate_clusters(clusters) -> nap.TsGroup:
@@ -155,7 +157,26 @@ cell_class_path = "/exports/eddie/scratch/hclark3/spatial-manifolds/data/cell_cl
 cell_class_df = pd.read_csv(cell_class_path)
 
 scripts_base = "/exports/eddie/scratch/hclark3/spatial-manifolds/scripts/figures"
-datastore_base = "/exports/cmvm/datastore/sbms/groups/INCR-NolanLab/ActiveProjects/Harry/SpatialLocationManifolds2025/data/xgboost"
+# Outputs mirror COHORT12/eddie/{subfolder}/ on BOTH scratch (where compute writes,
+# alongside the COHORT12 input data) and the datastore (where they get staged).
+scratch_base   = "/exports/eddie/scratch/hclark3/COHORT12/eddie"
+datastore_base = "/exports/cmvm/datastore/sbms/groups/INCR-NolanLab/ActiveProjects/Harry/COHORT12/eddie"
+
+
+def completed_cluster_ids(subfolder, mouse, day, history_length, env_token=None):
+    """Cluster IDs that already have a per-cell output CSV for this session/assay,
+    looked up on BOTH the datastore (persistent, prior runs) and scratch. A batch
+    whose target cells are ALL present here is skipped, so only unrun/failed cells
+    get submitted. (Assays also skip completed cells at runtime, so a partially-done
+    batch that is re-submitted only recomputes the missing cells.)"""
+    env = f'_{env_token}' if env_token else ''
+    done = set()
+    for base in (datastore_base, scratch_base):
+        for f in glob.glob(f'{base}/{subfolder}/*_M{mouse}_D{day}_h{history_length}{env}_C*.csv'):
+            m = re.search(r'_C(\d+)\.csv$', os.path.basename(f))
+            if m:
+                done.add(int(m.group(1)))
+    return done
 
 # ── Representative session for parameter validation ───────────────────────────
 REP_MOUSE = 29
@@ -171,7 +192,7 @@ scratch_data_subfolders = [
 ]
 
 for subfolder in scratch_data_subfolders:
-    os.makedirs(f"/exports/eddie/scratch/hclark3/data/{subfolder}", exist_ok=True)
+    os.makedirs(f"{scratch_base}/{subfolder}", exist_ok=True)
 
 # all sessions: VR and OF extra assays
 all_session_configs = [
@@ -192,7 +213,7 @@ pairwise_job_prefix = "PW"
 
 EXTRA_BATCH_SIZE    = 50   # VR and OF extra assays
 MEDLAT_BATCH_SIZE   = 30   # medial/lateral NGS assays
-PAIRWISE_BATCH_SIZE = 10   # pairwise cell assay
+PAIRWISE_BATCH_SIZE = 5   # pairwise cell assay
 HISTORY_LENGTHS = [100]
 TIME_BS         = 10   # ms, must match time_bs in anaylsis_parameters.py
 FIXED_NFILTERS  = 5    # fixed across all history lengths for fair comparison
@@ -200,15 +221,21 @@ MAX_CELLS       = 10
 
 def submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_length, nfilters, max_cells, batch_size=EXTRA_BATCH_SIZE):
     session_cells = cell_class_df[(cell_class_df['mouse'] == mouse) & (cell_class_df['day'] == day)]
-    n_cells = len(session_cells)
+    cell_ids = session_cells['cluster_id'].astype(int).values
+    n_cells = len(cell_ids)
     n_batches = (n_cells + batch_size - 1) // batch_size
-    data_path = f"/exports/eddie/scratch/hclark3/data/{data_subfolder}/"
+    data_path = f"{scratch_base}/{data_subfolder}/"
     stageout_dict = {
         data_path: f'{datastore_base}/{data_subfolder}/'
     }
+    done = completed_cluster_ids(data_subfolder, mouse, day, history_length)
     for batch_idx in range(n_batches):
         cell_start = batch_idx * batch_size
         cell_end = min((batch_idx + 1) * batch_size, n_cells)
+        batch_ids = cell_ids[cell_start:cell_end]
+        if len(batch_ids) and all(int(c) in done for c in batch_ids):
+            print(f'SKIP {data_subfolder} M{mouse}D{day} cells {cell_start}-{cell_end} (all target files present)')
+            continue
         job_name = f"M{mouse}D{day}{job_prefix}_h{history_length}_{cell_start}_{cell_end}"
         run_python_script(
             f"{scripts_base}/{script_name} --mouse={mouse} --day={day} --data_path={data_path} --cell_start={cell_start} --cell_end={cell_end} --history_length={history_length} --nfilters={nfilters} --max_cells={max_cells}",
@@ -219,13 +246,19 @@ def submit_assay(mouse, day, script_name, data_subfolder, job_prefix, history_le
 
 def submit_pairwise_assay(mouse, day, history_length, nfilters, session_type):
     session_cells = cell_class_df[(cell_class_df['mouse'] == mouse) & (cell_class_df['day'] == day)]
-    n_cells = len(session_cells)
+    cell_ids = session_cells['cluster_id'].astype(int).values
+    n_cells = len(cell_ids)
     n_batches = (n_cells + PAIRWISE_BATCH_SIZE - 1) // PAIRWISE_BATCH_SIZE
-    data_path = f"/exports/eddie/scratch/hclark3/data/{pairwise_data_subfolder}/"
+    data_path = f"{scratch_base}/{pairwise_data_subfolder}/"
     stageout_dict = {data_path: f'{datastore_base}/{pairwise_data_subfolder}/'}
+    done = completed_cluster_ids(pairwise_data_subfolder, mouse, day, history_length, env_token=session_type)
     for batch_idx in range(n_batches):
         cell_start = batch_idx * PAIRWISE_BATCH_SIZE
         cell_end = min((batch_idx + 1) * PAIRWISE_BATCH_SIZE, n_cells)
+        batch_ids = cell_ids[cell_start:cell_end]
+        if len(batch_ids) and all(int(c) in done for c in batch_ids):
+            print(f'SKIP pairwise {session_type} M{mouse}D{day} cells {cell_start}-{cell_end} (all target files present)')
+            continue
         st_tag = 'VR' if session_type == 'VR' else 'OF'
         job_name = f"M{mouse}D{day}{pairwise_job_prefix}{st_tag}_h{history_length}_{cell_start}_{cell_end}"
         run_python_script(
@@ -241,7 +274,7 @@ def submit_validation(mouse, day):
     """Submit parameter validation script for both VR and OF1 sessions."""
     val_script    = "xgboost_parameter_validation.py"
     val_subfolder = "xgboost_validation"
-    data_path     = f"/exports/eddie/scratch/hclark3/data/{val_subfolder}/"
+    data_path     = f"{scratch_base}/{val_subfolder}/"
     stageout_dict = {data_path: f'{datastore_base}/{val_subfolder}/'}
     for session_type in ['VR', 'OF1']:
         st_tag   = 'VR' if session_type == 'VR' else 'OF'

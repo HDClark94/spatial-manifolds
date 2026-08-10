@@ -31,3 +31,7 @@ src/spatial_manifolds/tuning_scores/__pycache__/tuning_scores.cpython-311.pyc
 data/eddie/
 data/xgboost_cell_number_assay_master*.csv
 **/__pycache__/
+
+# large regenerable artifacts (too big for GitHub)
+data/xgboost_shank_anchoring/*.pkl
+scripts/figures/figure_2_anatomy_of_spatial_cells/*.gif

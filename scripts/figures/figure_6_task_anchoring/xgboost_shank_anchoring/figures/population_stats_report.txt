@@ -1,0 +1,33 @@
+================================================================
+POPULATION STATS  (6 sessions, 432 targets, 3084 rows)
+sessions: M25D25, M26D19, M28D16, M28D17, M29D17, M29D25
+================================================================
+
+Q2  Anchored vs non-anchored pR2
+  median pR2 anchored      = 0.0146
+  median pR2 non-anchored  = 0.0094
+  median Delta (anch-non)  = 0.0023
+  Wilcoxon (paired, all rows): W=1281703, p=1.32e-77  (caveat: rows not independent — pseudoreplication)
+  Wilcoxon on per-session medians (n=6): W=0, p=0.031
+  per-session median pR2 (anch | non):
+    M25D25: 0.022 | 0.017
+    M26D19: 0.010 | 0.009
+    M28D16: 0.023 | 0.017
+    M28D17: 0.033 | 0.019
+    M29D17: 0.015 | 0.006
+    M29D25: 0.011 | 0.005
+
+Q1  ML distance effect (Spearman across rows)
+  pR2 overall    vs |shank distance|: rho=-0.244, p=3.66e-43
+  pR2 anchored   vs |shank distance|: rho=-0.240, p=1.02e-41
+  label MCC      vs |shank distance|: rho=-0.110, p=4.01e-09
+
+  mean pR2 by shank relation:
+    same shank : 0.0469 (n=834)
+    other shank: 0.0274 (n=2250)
+
+  Mixed model  pr2 ~ mode + ML_distance  (random intercept: session)
+    Intercept              beta=+0.0431  p=1.43e-23
+    C(mode)[T.non]         beta=-0.0084  p=1.35e-13
+    drank_abs              beta=-0.0111  p=2.83e-62
+    Group Var              beta=+0.0559  p=0.124

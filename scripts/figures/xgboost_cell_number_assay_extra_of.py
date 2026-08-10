@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import pynapple as nap
@@ -148,8 +149,16 @@ if cell_end is None:
     cell_end = len(all_target_cell_ids)
 target_cells_batch = all_target_cell_ids[cell_start:cell_end]
 
+def _cell_out(tid):
+    return f'{data_path}/xgboost_cell_number_assay_extra_of_M{mouse}_D{day}_h{history_length}_C{int(tid)}.csv'
+
 for idx, id in enumerate(target_cells_batch):
+    out_path = _cell_out(id)
+    if os.path.exists(out_path):
+        print(f'Reference cell {id} already done — skipping ({out_path})')
+        continue
     print(f'Processing reference cell {id} ({cell_start+idx+1}/{cell_end})')
+    results_rows = []
 
     y = np.array(tcs_time[id])
     T = len(y)
@@ -294,8 +303,7 @@ for idx, id in enumerate(target_cells_batch):
                 ))
 
 
-results_df = pd.DataFrame(results_rows)
-suffix = f'_{cell_start}_{cell_end}'
-csv_path = f'{data_path}/xgboost_cell_number_assay_extra_of_M{mouse}_D{day}_h{history_length}{suffix}.csv'
-results_df.to_csv(csv_path, index=False)
-print(f'Saved results DataFrame to {csv_path}')
+    _tmp = out_path + '.tmp'
+    pd.DataFrame(results_rows).to_csv(_tmp, index=False)
+    os.replace(_tmp, out_path)   # atomic: file only appears when fully written
+    print(f'  saved {len(results_rows)} rows -> {out_path}')

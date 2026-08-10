@@ -21,7 +21,7 @@ from datetime import datetime
 # ── Paths ─────────────────────────────────────────────────────────────────────
 DATASTORE_BASE = (
     "/Volumes/INCR-NolanLab/ActiveProjects/Harry/"
-    "SpatialLocationManifolds2025/data/xgboost"
+    "COHORT12/eddie"
 )
 LOCAL_BASE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
