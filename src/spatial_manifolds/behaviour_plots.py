@@ -121,7 +121,7 @@ def plot_avg_firing_rate_map(ax, tc, bs, tl, mask=None, c='black'):
     trial_rate_map = np.array(trial_rate_map)   
     ax.plot(np.arange(bpt), np.nanmean(trial_rate_map,axis=0), color=c)
     ax.fill_between(np.arange(bpt), np.nanmean(trial_rate_map,axis=0)-stats.sem(trial_rate_map, axis=0,nan_policy="omit"),
-                                    np.nanmean(trial_rate_map,axis=0)+stats.sem(trial_rate_map, axis=0,nan_policy="omit"),alpha=0.3, color=c)
+                                    np.nanmean(trial_rate_map,axis=0)+stats.sem(trial_rate_map, axis=0,nan_policy="omit"),alpha=0.3, color=c, linewidth=0, edgecolor='none')
 
 
 

@@ -27,19 +27,30 @@ from spatial_manifolds.behaviour_plots import *
 from spatial_manifolds.behaviour_plots import trial_cat_priority
 from spatial_manifolds.anaylsis_parameters import *
 import hdbscan
+import umap
 from sklearn.preprocessing import StandardScaler
 from spatial_manifolds.anaylsis_parameters import tl, vr_tl, mcvr_tl, bs, time_bs, rm_figsize, disqualifying_brain_areas_for_grid_cells, other_areas
  
 
 import matplotlib as mpl
+
+# ── dataset layout ───────────────────────────────────────────────────────────
+# clark2025 replaces the old COHORT12 tree. Layout:
+#   {SOURCE}/M{mouse}/D{day}/{session}/sub-M{mouse}_ses-D{day}_typ-{session}_beh.nwb
+#   {SOURCE}/M{mouse}/D{day}/{session}/sub-M{mouse}_ses-D{day}_typ-{session}_srt-kilosort4_clusters.npz
+# The old tree used sub-M{mouse}_ses-D{day}_typ-{session}_*. Per-cluster anatomy
+# now lives outside the dataset tree, hence its own constant.
+DEFAULT_SOURCE_PATH = '/Users/harryclark/Downloads/clark2025/'
+BRAIN_LOCATIONS_CSV = '/Users/harryclark/Downloads/all_cluster_brain_locations_chris.csv'
+
 mpl.rcParams['font.family'] = 'Arial'
 
 
 def cell_classification_vr(mouse, day, percentile_threshold=99, source_path=None):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     session = 'VR'
-    vr_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    vr_folder = f'{source_path}M{mouse}/D{day}/{session}/'
     ramp_path = vr_folder + 'tuning_scores/ramps.parquet'
     speed_path = vr_folder + 'tuning_scores/speed_correlation.parquet'
     spatial_path = vr_folder + 'tuning_scores/spatial_information.parquet'
@@ -86,12 +97,12 @@ def cell_classification_vr(mouse, day, percentile_threshold=99, source_path=None
 
 def cell_classification_anatomy(mouse, day, source_path=None, verbose=True):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
-    brain_locations = pd.read_csv(source_path+'all_cluster_brain_locations_chris.csv')
+        source_path = DEFAULT_SOURCE_PATH
+    brain_locations = pd.read_csv(BRAIN_LOCATIONS_CSV)
 
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
     session = 'OF1'
-    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    of1_folder = f'{source_path}M{mouse}/D{day}/{session}/'
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
     theta_path = of1_folder + "tuning_scores/theta_index.parquet"
 
@@ -282,12 +293,12 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
                             disqualifying_brain_areas_for_spatial_cells=disqualifying_brain_areas_for_grid_cells, 
                             use_optimal_travel=True, get_extra_info=False, verbose=True, session='OF1'):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     _,_,_,_,_,clusters_VR = compute_vr_tcs(mouse, day, source_path=source_path)
     last_ephys_time_bin = clusters_VR[clusters_VR.index[0]].count(bin_size=time_bs, time_units = 'ms').index[-1]
 
-    brain_locations = pd.read_csv(source_path+'all_cluster_brain_locations_chris.csv')
-    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    brain_locations = pd.read_csv(BRAIN_LOCATIONS_CSV)
+    of1_folder = f'{source_path}M{mouse}/D{day}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score_manual_smooth.parquet"
 
@@ -299,8 +310,8 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
     
     head_direction_path = of1_folder + "tuning_scores/shifted_hd_information.parquet"
     
-    clusters_OF1 = nap.load_file(of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz")
-    beh_OF1 = nap.load_file(of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb")
+    clusters_OF1 = nap.load_file(of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_srt-kilosort4_clusters.npz")
+    beh_OF1 = nap.load_file(of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_beh.nwb")
 
     if os.path.exists(shifted_grid_path):
         shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
@@ -512,9 +523,9 @@ def cell_classification_of1(mouse, day, percentile_threshold=95, source_path=Non
 
 def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None, cluster_selection_epsilon=None,
                          curate_with_vr=True, curate_with_brain_region=True, source_path=None, plot_curate=False,
-                         verbose=True, ax=None):
+                         verbose=True, ax=None, show=False):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
 
     _min_cluster_size = min_cluster_size if min_cluster_size is not None else 3
     _epsilon = cluster_selection_epsilon if cluster_selection_epsilon is not None else 0.3
@@ -619,7 +630,14 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
         ax_plot.set_ylabel('Grid orientation ($^\circ$)')
         ax_plot.set_title(f'M{mouse}D{day}  ε={_epsilon}')
         plt.tight_layout()
-        plt.show()
+        if figpath:
+            os.makedirs(figpath, exist_ok=True)
+            fig.savefig(os.path.join(figpath, f'M{mouse}D{day}_grid_modules_HDBSCAN.pdf'),
+                       dpi=200, bbox_inches='tight')
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
 
     if np.unique(module_labels).size == 1 and np.unique(module_labels)[0] == -1:
         module_labels[:] = 0  # Assign all points to a single cluster if no clusters were found
@@ -646,13 +664,13 @@ def HDBSCAN_grid_modules(gcs, all, mouse, day, figpath='', min_cluster_size=None
 def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, mouse, day, figpath, source_path=None):
     print(mouse, day)
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     session = 'OF1'
-    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    of1_folder = f'{source_path}M{mouse}/D{day}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
-    spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
-    beh_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb"
+    spikes_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_srt-kilosort4_clusters.npz"
+    beh_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_beh.nwb"
     shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
     spatial_information_score_of1 = pd.read_parquet(spatial_path)
     beh_OF = nap.load_file(beh_path)
@@ -704,7 +722,7 @@ def plot_grid_modules_rate_maps(gcs, grid_module_ids, grid_module_cluster_ids, m
 
 
 def plot_grid_modules(gcs, grid_module_ids, grid_module_cluster_ids, mouse, day,
-                      figpath='', source_path=None, session='OF1', ncols=10, verbose=False):
+                      figpath='', source_path=None, session='OF1', ncols=10, verbose=False, show=False):
     """
     Plot OF rate maps for grid cells arranged by module (sorted smallest→largest spacing).
 
@@ -797,8 +815,112 @@ def plot_grid_modules(gcs, grid_module_ids, grid_module_cluster_ids, mouse, day,
     plt.tight_layout(rect=[0, 0, 0.3, 0.3])
 
     if figpath:
+        os.makedirs(figpath, exist_ok=True)
         plt.savefig(f'{figpath}GC_rate_maps_modules_M{mouse}D{day}.pdf', dpi=300)
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+def plot_grid_modules_umap(gcs, grid_module_ids, grid_module_cluster_ids, mouse, day,
+                           figpath='', source_path=None, session='OF1',
+                           n_neighbors=15, min_dist=0.1, random_state=42,
+                           ax=None, show=False, verbose=True):
+    """
+    UMAP embedding (2D) of OF spatial rate maps for grid cells, colored by the
+    HDBSCAN module label from HDBSCAN_grid_modules — checks whether modules
+    found on (field_spacing, orientation) also separate in rate-map shape space.
+
+    Rate maps are computed with the SAME common per-session shift baked into
+    `gcs['travel']` (the KDE-derived optimal_travel from
+    classify_cells_both_sessions), not compute_of_tcs's default of shift=0.
+
+    Returns (embedding, module_labels, cluster_ids) or (None, None, None) if
+    there isn't enough data to embed.
+    """
+    if not grid_module_ids:
+        print('No modules to embed.')
+        return None, None, None
+
+    optimal_shift = float(gcs['travel'].iloc[0]) if len(gcs) > 0 and 'travel' in gcs.columns else 0
+    if verbose:
+        print(f'plot_grid_modules_umap: using common session shift = {optimal_shift} cm (KDE optimal_travel, not 0)')
+
+    try:
+        tcs, _, _, _, _ = compute_of_tcs(
+            mouse, day,
+            apply_zscore=False,
+            apply_guassian_filter=True,
+            fill_nans_from_neighbors=True,
+            source_path=source_path,
+            optimal_shift=optimal_shift,
+            session=session,
+        )
+    except Exception as e:
+        print(f'Failed to load {session} rate maps for M{mouse}D{day}: {e}')
+        return None, None, None
+
+    # cluster_id -> module label (-1 = unassigned by HDBSCAN)
+    cid_to_module = {}
+    for mi, ids in zip(grid_module_ids, grid_module_cluster_ids):
+        for cid in ids:
+            cid_to_module[cid] = mi
+
+    cluster_ids = [cid for cid in gcs['cluster_id'].tolist() if cid in tcs]
+    if len(cluster_ids) < 4:
+        print('Too few grid cells with rate maps for UMAP.')
+        return None, None, None
+
+    X = []
+    for cid in cluster_ids:
+        rm = np.nan_to_num(tcs[cid], nan=0.0).astype(np.float64).ravel()
+        rng = rm.max() - rm.min()
+        rm = (rm - rm.min()) / rng if rng > 0 else rm * 0
+        X.append(rm)
+    X = np.stack(X)
+
+    labels = np.array([cid_to_module.get(cid, -1) for cid in cluster_ids])
+
+    reducer = umap.UMAP(n_components=2, n_neighbors=min(n_neighbors, len(cluster_ids) - 1),
+                        min_dist=min_dist, random_state=random_state)
+    embedding = reducer.fit_transform(X)
+
+    if ax is None:
+        fig = plt.figure(figsize=(4.2, 3))
+        ax_plot = fig.gca()
+        standalone = True
+    else:
+        fig = ax.get_figure()
+        ax_plot = ax
+        standalone = False
+
+    palette = plt.get_cmap('tab10').colors
+    unassigned = labels == -1
+    ax_plot.scatter(embedding[unassigned, 0], embedding[unassigned, 1],
+                    s=25, color='black', label='Unassigned', zorder=1)
+    for mi in sorted(set(labels[~unassigned].tolist())):
+        m = labels == mi
+        ax_plot.scatter(embedding[m, 0], embedding[m, 1],
+                        s=25, color=palette[mi % len(palette)], label=f'Module {mi}',
+                        edgecolors='k', linewidths=0.3, zorder=2)
+
+    if standalone:
+        ax_plot.set_xlabel('UMAP 1')
+        ax_plot.set_ylabel('UMAP 2')
+        ax_plot.set_title(f'M{mouse}D{day}  rate-map UMAP ({session})')
+        ax_plot.legend(fontsize=6, frameon=False, ncol=2)
+        plt.tight_layout()
+        if figpath:
+            os.makedirs(figpath, exist_ok=True)
+            fig.savefig(os.path.join(figpath, f'M{mouse}D{day}_grid_modules_UMAP_{session}.pdf'),
+                       dpi=200, bbox_inches='tight')
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+
+    return embedding, labels, cluster_ids
 
 
 def white_to_hex_cmap(hex_color, name='custom_cmap'):
@@ -808,7 +930,7 @@ def white_to_hex_cmap(hex_color, name='custom_cmap'):
 def compute_vr_tcs_using_expected_spikes(mouse, day, apply_zscore=True, apply_guassian_filter=True, 
                                          source_path=None, bs_t=None, vr_type='VR', expected_spikes=None):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     if bs_t is None:
         bs_t = time_bs
     if vr_type is 'MCVR':
@@ -816,9 +938,9 @@ def compute_vr_tcs_using_expected_spikes(mouse, day, apply_zscore=True, apply_gu
     else:
         tl = vr_tl
 
-    vr_folder = f'{source_path}M{mouse}/D{day:02}/{vr_type}/'
-    spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_srt-kilosort4_clusters.npz"
-    beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_beh.nwb"
+    vr_folder = f'{source_path}M{mouse}/D{day}/{vr_type}/'
+    spikes_path = vr_folder + f"sub-M{mouse}_ses-D{day}_typ-{vr_type}_srt-kilosort4_clusters.npz"
+    beh_path = vr_folder + f"sub-M{mouse}_ses-D{day}_typ-{vr_type}_beh.nwb"
     beh = nap.load_file(beh_path)
     clusters = nap.load_file(spikes_path)
     #print(f'there are this many clusters before curation {len(clusters)}')
@@ -920,16 +1042,16 @@ def compute_vr_tcs_using_expected_spikes(mouse, day, apply_zscore=True, apply_gu
 def compute_of_tcs_using_expected_spikes(mouse, day, apply_zscore=True, apply_guassian_filter=True, 
                                         source_path=None, bs_t=None, expected_spikes=None, optimal_shift=0):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     if bs_t is None:
         bs_t = time_bs
 
     session = 'OF1'
-    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    of1_folder = f'{source_path}M{mouse}/D{day}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
-    spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
-    beh_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb"
+    spikes_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_srt-kilosort4_clusters.npz"
+    beh_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_beh.nwb"
     shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
     spatial_information_score_of1 = pd.read_parquet(spatial_path)
     beh_OF = nap.load_file(beh_path)
@@ -991,14 +1113,14 @@ def get_theta_trace(
     channel=None,
 ):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     if bs_t is None:
         bs_t = time_bs
     # Load behaviour and spike data for this session so we can determine
     # the ephys recording length and build the epoch interval.
-    session_folder = f'{source_path}M{mouse}/D{day:02}/{session_type}/'
-    beh_path    = session_folder + f"sub-{mouse}_day-{day:02}_ses-{session_type}_beh.nwb"
-    spikes_path = session_folder + f"sub-{mouse}_day-{day:02}_ses-{session_type}_srt-kilosort4_clusters.npz"
+    session_folder = f'{source_path}M{mouse}/D{day}/{session_type}/'
+    beh_path    = session_folder + f"sub-M{mouse}_ses-D{day}_typ-{session_type}_beh.nwb"
+    spikes_path = session_folder + f"sub-M{mouse}_ses-D{day}_typ-{session_type}_srt-kilosort4_clusters.npz"
     beh      = nap.load_file(beh_path)
     clusters = nap.load_file(spikes_path)
     clusters = curate_clusters(clusters)
@@ -1009,13 +1131,13 @@ def get_theta_trace(
     # Load the broadband LFP file for this session.
     # The file contains one trace per electrode channel across the whole probe.
     # Path: {source_path}/LFP/M{mouse}/D{day}/{session_type}/sub-M{mouse}_ses-D{day}_typ-{session_type}_lfp.npz
-    theta = nap.load_file(f'{source_path}LFP/M{mouse}/D{day:02}/{session_type}/sub-M{mouse}_ses-D{day:02}_typ-{session_type}_lfp.npz')
+    theta = nap.load_file(f'{source_path}LFP/M{mouse}/D{day}/{session_type}/sub-M{mouse}_ses-D{day}_typ-{session_type}_lfp.npz')
 
     # Look up which electrode channel is closest to this cell's recording site.
     # channel_id comes from the spike-sorting brain location table and identifies
     # the channel with the largest spike amplitude for this unit, which is used
     # as a proxy for the local LFP at that cell's location.
-    channel_arrays = pd.read_csv(f'{source_path}all_cluster_brain_locations_chris.csv')
+    channel_arrays = pd.read_csv(BRAIN_LOCATIONS_CSV)
     extrema_channel = channel_arrays[
         (channel_arrays['mouse'] == mouse) &
         (channel_arrays['day'] == day) &
@@ -1047,7 +1169,7 @@ def get_theta_trace(
 
 def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None, vr_type='VR'):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     if bs_t is None:
         bs_t = time_bs
     if vr_type is 'MCVR':
@@ -1055,9 +1177,9 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
     else:
         tl = vr_tl
 
-    vr_folder = f'{source_path}M{mouse}/D{day:02}/{vr_type}/'
-    spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_srt-kilosort4_clusters.npz"
-    beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-{vr_type}_beh.nwb"
+    vr_folder = f'{source_path}M{mouse}/D{day}/{vr_type}/'
+    spikes_path = vr_folder + f"sub-M{mouse}_ses-D{day}_typ-{vr_type}_srt-kilosort4_clusters.npz"
+    beh_path = vr_folder + f"sub-M{mouse}_ses-D{day}_typ-{vr_type}_beh.nwb"
     beh = nap.load_file(beh_path)
     clusters = nap.load_file(spikes_path)
     #print(f'there are this many clusters before curation {len(clusters)}')
@@ -1144,15 +1266,15 @@ def compute_vr_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, so
 def compute_of_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, fill_nans_from_neighbors=True,
                    source_path=None, bs_t=None, optimal_shift=0, session='OF1'):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/' 
+        source_path = DEFAULT_SOURCE_PATH 
     if bs_t is None:
         bs_t = time_bs
 
-    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    of1_folder = f'{source_path}M{mouse}/D{day}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
-    spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
-    beh_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb"
+    spikes_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_srt-kilosort4_clusters.npz"
+    beh_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_beh.nwb"
     shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
     spatial_information_score_of1 = pd.read_parquet(spatial_path)
     beh_OF = nap.load_file(beh_path)
@@ -1196,13 +1318,13 @@ def compute_of_tcs(mouse, day, apply_zscore=True, apply_guassian_filter=True, fi
 
 def get_time_binned_variables(mouse, day, apply_zscore=True, apply_guassian_filter=True, source_path=None, bs_t=None):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     if bs_t is None:
         bs_t = time_bs
 
-    vr_folder = f'{source_path}M{mouse}/D{day:02}/VR/'
-    spikes_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_srt-kilosort4_clusters.npz"
-    beh_path = vr_folder + f"sub-{mouse}_day-{day:02}_ses-VR_beh.nwb"
+    vr_folder = f'{source_path}M{mouse}/D{day}/VR/'
+    spikes_path = vr_folder + f"sub-M{mouse}_ses-D{day}_typ-VR_srt-kilosort4_clusters.npz"
+    beh_path = vr_folder + f"sub-M{mouse}_ses-D{day}_typ-VR_beh.nwb"
     beh = nap.load_file(beh_path)
     clusters = nap.load_file(spikes_path)
     #print(f'there are this many clusters before curation {len(clusters)}')
@@ -1487,13 +1609,13 @@ def plot_individual_rate_maps_with_avg_k_means_grouped_spectrogram(mouse, day, c
 
 def plot_open_field_rate_map_optimal_ax(ax, cluster_id, mouse, day, df, source_path=None, optimal_method='median'):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     session = 'OF1'
-    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    of1_folder = f'{source_path}M{mouse}/D{day}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
-    spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
-    beh_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb"
+    spikes_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_srt-kilosort4_clusters.npz"
+    beh_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_beh.nwb"
     shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
     spatial_information_score_of1 = pd.read_parquet(spatial_path)
     beh_OF = nap.load_file(beh_path)
@@ -1605,13 +1727,13 @@ def plot_vr_rate_map_avg_ax(ax, cluster_id, mouse, day, df, source_path=None):
 
 def plot_individual_of_rate_maps_optimal_versus_standard(mouse, day, df, label='GC', figpath='', source_path=None):
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     session = 'OF1'
-    of1_folder = f'{source_path}M{mouse}/D{day:02}/{session}/'
+    of1_folder = f'{source_path}M{mouse}/D{day}/{session}/'
     shifted_grid_path = of1_folder + "tuning_scores/shifted_grid_score.parquet"
     spatial_path = of1_folder + "tuning_scores/shifted_spatial_information.parquet"
-    spikes_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_srt-kilosort4_clusters.npz"
-    beh_path = of1_folder + f"sub-{mouse}_day-{day:02}_ses-{session}_beh.nwb"
+    spikes_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_srt-kilosort4_clusters.npz"
+    beh_path = of1_folder + f"sub-M{mouse}_ses-D{day}_typ-{session}_beh.nwb"
     shifted_grid_scores_of1 = pd.read_parquet(shifted_grid_path)
     spatial_information_score_of1 = pd.read_parquet(spatial_path)
     beh_OF = nap.load_file(beh_path)
@@ -1655,7 +1777,7 @@ def plot_individual_rate_maps_with_avg_by_trial_type_with_open_field(mouse, day,
     if df.empty:
         return
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     if vr_type is 'MCVR':
         tl = mcvr_tl
     else:
@@ -1712,7 +1834,7 @@ def plot_individual_rate_maps_with_avg_by_trial_type(mouse, day, cluster_ids, la
     if len(cluster_ids)==0:
         return
     if source_path is None:
-        source_path = '/Users/harryclark/Downloads/COHORT12/'
+        source_path = DEFAULT_SOURCE_PATH
     if vr_type == 'MCVR':
         tl = mcvr_tl
     else:
@@ -2269,8 +2391,8 @@ def compare_decodings(mouse, day, cluster_ids_1, cluster_ids_2, label1='', label
     ax[0].set_xlim(0,tl)
     ax[0].plot(y, avg_b_delta, color='tab:blue')
     ax[0].plot(y, avg_nb_delta, color='tab:orange')
-    ax[0].fill_between(y, avg_b_delta+sem_b_delta, avg_b_delta-sem_b_delta, color='tab:blue', alpha=0.3)
-    ax[0].fill_between(y, avg_nb_delta+sem_nb_delta, avg_nb_delta-sem_nb_delta, color='tab:orange', alpha=0.3)
+    ax[0].fill_between(y, avg_b_delta+sem_b_delta, avg_b_delta-sem_b_delta, color='tab:blue', alpha=0.3, linewidth=0, edgecolor='none')
+    ax[0].fill_between(y, avg_nb_delta+sem_nb_delta, avg_nb_delta-sem_nb_delta, color='tab:orange', alpha=0.3, linewidth=0, edgecolor='none')
     ax[1].plot(y, avg_b_delta-avg_nb_delta, color='black')
     fig.savefig(f'{figpath}/compare_decoders_{label1}_{label2}_M{mouse}D{day}_diff.pdf', dpi=300, bbox_inches='tight')
 

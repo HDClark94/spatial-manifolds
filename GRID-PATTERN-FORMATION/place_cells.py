@@ -8,7 +8,6 @@ class PlaceCells(object):
 
     def __init__(self, options, us=None):
         self.Np = options.Np
-        self.sigma = options.place_cell_rf
         self.surround_scale = options.surround_scale
         self.box_width = options.box_width
         self.box_height = options.box_height
@@ -16,7 +15,25 @@ class PlaceCells(object):
         self.DoG = options.DoG
         self.device = options.device
         self.softmax = torch.nn.Softmax(dim=-1)
-        
+
+        # Place-cell receptive-field width(s). Either a single float (original,
+        # uniform behaviour) or a list/tuple of floats: a HETEROGENEOUS mixture,
+        # splitting the Np place cells into equal-sized groups (one width each),
+        # with group membership shuffled so width isn't correlated with place-
+        # cell index/position. self.sigma_group records which width group each
+        # place cell belongs to (all zeros for the uniform-width case).
+        rf = options.place_cell_rf
+        if isinstance(rf, (list, tuple, np.ndarray)):
+            widths = np.asarray(rf, dtype=np.float32)
+            assign = np.resize(np.arange(len(widths)), self.Np)
+            rng = np.random.RandomState(getattr(options, 'pc_rf_seed', 0))
+            rng.shuffle(assign)
+            self.sigma_group = assign
+            self.sigma = torch.tensor(widths[assign], dtype=torch.float32, device=self.device)
+        else:
+            self.sigma_group = np.zeros(self.Np, dtype=int)
+            self.sigma = float(rf)
+
         # Randomly tile place cell centers across environment
         np.random.seed(0)
         usx = np.random.uniform(-self.box_width/2, self.box_width/2, (self.Np,))

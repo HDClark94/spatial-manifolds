@@ -192,7 +192,7 @@ pairwise_job_prefix = "PW"
 
 EXTRA_BATCH_SIZE    = 60   # VR and OF extra assays
 MEDLAT_BATCH_SIZE   = 40   # medial/lateral NGS assays
-PAIRWISE_BATCH_SIZE = 10   # pairwise cell assay
+PAIRWISE_BATCH_SIZE = 5   # pairwise cell assay
 HISTORY_LENGTHS = [100]
 TIME_BS         = 10   # ms, must match time_bs in anaylsis_parameters.py
 FIXED_NFILTERS  = 5    # fixed across all history lengths for fair comparison
