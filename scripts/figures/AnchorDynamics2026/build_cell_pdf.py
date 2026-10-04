@@ -1,0 +1,814 @@
+"""Compile MANUSCRIPT.md + figures + captions into a Cell-style PDF mock-up.
+
+No LaTeX, pandoc or HTML-to-PDF engine is available on this machine, so the
+document is composed directly with PyMuPDF: a small line-breaking layout engine
+over the base-14 fonts, with the existing figure PDFs embedded as vector content
+via show_pdf_page (so figures stay vector, not rasterised).
+
+Cell Press conventions approximated here: running title block, author line and
+affiliations, Summary, Highlights, two-column body, figures placed in-flow with
+captions set beneath them in small type, and STAR Methods as a trailing section.
+
+WHAT IS AND IS NOT REAL. The text and every number come from MANUSCRIPT.md. The
+reference list does NOT come from the manuscript, because the manuscript has
+none -- the working draft carries unresolved superscript placeholders and no
+bibliography (see the open items in PAPER.md). References here are assembled
+from works NAMED in the text. Full citation details are given only for the four
+papers read directly in preparing this draft; everything else is listed by author
+and year with the details marked as outstanding, rather than invented.
+
+Writes AnchorDynamics2026_Cell_mockup.pdf
+"""
+import os
+import re
+import sys
+
+import pymupdf
+
+FIG = os.path.dirname(os.path.abspath(__file__))
+SRC = f'{FIG}/MANUSCRIPT.md'
+OUT = f'{FIG}/AnchorDynamics2026_Cell_mockup.pdf'
+
+PW, PH = 595.0, 842.0          # A4 points
+MARGIN_X, MARGIN_TOP, MARGIN_BOT = 48.0, 56.0, 50.0
+GUTTER = 18.0
+COLW = (PW - 2 * MARGIN_X - GUTTER) / 2
+
+BODY, BODY_LEAD = 8.6, 11.0
+CAP, CAP_LEAD = 7.2, 9.0
+H1, H2 = 11.5, 9.2
+# AVENIR NEXT for every display element -- title, authors, section heads, figure
+# caption titles, highlights, running head. Cell Press set display matter in a
+# humanist geometric sans, which Helvetica/Arial is not; Avenir Next is much
+# closer. Faces are split out of the macOS TrueType Collection by
+# extract_avenir.py, because PyMuPDF loads ONE face from a file and a .ttc gives
+# it only face 0 -- ask it for Regular and you silently get Bold.
+#
+# BODY STAYS SERIF. Cell research articles set running text in a serif; an
+# all-Avenir body would read as a different template, not a closer one.
+_FD = os.path.join(FIG, 'fonts')
+AVR, AVD, AVB, AVI = 'avr', 'avd', 'avb', 'avi'
+_FONTFILES = {AVR: os.path.join(_FD, 'AvenirNext-Regular.ttf'),
+              AVD: os.path.join(_FD, 'AvenirNext-DemiBold.ttf'),
+              AVB: os.path.join(_FD, 'AvenirNext-Bold.ttf'),
+              AVI: os.path.join(_FD, 'AvenirNext-Italic.ttf')}
+_HAVE_AV = all(os.path.exists(f) for f in _FONTFILES.values())
+
+# EVERYTHING is Avenir Next -- body included, not just display. (An earlier
+# version kept the body in Times on the reasoning that Cell sets running text in
+# a serif; the brief here is to use the one face throughout the document, with
+# the figure PDFs deliberately left in their own Arial.) The SERIF names are
+# retained so existing call sites keep working.
+SERIF, SERIF_I, SERIF_B = ((AVR, AVI, AVD) if _HAVE_AV
+                           else ('tiro', 'tiit', 'tibo'))
+SANS, SANS_B = (AVR, AVD) if _HAVE_AV else ('helv', 'hebo')
+AR, ARB = SANS, SANS_B
+
+_MEASURE = {}
+if _HAVE_AV:
+    for _n, _f in _FONTFILES.items():
+        _MEASURE[_n] = pymupdf.Font(fontfile=_f)
+
+
+def text_len(t, font, size):
+    """Metrics for embedded faces; get_text_length only knows the base-14."""
+    f = _MEASURE.get(font)
+    return f.text_length(t, size) if f else pymupdf.get_text_length(t, font, size)
+
+
+RULE = (0.70, 0.12, 0.12)      # Cell Press red
+
+TITLE = ('A global engagement state, read out by entorhinal grid cells '
+         'and local inhibition rather than built by them')
+AUTHORS = ('Harry Clark,^1 Wolf de Wulfe,^1 Chris Halcrow,^1 '
+           'and Matthew F. Nolan^1,2,*')
+AFFIL = ['^1Centre for Discovery Brain Sciences, University of Edinburgh, Edinburgh, UK',
+         '^2Simons Initiative for the Developing Brain, University of Edinburgh, Edinburgh, UK',
+         '*Correspondence: mattnolan@ed.ac.uk']
+
+JOURNAL = 'Cell'
+CELL_BLUE = (0.00, 0.42, 0.71)
+GREY = (0.58, 0.58, 0.58)
+IN_BRIEF = (
+    'Clark et al. show that the anchoring of entorhinal spatial firing to a '
+    'task reference frame is a population state rather than a property of single '
+    'cells. Grid cells and fast-spiking interneurons express it, but their '
+    'synaptic connections do not carry it, and the same state is present in every '
+    'structure recorded. The state tracks attentional engagement and predicts '
+    'success when the animal must navigate by path integration.')
+CITATION = [
+    'Clark et al., 2026, manuscript draft',
+    'Style mock-up compiled from MANUSCRIPT.md - not a published article',
+]
+
+HIGHLIGHTS = [
+    'Anchoring of entorhinal firing to a task reference frame is a population state',
+    'Grid cells and fast-spiking interneurons follow it; spatial coding in general does not',
+    'Synaptically connected pairs share the state no more than matched unconnected pairs',
+    'The same state is present in every structure recorded, including cerebellum',
+]
+
+# Figure order, source file, and the caption shown beneath it.
+FIGURES = [
+    ('Figure 1', 'fig1_composite.pdf',
+     'A population anchoring state in medial entorhinal cortex',
+     '(A) The location memory task: head-fixed mice run on a treadmill through a virtual '
+     'linear track, stopping in a reward zone that is visually cued on some trials and '
+     'uncued on others, so that the zone can only be localised efficiently by path '
+     'integration when the cue is absent. (B, C) Stopping on cued and uncued trials for one '
+     'session. (D) Three example units as trial x position rate maps. (E) The MEC population '
+     'anchoring state for the same session with its first principal component. (F) The '
+     'fraction of cells locked to the state across sessions. (G, H) Behaviour by state and '
+     'the Anchoring Dependence Index. Recording configuration and the population anchoring state. Neurons were recorded with '
+     'four-shank Neuropixels 2.0 probes spanning the mediolateral extent of MEC, in an open arena '
+     'and then during a virtual-track location memory task. Trial-by-trial anchoring labels are '
+     'correlated across simultaneously recorded cells; the first principal component of the '
+     'cell x trial label matrix exceeds a circular-shift null preserving each cell\'s anchored '
+     'fraction by roughly twofold. Blocks of tens of trials share a state and the population '
+     'crosses between states over about three trials. Anchored trials are more often successful, '
+     'and markedly so on uncued trials (Anchoring Dependence Index +0.094, p = 0.012).'),
+    ('Figure 2', 'fig2_single_units.pdf',
+     'Grid cells and putative interneurons, but not spatial coding in general, follow the state',
+     '(A, B) Two example sessions, each as the full MEC anchoring raster with PC1 of the cell x '
+     'trial label matrix and example single cells of each identity, including cells locked into '
+     'one mode. (C) The null for one cell: its labels circularly shifted 200 times against the '
+     'population axis, with the observed value marked. Chance lies near +0.15, not at zero, '
+     'because a cell anchored on most trials correlates with a population that is also anchored on '
+     'most trials. (D) Agreement with the population axis by identity, as excess over each cell\'s '
+     'own null: only grid cells (+0.119, p = 0.002) and putative interneurons (+0.080, p = 0.0003) '
+     'exceed chance; non-grid spatial cells sit on their null and non-spatial cells below it. (E) '
+     'The fraction of cells individually beating their own null, per mouse. (F) The same question '
+     'in time: all four identities switch together over roughly three trials around a population '
+     'transition, and identity does not predict switch timing (p = 0.15). (G) Agreement between '
+     'identities as a 4 x 4 matrix over its own null; grid-interneuron reaches +0.109, '
+     'indistinguishable from either within-group value. (H) Which identities never leave one mode: '
+     'interneurons lock on (108:2) while non-spatial cells lock off (39:293). (I) The same '
+     'asymmetry per mouse, so it is not carried by one animal. (J) Why they lock: cells that '
+     'never vary are the speed-coding cells. Interneurons '
+     'that lock on score +0.141 on the open-field speed measure against +0.065 for those that vary '
+     '(p = 0.005), because a speed-tuned profile repeats on every trial and is therefore called '
+     'anchored on every trial.'),
+    ('Figure 3', 'fig3_anatomy.pdf',
+     'The responsive subnetwork is medial, within the superficial grid population',
+     'Anatomical organisation of identity and of following. (A) Open-field rate maps from four '
+     'M25 sessions whose probes sat at different mediolateral positions, sampled proportionally '
+     'so the grid:non-grid ratio drawn is the ratio actually recorded; the key at left gives the '
+     'recording sequence, and every map comes from OF1, the arena session preceding the task. '
+     '(B-D) Best-fit slices through three mice, each under a view of the probe position, with '
+     'cells coloured by open-field identity over the Allen region annotation. (E-G) Identity '
+     'against mediolateral and dorsoventral position and across layers: grid cells are enriched '
+     'medially (median rho = -0.078, p = 0.025) and superficially (8.9% against 3.9%, p = 0.002). '
+     '(H-J) The same axes against whether a cell follows the population state; the mediolateral '
+     'gradient holds within session on the 27 sessions spanning at least two shank pitches '
+     '(median rho = -0.109, p = 0.034), while dorsoventral position and probe depth predict '
+     'neither. Layer predicts identity but not following within session (median rho = +0.028, '
+     'p = 0.154), so the superficial bias in following is the one carried by identity rather '
+     'than a gradient in following of its own.'),
+    ('Figure 4', 'fig4_monosynaptic.pdf',
+     'Monosynaptic connectivity does not account for shared anchoring',
+     '(A) The interneuron call: waveform peak-to-trough duration against firing rate, with the '
+     'marginal distribution and the fixed 0.4 ms boundary. (B) What a classified interneuron does '
+     'to its target - a causal trough in the cross-correlogram. (C) What a broad-spiking cell does '
+     '- a causal peak, on the same scale. (D) The validation: inhibitory connections originate '
+     'from the cells in panel A at 3.1 times their population share, which the detector cannot '
+     'produce by construction. (E, F) Both connection matrices as a percentage of the ordered '
+     'pairs each identity contributes. Interneuron-to-grid is the strongest pathway in the dataset '
+     '(3.93%, 5.1x over identity shuffling, p = 0.0005) and grid-to-grid the strongest excitatory '
+     'one (0.217%, 2.6x, p = 0.004). (G) The two connection types are kinetically distinct, '
+     'inhibition being slower (median 3.0 against 1.0 ms). (H) Detection validated against a '
+     'jitter null for both signs. (I) The question the connectivity raises, and the null on which '
+     'the paper turns: connected pairs share the anchoring state no more than unconnected pairs '
+     'matched for session, identity pair and probe distance (grid-interneuron p = 0.39; '
+     'interneuron-interneuron p = 0.90). Both comparisons resolve effects a third the size of the '
+     'identity effect, so these are informative nulls; grid-grid is underpowered and is greyed.'),
+    ('Figure 5', 'fig5_pupil_arousal_M21D19.pdf',
+     'The state tracks attentional engagement',
+     '(A) The recording arrangement, with infrared illumination and the side camera. (B) Pupil '
+     'tracking: the eye with the DeepLabCut perimeter landmarks from which radius is computed. (C) '
+     'One anchored and one non-anchored trial shown as seven moments of a single traversal, with '
+     'pupil radius printed beneath each frame. (D) Mean pupil radius against track position for '
+     'the two state blocks of this session, with the two example trials overlaid. (E) The MEC '
+     'population anchoring raster for the same session, cells that vary ordered by PC1 loading and '
+     'cells locked into one mode separated to the right of a gap. (F) PC1 of the same label '
+     'matrix. (G) Pupil radius for every trial on the trial axis of E and F, so a state block can '
+     'be read across. (H) Pupil radius by state, paired within session across 23 sessions (delta = '
+     '-0.670, p = 2e-06). (I) The result that identifies this as a change in engagement rather '
+     'than attention paid at particular places: the difference is present across the whole track, '
+     'with the same sign in all 50 position bins and significance in 48, no trend with position '
+     '(rho = -0.264, p = 0.064), and the reward zone if anything slightly less affected than the '
+     'rest.'),
+    ('Figure 6', 'fig6_cross_region.pdf',
+     'One state, shared across structures, read out most strongly by one cell type',
+     '(A) One session recording all three structures, with the per-trial anchored fraction '
+     'computed separately from each. (B) Does each region have a state of its own? Split-half '
+     'reliability of each region\'s own first principal component, size-matched to 8 cells per '
+     'half: MEC +0.447, subicular +0.474, visual cortex +0.330 (p = 2.4e-5). (C) Is it the same '
+     'state? Cross-region agreement divided by the geometric mean of the two reliabilities; '
+     'corrected, MEC-subicular +0.920 and MEC-visual +0.863, neither differing from 1. (D) Per- '
+     'cell expression of the state by group, with every cell scored out of sample against an axis '
+     'built from half the entorhinal population. (E) The panel the figure turns on: grid cells '
+     'exceed visual cortex by +0.149 (p = 9.9e-6) and interneurons by +0.144, against +0.050 for '
+     'other entorhinal cells, while the region-level difference does not reach significance (p = '
+     '0.065). The cell-type contrast is three times the regional one. (F) The Anchoring Dependence '
+     'Index by region.'),
+    ('Figure 7', 'fig7_theta_gamma.pdf',
+     'A frequency-specific change in the entorhinal field potential',
+     '(A-D) One session trial by trial, with both states shaded behind every panel and dashed '
+     'lines at major transitions. (A) The population axis with running speed overlaid. (B) The '
+     'spectrogram, 1.9-150 Hz rebinned into 56 log-spaced bands and smoothed along the trial axis '
+     'only. (C) The three band traces. (D) Theta-gamma modulation index for both bands on twinned '
+     'axes, fast on the left axis and slow on the right, which they need because slow-gamma MI is '
+     'roughly five times smaller. (E) The two states as spectra across 26 switching sessions. (F) '
+     'The panel that excludes a gain change: theta (-0.094) and mid gamma (-0.108) fall while slow '
+     'gamma rises (+0.105), so the difference reverses sign. (G) Theta-gamma coupling by band; '
+     'fast gamma uncouples (-15.9%, p = 5e-6) while slow gamma does not. (H) Per-session slow '
+     'against fast gamma change: the two are uncorrelated (rho = -0.08) and the quadrant count is '
+     'what the marginals imply, so this is not a demonstrated redistribution. (I) The difference '
+     'index per session. (J) The pooled difference profile, with the SEM across sessions, crossing '
+     'zero near 67 Hz in 25 of 26 sessions.'),
+    ('Figure 8', 'fig8_model.pdf',
+     'A two-loop account of the anchoring state (hypothesis)',
+     'A proposed mechanism, placed with Ideas and speculation rather than with the Results. '
+     'Panels A, B and E are schematics with no data behind them; C and D carry measured values '
+     'and are included so that the schematics cannot be read as evidence. (A) The circuit motif '
+     'and what is proposed to set it: grid cells and fast-spiking interneurons form a recurrent '
+     'loop, sensory afferents drive a feedforward one through the same interneurons, and '
+     'cholinergic tone sets the balance between them. The loop is the one measured in Figure 4, '
+     'where interneuron-to-grid is the strongest pathway in the dataset and the inhibitory limb '
+     'the slower of the two (3.0 against 1.0 ms). (B) Why two bands rather than one rhythm of '
+     'varying amplitude: gamma is generated by the inhibitory limb, so loop kinetics set '
+     'frequency, and each band is nested in theta at its own phase. The states are proposed to '
+     'differ in which loop dominates. (C) The field-potential changes that motivate the account '
+     '(Figure 7), with slow gamma rising while fast gamma, theta and theta-fast coupling fall. '
+     '(D) The cells that express the state (Figure 2) are the two populations that constitute '
+     'the loop, and no others. (E) The test that would settle the weakest step. The association '
+     'of slow and fast gamma with internally and externally guided processing is taken from '
+     'hippocampal recordings, where fast gamma indexes entorhinal input to CA1, and cannot be '
+     'carried into entorhinal cortex unexamined; in sessions recording entorhinal cortex, the '
+     'subicular complex and visual cortex together, the two bands should differ in which '
+     'structure they cohere with. This figure makes no claim about where the grid phase sits on '
+     'a non-anchored trial: non-anchored trials show no coherent field at any offset once the '
+     'unrelated-cell floor is applied, so phase-level versions of this account are excluded.'),
+]
+
+# Supplemental figures, in the order their main figure appears.
+SUPPLEMENTS = [
+    ('Figure S1', 'fig1_supp_classifier.pdf',
+     'The anchoring classifier, step by step, against RNN ground truth',
+     'An RNN trained on a 1D slice of a 2D environment with a teleport reproduces the task, '
+     'giving trial labels that are known rather than inferred. The classification is shown as '
+     'the steps it actually takes, from the NaN-free rate map through the trial-by-trial '
+     'correlation and the per-cell null gate to the median-filtered label sequence, with '
+     'accuracy and recall reported for each anchoring regime with and without the filter. The '
+     'gate changes performance mainly where trials are locked in one mode or split far from '
+     'even.'),
+    ('Figure S2', 'fig1_supp_population_anchoring_examples.pdf',
+     'Population anchoring states across sessions',
+     'Anchoring rasters for further sessions, ordered by the share of label variance the first '
+     'principal component explains, from sessions where nearly all cells move together to '
+     'sessions where they do not. Cells on the x axis, trials on the y axis.'),
+    ('Figure S3', 'fig1_supp_speed_matching.pdf',
+     'Behavioural controls for the anchoring state',
+     'Running speed and stopping behaviour compared between states, including the speed-matched '
+     'subsets used wherever a comparison could otherwise be carried by a difference in '
+     'locomotion.'),
+    ('Figure S4', 'fig2_supp_nonanchored.pdf',
+     'What a non-anchored trial is',
+     'Each trial correlated against the cell\'s anchored template at every circular offset. The '
+     'correlation at zero offset collapses while the best over offsets barely falls, which reads '
+     'as displacement and is not: two unrelated cells reach the same best-of-offsets floor, and '
+     'non-anchored trials sit only marginally above it.'),
+    ('Figure S5', 'fig2_supp_rate.pdf',
+     'Anchoring concerns where cells fire, not how much',
+     'Firing rate differences between states by three measures - averaged over position bins, '
+     'per second of running, and speed-matched. The sign reverses under a change of denominator '
+     'and a behavioural control, so the effect is not a rate effect.'),
+    ('Figure S6', 'fig2_supp_reliability.pdf',
+     'Trial-to-trial reliability by identity',
+     'Reliability of the trial-by-trial rate maps for each identity class, which sets the floor '
+     'on how well any classifier could label them.'),
+    ('Figure S7', 'fig6_region_examples.pdf',
+     'The same state, described separately by each structure',
+     'Two sessions bracketing the range among those recording all three structures, read left to '
+     'right as entorhinal, subicular and visual cortex. Everything within a structure is built '
+     'from that structure\'s own cells - the raster ordered by its own PC1 loading, the '
+     'component signed to its own anchored fraction - so agreement between the groups is '
+     'agreement between independent descriptions rather than a consequence of a shared frame.'),
+    ('Figure S8', 'fig6_supp_region_examples.pdf',
+     'The state outside MEC, where MEC does not dominate the sample',
+     'Sessions chosen for their sampling rather than their result: visual-rich and '
+     'subicular-rich sessions, and the two with enough cerebellar cells to build an axis. '
+     'Cerebellum carries a matching state in both, having been included as a distant negative '
+     'control that it turned out not to be. One visual session runs the other way, and is shown '
+     'for that reason.'),
+    ('Figure S9', 'fig6_supp_dimensionality.pdf',
+     'One axis is an adequate description of the state',
+     'Out-of-sample variance explained, with the axis built from one half of a region\'s cells '
+     'and scored on the other. (A) Neuron-dropping curve per region against the circular-shift '
+     'null, showing the cell-count dependence rather than hiding it behind one matched number. '
+     '(B) By component at matched cell count: the first carries roughly fifty times the '
+     'generalising structure of the second, so the label matrix is effectively one-dimensional.'),
+    ('Figure S10', 'fig7_supp_band_examples.pdf',
+     'Band power tracking the population state in individual sessions',
+     'Four sessions as the population axis, the log-spaced spectrogram and the three band traces '
+     'on a shared trial axis. A-C show the population pattern; D is drawn in red as a '
+     'counterexample, a session with clear transitions whose bands do not follow them, included '
+     'because the effect is 16 of 26 sessions rather than all of them.'),
+]
+
+REFS_FULL = [
+    'Clark, H., and Nolan, M.F. (2024). Task-anchored grid cell firing is selectively '
+    'associated with successful path integration-dependent behaviour. eLife 12, RP89356.',
+    'Tennant, S.A., Clark, H., Hawes, I., Tam, W.K., Hua, J., Yang, W., Gerlei, K.Z., '
+    'Wood, E.R., and Nolan, M.F. (2022). Spatial representation by ramping activity of '
+    'neurons in the retrohippocampal cortex. Curr. Biol. 32, 4451-4464.',
+    'Vollan, A.Z., Gardner, R.J., Moser, M.-B., and Moser, E.I. (2025). Left-right-alternating '
+    'theta sweeps in entorhinal-hippocampal maps of space. Nature 639, 995-1005.',
+    'Robinson, J., Ying, J., Hasselmo, M.E., and Brandon, M.P. (2024). Septal GABAergic '
+    'control of grid cell periodicity and phase precession. Cell Rep. 43, 114590.',
+]
+REFS_PARTIAL = [
+    'Aston-Jones, G., and Cohen, J.D. - adaptive gain theory of locus coeruleus function.',
+    'Colgin, L.L. - slow and fast gamma as markers of distinct input streams.',
+    'Fuhrmann, F., et al. (2015) - glutamatergic septal projections and locomotion.',
+    'Gil, M., et al. (2018) - NMDA receptor deletion, grid cells and path integration.',
+    'Hallanger, A.E., and Wainer, B.H. (1988) - pedunculopontine projections to the septum.',
+    'Jacob, P.-Y., et al. (2019) - grid cells encode distance on circular tracks.',
+    'Justus, D., et al. (2017) - septal speed signals reaching entorhinal cortex.',
+    'Kempter, R., et al. (2012) - circular-linear regression for phase precession.',
+    'Kropff, E., et al. (2015) - speed cells in the medial entorhinal cortex.',
+    'Low, I.I.C., et al. (2021) - spontaneous remapping of entorhinal network states.',
+    'Qin, H., et al. (2018); Tennant, S.A., et al. (2018) - layer 2 stellate cell inactivation; '
+    'and, under altered locomotion-to-visual gain on this task, mice following self-motion '
+    'rather than the visual scene.',
+    'Colgin, L.L., et al. (2009) - gamma frequency routing of input streams in the hippocampus, '
+    'the source of the slow/fast band assignment the Discussion treats as borrowed.',
+    'Tort, A.B.L., et al. - the modulation index for phase-amplitude coupling.',
+    'Ye, J., et al. (2018) - entorhinal speed cells are fast-spiking PV+ interneurons.',
+]
+
+GREEK = {'ρ': 'rho', 'σ': 'sigma', 'λ': 'lambda', 'α': 'alpha', 'β': 'beta',
+         'χ': 'chi', 'Χ': 'chi', 'μ': 'u', 'Δ': 'delta', 'π': 'pi', 'θ': 'theta'}
+SUPS = {'⁻': '-', '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5',
+        '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9'}
+
+
+def clean(t):
+    """Markdown and unicode down to what the base-14 fonts can actually set."""
+    t = re.sub(r'\*\*(.+?)\*\*', r'\1', t)
+    t = re.sub(r'(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)', r'\1', t)
+    t = t.replace('`', '')
+    # superscript runs become ^-6 style so exponents survive
+    t = re.sub(r'10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)',
+               lambda m: '10^' + ''.join(SUPS.get(c, c) for c in m.group(1)), t)
+    for a, b in {**GREEK, **SUPS}.items():
+        t = t.replace(a, b)
+    for a, b in {'—': '-', '–': '-', '×': 'x', '≈': '~', '≥': '>=', '≤': '<=',
+                 '“': '"', '”': '"', '‘': "'", '’': "'", '·': '.', '√': 'sqrt',
+                 '±': '+/-', '→': '->', '…': '...'}.items():
+        t = t.replace(a, b)
+    return t
+
+
+class Doc:
+    def __init__(self):
+        self.d = pymupdf.open()
+        self.page = None
+        self.col = 0
+        self.y = 0.0
+        self.full = True          # front matter runs the page width
+        self.pending = []         # span figures waiting for the next page top
+        self.col_top = MARGIN_TOP  # where columns start on the CURRENT page
+        self.new_page(first=True)
+
+    def col_rect(self):
+        # In full-width mode the "column" is the whole measure. Without this the
+        # masthead paragraphs wrap at the full width but overflow into column 2,
+        # which overprinted the body text on the first build.
+        if self.full:
+            return MARGIN_X, PW - MARGIN_X
+        x = MARGIN_X + self.col * (COLW + GUTTER)
+        return x, x + COLW
+
+    def new_page(self, first=False):
+        self.page = self.d.new_page(width=PW, height=PH)
+        if _HAVE_AV:
+            for _n, _f in _FONTFILES.items():
+                self.page.insert_font(fontname=_n, fontfile=_f)
+        self.col = 0
+        self.col_top = MARGIN_TOP      # only page 1 reserves room for the masthead
+        self.y = MARGIN_TOP
+        if not first:
+            self.page.draw_line(pymupdf.Point(MARGIN_X, MARGIN_TOP - 16),
+                                pymupdf.Point(PW - MARGIN_X, MARGIN_TOP - 16),
+                                color=(.75, .75, .75), width=.4)
+            self.page.insert_text(pymupdf.Point(MARGIN_X, MARGIN_TOP - 21),
+                                  'Clark et al.  |  Article', fontname=SANS,
+                                  fontsize=6.4, color=(.45, .45, .45))
+
+    def space(self, h):
+        if self.y + h > PH - MARGIN_BOT:
+            self.next_col()
+
+    def next_col(self):
+        if self.full:
+            self.new_page()
+            return
+        if self.col == 0:
+            self.col = 1
+            self.y = self.col_top
+        else:
+            self.new_page()
+            self._flush_pending()
+
+    def _flush_pending(self):
+        """Set one queued span figure across the top of this fresh page.
+
+        Figures used to be placed the moment their heading appeared, and
+        _figure_span began with new_page() -- so a heading could be written, the
+        page immediately abandoned, and the figure started on the next one. That
+        is what left page 3 holding nothing but a two-line heading. Queuing
+        instead lets the text fill the page it is on, and the figure opens the
+        next page with the text continuing beneath it.
+        """
+        if not self.pending or self.col != 0 or self.y > self.col_top + 1:
+            return
+        lab, path, ttl, cap = self.pending.pop(0)
+        src = pymupdf.open(path)
+        self._place_span(lab, src, ttl, cap)
+        src.close()
+
+    def wrap(self, text, font, size, width):
+        words, lines, cur = text.split(), [], ''
+        for w in words:
+            t = (cur + ' ' + w).strip()
+            if text_len(t, font, size) <= width:
+                cur = t
+            else:
+                if cur:
+                    lines.append(cur)
+                cur = w
+        if cur:
+            lines.append(cur)
+        return lines
+
+    def para(self, text, font=SERIF, size=BODY, lead=BODY_LEAD, indent=0.0,
+             color=(0, 0, 0), gap=3.0, width=None):
+        x0, x1 = self.col_rect()
+        w = width if width else (x1 - x0)
+        for i, ln in enumerate(self.wrap(clean(text), font, size, w - indent)):
+            if self.y + lead > PH - MARGIN_BOT:
+                self.next_col()
+                x0, x1 = self.col_rect()
+                if width is None:
+                    w = x1 - x0
+            self.page.insert_text(pymupdf.Point(x0 + indent, self.y), ln,
+                                  fontname=font, fontsize=size, color=color)
+            self.y += lead
+        self.y += gap
+
+    def heading(self, text, size=H2, font=SANS_B, color=(0, 0, 0), pre=6.0):
+        # Reserve room for the heading AND three lines of the text that follows.
+        # Checking only the heading's own height lets it sit alone at the foot of
+        # a column with its section starting in the next one.
+        need = pre + 2 * (size + 2.0) + 3 * BODY_LEAD
+        if self.y + need > PH - MARGIN_BOT:
+            self.next_col()
+        self.y += pre
+        self.para(text, font=font, size=size, lead=size + 2.0, color=color, gap=2.5)
+
+    def figure(self, label, path, title, caption):
+        """Place a figure. Wide or large multi-panel figures span both columns.
+
+        A 11.8 x 11.1 in figure set into a 2.3 in column is unreadable, and Cell
+        runs figures of that kind across the measure. Spanning figures are placed
+        at the top of a fresh page with the caption beneath them, and the
+        two-column text resumes below -- which is also how the journal sets them.
+        """
+        src = pymupdf.open(path)
+        r = src[0].rect
+        span = (r.width / r.height) > 1.25 or r.width / 72.0 > 8.5
+        if span:
+            self._figure_span(label, src, title, caption)
+        else:
+            self._figure_col(label, src, title, caption)
+        src.close()
+
+    def _figure_col(self, label, src, title, caption):
+        r = src[0].rect
+        x0, x1 = self.col_rect()
+        w = x1 - x0
+        h = w * (r.height / r.width)
+        maxh = PH - MARGIN_BOT - MARGIN_TOP - 110
+        if h > maxh:
+            h = maxh
+            w = h * (r.width / r.height)
+        if self.y + h + 5 * CAP_LEAD > PH - MARGIN_BOT:
+            self.next_col()
+            x0, x1 = self.col_rect()
+        self.page.show_pdf_page(pymupdf.Rect(x0, self.y, x0 + w, self.y + h), src, 0)
+        self.y += h + 6
+        self.para(f'{label}. {title}', font=ARB, size=CAP + .5,
+                  lead=CAP_LEAD + .6, gap=1.6)
+        self.para(caption, font=SERIF, size=CAP, lead=CAP_LEAD, gap=6.0)
+
+    def _figure_span(self, label, src, title, caption):
+        self.new_page()
+        self._place_span(label, src, title, caption)
+
+    def _place_span(self, label, src, title, caption):
+        r = src[0].rect
+        full = PW - 2 * MARGIN_X
+        w = full
+        h = w * (r.height / r.width)
+        maxh = PH * 0.52
+        if h > maxh:
+            h = maxh
+            w = h * (r.width / r.height)
+        x = MARGIN_X + (full - w) / 2
+        self.page.show_pdf_page(pymupdf.Rect(x, self.y, x + w, self.y + h), src, 0)
+        self.y += h + 8
+        self.full = True
+        self.para(f'{label}. {title}', font=ARB, size=CAP + .5,
+                  lead=CAP_LEAD + .6, gap=1.6)
+        self.para(caption, font=SERIF, size=CAP, lead=CAP_LEAD, gap=8.0)
+        self.full = False
+        self.col_top = self.y          # text resumes beneath the figure
+        self.col = 0
+
+def parse_methods(path):
+    """STAR Methods from PAPER.md, with the editorial apparatus stripped.
+
+    MANUSCRIPT.md deliberately carries no Methods -- it points at PAPER.md, which
+    holds them alongside correction notes, warnings and TODOs in blockquotes.
+    Those are working-draft matter, not manuscript text, so every '>' line is
+    dropped here rather than typeset into the article.
+    """
+    if not os.path.exists(path):
+        return []
+    src = open(path).read()
+    try:
+        body = src[src.index('## Methods'):src.index('## Open items')]
+    except ValueError:
+        return []
+    out, buf = [], []
+
+    def flush():
+        if buf:
+            out.append(('p', ' '.join(' '.join(buf).split())))
+            buf.clear()
+
+    for raw in body.split('\n'):
+        t = raw.rstrip()
+        if t.strip().startswith('>') or t.strip().startswith('|'):
+            continue                      # editorial notes and tables
+        if t.startswith('## '):
+            flush(); out.append(('h1', 'STAR METHODS')); continue
+        if t.startswith('### '):
+            flush(); out.append(('h2', t[4:].strip())); continue
+        if not t.strip():
+            flush(); continue
+        buf.append(t.strip())
+    flush()
+    # drop the placeholder section and anything left empty
+    return [(k, v) for k, v in out
+            if v and not v.startswith('[MISSING]') and '[MISSING]' not in v[:12]]
+
+
+def parse(md):
+    """MANUSCRIPT.md -> ordered (kind, text) blocks, editorial matter dropped."""
+    body = md.split('## Editorial notes')[0]
+    out = []
+    for raw in body.split('\n\n'):
+        t = raw.strip()
+        if not t or t.startswith('*Manuscript draft') or t == '---':
+            continue
+        if t.startswith('# '):
+            continue
+        if t.startswith('## '):
+            out.append(('h1', t[3:].strip()))
+        elif t.startswith('### '):
+            out.append(('h2', t[4:].strip()))
+        else:
+            out.append(('p', ' '.join(t.split('\n'))))
+    return out
+
+
+def main():
+    md = open(SRC).read()
+    blocks = parse(md)
+    doc = Doc()
+    p = doc.page
+
+    # the Summary is the first body paragraph of MANUSCRIPT.md; it is set on the
+    # opener page and must not be repeated when the two-column body runs
+    summary = next(t for k, t in blocks if k == 'p')
+
+    # ---- COVER PAGE (Cell Press front matter) ------------------------------
+    full = PW - 2 * MARGIN_X
+    doc.y = MARGIN_TOP
+    p.insert_text(pymupdf.Point(MARGIN_X, doc.y + 20), JOURNAL,
+                  fontname=AVB, fontsize=26, color=CELL_BLUE)
+    p.insert_text(pymupdf.Point(PW - MARGIN_X - 42, doc.y + 6), 'Article',
+                  fontname=AVD, fontsize=12, color=GREY)
+    doc.y += 44
+    doc.para(TITLE, font=AVD, size=15.0, lead=18.0, gap=14, width=full)
+
+    # two columns: graphical abstract on the left, author matter on the right
+    gx0, gx1 = MARGIN_X, MARGIN_X + full * 0.58
+    rx0 = MARGIN_X + full * 0.64
+    top = doc.y
+
+    doc.para('Graphical abstract', font=AVD, size=9.5, lead=12, gap=4,
+             color=CELL_BLUE, width=gx1 - gx0)
+    ga = f'{FIG}/graphical_abstract.pdf'
+    ga_bottom = doc.y
+    if os.path.exists(ga):
+        src = pymupdf.open(ga)
+        r = src[0].rect
+        gw = gx1 - gx0
+        gh = gw * (r.height / r.width)
+        maxh = 352
+        if gh > maxh:
+            gh = maxh; gw = gh * (r.width / r.height)
+        p.draw_rect(pymupdf.Rect(gx0, doc.y, gx0 + gw, doc.y + gh),
+                    color=(0, 0, 0), width=.8)
+        p.show_pdf_page(pymupdf.Rect(gx0 + 3, doc.y + 3, gx0 + gw - 3,
+                                     doc.y + gh - 3), src, 0)
+        ga_bottom = doc.y + gh
+        src.close()
+
+    # right column
+    doc.y = top
+    rw = MARGIN_X + full - rx0
+    saved_col = doc.col
+
+    def rpara(txt, font=SERIF, size=8.0, lead=10.0, gap=3.0, color=(0, 0, 0)):
+        for ln in doc.wrap(clean(txt), font, size, rw):
+            p.insert_text(pymupdf.Point(rx0, doc.y), ln, fontname=font,
+                          fontsize=size, color=color)
+            doc.y += lead
+        doc.y += gap
+
+    rpara('Authors', font=AVD, size=9.5, lead=12, gap=3, color=CELL_BLUE)
+    rpara(AUTHORS.replace('^', '').replace(',*', ''), size=8.4, lead=10.6, gap=9)
+    rpara('Correspondence', font=AVD, size=9.5, lead=12, gap=3, color=CELL_BLUE)
+    rpara('mattnolan@ed.ac.uk', size=8.4, lead=10.6, gap=9, color=CELL_BLUE)
+    rpara('In brief', font=AVD, size=9.5, lead=12, gap=3, color=CELL_BLUE)
+    rpara(IN_BRIEF, size=8.0, lead=10.2, gap=4)
+
+    # highlights, under the graphical abstract
+    doc.y = max(ga_bottom, doc.y) + 16
+    doc.para('Highlights', font=AVD, size=9.5, lead=12, gap=5,
+             color=CELL_BLUE, width=full)
+    for h in HIGHLIGHTS:
+        by = doc.y
+        p.draw_circle(pymupdf.Point(MARGIN_X + 3, by - 3), 2.1,
+                      color=None, fill=CELL_BLUE)
+        for ln in doc.wrap(clean(h), SERIF, 8.4, full - 16):
+            p.insert_text(pymupdf.Point(MARGIN_X + 14, doc.y), ln,
+                          fontname=SERIF, fontsize=8.4)
+            doc.y += 10.6
+        doc.y += 4
+
+    # footer
+    fy = PH - MARGIN_BOT - 4
+    for i, line in enumerate(reversed(CITATION)):
+        p.insert_text(pymupdf.Point(MARGIN_X, fy - i * 10), line,
+                      fontname=SERIF, fontsize=7.4, color=(.25, .25, .25))
+    p.insert_text(pymupdf.Point(PW - MARGIN_X - 62, fy), 'CellPress',
+                  fontname=AVD, fontsize=11, color=CELL_BLUE)
+
+    # ---- PAGE 2: article opener --------------------------------------------
+    doc.new_page()
+    p = doc.page
+    doc.full = True
+    doc.y = MARGIN_TOP
+    p.insert_text(pymupdf.Point(MARGIN_X, doc.y + 14), JOURNAL,
+                  fontname=AVB, fontsize=18, color=CELL_BLUE)
+    p.insert_text(pymupdf.Point(PW - MARGIN_X - 86, doc.y + 4), 'CellPress',
+                  fontname=AVD, fontsize=11, color=CELL_BLUE)
+    p.insert_text(pymupdf.Point(PW - MARGIN_X - 86, doc.y + 15), 'OPEN ACCESS',
+                  fontname=AVR, fontsize=6.6, color=GREY)
+    doc.y += 34
+    doc.para('Article', font=AVD, size=11, lead=13, gap=5, color=GREY, width=full)
+    doc.para(TITLE, font=AVD, size=16.0, lead=19.0, gap=9, width=full)
+    doc.para(AUTHORS.replace('^', ''), font=SERIF, size=8.6, lead=10.8,
+             gap=2, width=full)
+    for a in AFFIL:
+        doc.para(a.replace('^', ''), font=SERIF, size=7.0, lead=8.4, gap=0.5,
+                 width=full, color=(.3, .3, .3))
+    doc.y += 10
+    doc.para('SUMMARY', font=AVD, size=9.0, lead=11, gap=4, color=RULE, width=full)
+    doc.para(summary, font=SERIF, size=8.3, lead=10.6, gap=8, width=full,
+             color=CELL_BLUE)
+    p.draw_line(pymupdf.Point(MARGIN_X, doc.y), pymupdf.Point(PW - MARGIN_X, doc.y),
+                color=(.75, .75, .75), width=.5)
+    doc.y += 12
+    top_of_cols = doc.y
+
+    # ---- body, two columns -------------------------------------------------
+    doc.full = False
+    doc.col_top = top_of_cols      # page 1 only; new_page() resets to MARGIN_TOP
+    doc.col = 0
+    doc.y = top_of_cols
+    seen_summary = False
+    figs = list(FIGURES)
+    # Figures otherwise drip one per section heading, in order. That is right for
+    # the Results but wrong for the speculative model figure, which argues a
+    # hypothesis and has to sit with the section that states it rather than
+    # landing mid-Results wherever the drip reaches. PINNED holds a figure back
+    # until its heading appears; if that heading never appears it falls through
+    # to the end-of-document placement below rather than being dropped.
+    PINNED = {'Figure 8': 'ideas and speculation'}
+    for kind, text in blocks:
+        if kind == 'p' and not seen_summary and text == summary:
+            seen_summary = True
+            continue
+        if kind == 'h1':
+            if text.lower().startswith('summary'):
+                continue
+            doc.heading(text.upper(), size=H1, font=SANS_B, color=RULE, pre=9)
+        elif kind == 'h2':
+            doc.heading(text, size=H2, font=SANS_B, pre=7)
+        else:
+            doc.para(text)
+        # drip the figures through the Results so they are not all at the end
+        if kind == 'h2' and figs:
+            for _i, (lab, path, ttl, cap) in enumerate(figs):
+                want = PINNED.get(lab)
+                if want and want not in text.lower():
+                    continue        # held for its own heading; try the next one
+                src = f'{FIG}/{path}'
+                if os.path.exists(src):
+                    doc.pending.append((lab, src, ttl, cap))
+                    figs.pop(_i)
+                break
+
+    # anything still queued or unplaced, set now
+    for lab, path, ttl, cap in figs:
+        src = f'{FIG}/{path}'
+        if os.path.exists(src):
+            doc.pending.append((lab, src, ttl, cap))
+    while doc.pending:
+        lab, src, ttl, cap = doc.pending.pop(0)
+        d_ = pymupdf.open(src)
+        doc._figure_span(lab, d_, ttl, cap)
+        d_.close()
+
+    # ---- STAR Methods ------------------------------------------------------
+    meth = parse_methods(f'{FIG}/PAPER.md')
+    for kind, text in meth:
+        if kind == 'h1':
+            doc.heading(text, size=H1, font=SANS_B, color=RULE, pre=10)
+        elif kind == 'h2':
+            doc.heading(text, size=H2 - .4, font=SANS_B, pre=6)
+        else:
+            doc.para(text, size=BODY - .3, lead=BODY_LEAD - .5)
+    print(f'  STAR Methods: {sum(1 for k, _ in meth if k == "h2")} subsections')
+
+    # ---- AI declaration ----------------------------------------------------
+    doc.heading('DECLARATION OF GENERATIVE AI AND AI-ASSISTED TECHNOLOGIES',
+                size=H1 - 1.5, font=SANS_B, color=RULE, pre=10)
+    doc.para("During the preparation of this work the authors used Claude (Anthropic) to write and debug analysis code, to compute the statistics reported here from the authors' own recordings, to generate the figures, and to draft and revise manuscript text. The scientific questions, experimental design, data collection and analysis decisions were the authors'. Every reported result was produced by code that the authors reviewed, and the authors reviewed and edited all generated text. The authors take full responsibility for the content of this publication.")
+
+    # ---- references --------------------------------------------------------
+    doc.heading('REFERENCES', size=H1, font=SANS_B, color=RULE, pre=10)
+    doc.para('Verified citations for works consulted directly in preparing this draft:',
+             font=SERIF_I, size=7.4, lead=9.2, gap=3)
+    for i, r in enumerate(REFS_FULL, 1):
+        doc.para(f'{i}. {r}', size=7.4, lead=9.2, gap=2.0, indent=6)
+    doc.para('Works cited by name in the text whose full bibliographic details are '
+             'outstanding. The source manuscript carries unresolved superscript '
+             'placeholders and no bibliography; these are listed rather than '
+             'fabricated, and must be completed before submission:',
+             font=SERIF_I, size=7.4, lead=9.2, gap=3)
+    for i, r in enumerate(REFS_PARTIAL, len(REFS_FULL) + 1):
+        doc.para(f'{i}. {r}', size=7.4, lead=9.2, gap=2.0, indent=6)
+
+    # ---- supplemental figures ----------------------------------------------
+    doc.heading('SUPPLEMENTAL FIGURES', size=H1, font=SANS_B, color=RULE, pre=10)
+    doc.para('Supplemental figures are referenced from the Results and are '
+             'presented here in the order their main figure appears.',
+             font=SERIF_I, size=7.4, lead=9.2, gap=4)
+    n_supp = 0
+    for lab, path, ttl, cap in SUPPLEMENTS:
+        src = f'{FIG}/{path}'
+        if not os.path.exists(src):
+            print(f'  ! {path} missing, skipped')
+            continue
+        doc.pending.append((lab, src, ttl, cap))
+        n_supp += 1
+    while doc.pending:
+        lab, src, ttl, cap = doc.pending.pop(0)
+        d_ = pymupdf.open(src)
+        doc._figure_span(lab, d_, ttl, cap)
+        d_.close()
+    print(f'  supplemental figures: {n_supp}')
+
+    doc.d.save(OUT, deflate=True)
+    print(f'wrote {OUT}  ({doc.d.page_count} pages)')
+
+
+if __name__ == '__main__':
+    main()
