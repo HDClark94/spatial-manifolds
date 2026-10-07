@@ -128,7 +128,16 @@ def run_session(mo, dy, rng):
                                .clip(0, len(S) - 1)]
     run = spd >= 3.0
     cols = sorted(fam_of)
-    D = d[:, np.array(cols)]
+    # Read FULL-WIDTH row blocks and subset columns in memory. The dataset is
+    # gzip-chunked at (26041, all-channels), so asking h5py for a subset of
+    # columns decompresses every chunk once per column and never finishes on an
+    # SD card; reading whole chunks is effectively free by comparison.
+    nT = d.shape[0]
+    blk = (d.chunks[0] if d.chunks else 26041) * 8
+    D = np.empty((nT, len(cols)), np.float32)
+    ca = np.array(cols)
+    for i in range(0, nT, blk):
+        D[i:i + blk] = d[i:i + blk, :][:, ca]
     fh.close()
     col_fam = np.array([fam_of[c] for c in cols])
     # one representative trace per family: the mean across its groups
@@ -170,9 +179,22 @@ def run_session(mo, dy, rng):
         for i, a in enumerate(fams):
             for b in fams[i + 1:]:
                 fr, C = coherence(X[a][idx], X[b][idx], FS, nperseg=NPERSEG)
+                # Magnitude-squared coherence alone is not interpretable here:
+                # it runs at 0.70-0.81 even between MEC and visual cortex, which
+                # a shared reference and volume conduction produce regardless of
+                # any real interaction. IMAGINARY coherence discards the
+                # zero-lag component those create and keeps only genuinely
+                # lagged coupling, so it is the number to read.
+                from scipy.signal import csd
+                _, Pxy = csd(X[a][idx], X[b][idx], FS, nperseg=NPERSEG)
+                _, Pxx = welch(X[a][idx], FS, nperseg=NPERSEG)
+                _, Pyy = welch(X[b][idx], FS, nperseg=NPERSEG)
+                icoh = np.abs(np.imag(Pxy / np.sqrt(Pxx * Pyy)))
                 crow.append(dict(mouse=mo, day=dy, state=tag, pair=f'{a}-{b}',
                                  slow=band(fr, C, *SLOW),
                                  fast=band(fr, C, *FAST),
+                                 islow=band(fr, icoh, *SLOW),
+                                 ifast=band(fr, icoh, *FAST),
                                  n_samp=int(n)))
     return pd.DataFrame(crow), pd.DataFrame(srow)
 
