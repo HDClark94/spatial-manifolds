@@ -1,6 +1,37 @@
 """Which structure does each gamma band cohere with, and does that change with
 the anchoring state?
 
+    *** READ THIS BEFORE USING ANY RESULT FROM THIS FILE (added 2026-10-07) ***
+
+    THE PREMISE IS UNSAFE. This script treats non-ENTm channels as recordings
+    of other structures. They are not independent recordings: they are channels
+    on the same probe, sharing a reference, often only a few hundred microns
+    from the entorhinal sites. That is almost certainly why magnitude-squared
+    coherence came out at 0.70-0.81 even between "MEC" and "visual cortex" --
+    a number no pair of genuinely separate structures produces.
+
+    So BOTH conclusions originally drawn here are withdrawn:
+
+      - "the fast-gamma reduction appears equally in MEC, PAR and VIS, so the
+        effect is global rather than entorhinal" -- those traces are not
+        independent samples of three structures, so their agreement is what
+        volume conduction predicts and carries no regional information.
+
+      - "no band-specific routing survives imaginary coherence" -- the
+        imaginary-coherence nulls stand as computed, but with sources this
+        close together the measure has little genuine lagged signal to detect
+        in the first place, so the null is uninformative rather than negative.
+
+    The two-loop account is therefore UNTESTED on the cross-region axis, not
+    refuted on it. Testing it needs LFP from genuinely separate probes in the
+    hippocampal formation, which this collection does not contain.
+
+    What does survive from this file: the per-region spectra are still a
+    reasonable description of what the probe sees along its length, and the
+    imaginary-vs-magnitude-squared contrast is a useful warning -- about 95% of
+    coherence here is zero-lag, so magnitude-squared coherence should never be
+    quoted for these data.
+
 This is the test that separates the two versions of the two-loop account, and
 they predict OPPOSITE things, so one analysis decides between them:
 
