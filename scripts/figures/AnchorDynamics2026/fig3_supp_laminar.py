@@ -75,8 +75,12 @@ DC = '/Users/harryclark/Downloads/device_contact_id_annotations.csv'
 OUT = f'{FIG}/fig3_supp_laminar.pdf'
 
 MIN_SPAN_UM = 200.0        # as in Figure 3: two shank pitches
-SUP_C, DEEP_C = '#1f78b4', '#b2182b'
+# Superficial and deep get their own diverging pair (PuOr), chosen so neither
+# collides with the identity red or the following blue used in C and D, and so
+# the two layers stay distinguishable in greyscale and to a colourblind reader.
+SUP_C, DEEP_C = '#e08214', '#542788'
 GC_C, FOL_C = '#c04744', '#2b6cb0'
+MOUSE_C = '0.72'
 
 
 def _lp(ax, s, dx=-.20, dy=1.0):
@@ -132,11 +136,20 @@ gs = fig.add_gridspec(1, 4, width_ratios=[1.0, 1.0, 1.15, 1.15], wspace=.52,
 
 # ── A: contacts ──────────────────────────────────────────────────────────────
 ax = fig.add_subplot(gs[0]); _lp(ax, 'A')
+# one grey line per mouse, a point per SHANK -- the unit mediolateral position
+# is actually assigned at. The pooled line is the same data quartiled; showing
+# both makes clear the gradient is within animals and not an averaging artefact.
+for m, g in con.groupby('mouse'):
+    sh = (g.groupby('shank_id').agg(ml=('ml', 'median'), sup=('sup', 'mean'))
+          .sort_values('ml'))
+    if len(sh) >= 2:
+        ax.plot(sh.ml, sh.sup * 100, '-', color=MOUSE_C, lw=.8, alpha=.9,
+                zorder=2, marker='o', ms=2.2)
 p = quartile_profile(con, 'ml', 'sup')
-ax.plot(p.ml, p.sup * 100, '-o', color=SUP_C, lw=1.6, ms=5)
+ax.plot(p.ml, p.sup * 100, '-o', color=SUP_C, lw=2.0, ms=5, zorder=4)
 for _, r_ in p.iterrows():
     ax.annotate(f'{int(r_.n)}', (r_.ml, r_.sup * 100), textcoords='offset points',
-                xytext=(0, 7), ha='center', fontsize=5.6, color='0.45')
+                xytext=(0, 8), ha='center', fontsize=5.6, color='0.45', zorder=5)
 rho, pv = spearmanr(con.ml, con.sup.astype(float))
 ws = np.array([spearmanr(g.ml, g.sup.astype(float))[0]
                for _, g in con.groupby('mouse')
@@ -147,25 +160,37 @@ ax.set_title(f'recording sites\npooled rho = {rho:+.3f} (p = {pv:.0e})',
 ax.text(.03, .06, f'within mouse median {np.median(ws):+.2f}\n'
                   f'negative in {(ws < 0).sum()}/{len(ws)} mice, '
                   f'p = {wilcoxon(ws).pvalue:.3f}',
-        transform=ax.transAxes, fontsize=6.0, color='0.4', linespacing=1.4)
+        transform=ax.transAxes, fontsize=6.0, color='0.4', linespacing=1.4,
+        zorder=6, bbox=dict(facecolor='white', edgecolor='none', pad=1.4,
+                            alpha=.85))
 ax.set_xlabel('medial–lateral (µm)', fontsize=8)
 ax.set_ylabel('superficial contacts (%)', fontsize=8)
-ax.set_ylim(40, 100); ax.margins(x=.14)
+ax.set_ylim(0, 103); ax.margins(x=.14)
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
 # ── B: cells ─────────────────────────────────────────────────────────────────
 ax = fig.add_subplot(gs[1]); _lp(ax, 'B')
+# cells carry no shank id, so they are grouped by mediolateral position rounded
+# to 50 um -- shanks sit ~250 um apart, so this recovers them while absorbing
+# the per-cell jitter around each shank's nominal value
+for m, g in C.groupby('mouse'):
+    sh = (g.assign(_s=(g.ml / 50).round() * 50)
+          .groupby('_s').agg(ml=('ml', 'median'), sup=('sup', 'mean'),
+                             n=('sup', 'size')).query('n >= 15').sort_values('ml'))
+    if len(sh) >= 2:
+        ax.plot(sh.ml, sh.sup * 100, '-', color=MOUSE_C, lw=.8, alpha=.9,
+                zorder=2, marker='o', ms=2.2)
 p = quartile_profile(C, 'ml', 'sup')
-ax.plot(p.ml, p.sup * 100, '-o', color='0.3', lw=1.6, ms=5)
+ax.plot(p.ml, p.sup * 100, '-o', color=SUP_C, lw=2.0, ms=5, zorder=4)
 for _, r_ in p.iterrows():
     ax.annotate(f'{int(r_.n)}', (r_.ml, r_.sup * 100), textcoords='offset points',
-                xytext=(0, 7), ha='center', fontsize=5.6, color='0.45')
+                xytext=(0, 8), ha='center', fontsize=5.6, color='0.45', zorder=5)
 w, pw = within_session(C, 'ml', 'supf')
 ax.set_title(f'the cells analysed\nwithin session rho = {np.median(w):+.3f} '
              f'(p = {pw:.3f})', fontsize=7.4, loc='left', color='0.25')
 ax.set_xlabel('medial–lateral (µm)', fontsize=8)
 ax.set_ylabel('superficial cells (%)', fontsize=8)
-ax.set_ylim(40, 100); ax.margins(x=.14)
+ax.set_ylim(0, 103); ax.margins(x=.14)
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
 # ── C, D: does the M-L result survive inside a layer? ────────────────────────
