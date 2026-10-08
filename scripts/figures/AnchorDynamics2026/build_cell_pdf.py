@@ -13,9 +13,8 @@ WHAT IS AND IS NOT REAL. The text and every number come from MANUSCRIPT.md. The
 reference list does NOT come from the manuscript, because the manuscript has
 none -- the working draft carries unresolved superscript placeholders and no
 bibliography (see the open items in PAPER.md). References here are assembled
-from works NAMED in the text. Full citation details are given only for the four
-papers read directly in preparing this draft; everything else is listed by author
-and year with the details marked as outstanding, rather than invented.
+from works NAMED in the text, resolved against the published record. One citation
+that could not be verified is listed as outstanding rather than invented.
 
 Writes AnchorDynamics2026_Cell_mockup.pdf
 """
@@ -272,43 +271,45 @@ SUPPLEMENTS = [
      'Running speed and stopping behaviour compared between states, including the speed-matched '
      'subsets used wherever a comparison could otherwise be carried by a difference in '
      'locomotion.'),
-    ('Figure S4', 'fig2_supp_nonanchored.pdf',
-     'What a non-anchored trial is',
-     'Each trial correlated against the cell\'s anchored template at every circular offset. The '
-     'correlation at zero offset collapses while the best over offsets barely falls, which reads '
-     'as displacement and is not: two unrelated cells reach the same best-of-offsets floor, and '
-     'non-anchored trials sit only marginally above it.'),
-    ('Figure S5', 'fig2_supp_rate.pdf',
-     'Anchoring concerns where cells fire, not how much',
-     'Firing rate differences between states by three measures - averaged over position bins, '
-     'per second of running, and speed-matched. The sign reverses under a change of denominator '
-     'and a behavioural control, so the effect is not a rate effect.'),
-    ('Figure S6', 'fig2_supp_reliability.pdf',
-     'Trial-to-trial reliability by identity',
-     'Reliability of the trial-by-trial rate maps for each identity class, which sets the floor '
-     'on how well any classifier could label them.'),
-    ('Figure S7', 'fig6_region_examples.pdf',
+    ('Figure S4', 'fig2_supp_nonanchored_rate.pdf',
+     'What a non-anchored trial is, and whether firing rate changes with the state',
+     'Two halves of one question. (A-D) Has the field moved, or has it gone? Each trial\'s map is '
+     'correlated against the cell\'s anchored template at every circular offset. Zero-offset '
+     'correlation collapses from +0.33 to +0.07 while the best-over-offsets correlation falls only '
+     'from +0.56 to +0.53, which looks like displacement until the null is applied: a maximum over '
+     '100 offsets is large by construction, two unrelated cells reach +0.500 under the same search, '
+     'and non-anchored trials sit only 0.029 above that floor with a mean best offset of 47 cm '
+     'against the 50 cm a uniform choice on a 200 cm track would give. Non-anchored trials show '
+     'loss of spatial correspondence with no evidence of a coherent field elsewhere. (E-K) Does '
+     'rate change with the state, or only where cells fire? The effect is small and its sign '
+     'depends on the measurement: on the same 6,517 cells the log2 ratio is -0.090 spatially '
+     'averaged and unmatched, -0.028 time averaged and unmatched, and +0.036 time averaged and '
+     'speed-matched. All three are significant and they disagree about direction, because a rate '
+     'read off a rate map divides by occupancy and occupancy is set by running speed. Nothing that '
+     'reverses sign under a change of denominator should be reported as a rate effect, and the '
+     'conclusion is that anchoring concerns where cells fire rather than how much.'),
+    ('Figure S5', 'fig6_region_examples.pdf',
      'The same state, described separately by each structure',
      'Two sessions bracketing the range among those recording all three structures, read left to '
      'right as entorhinal, subicular and visual cortex. Everything within a structure is built '
      'from that structure\'s own cells - the raster ordered by its own PC1 loading, the '
      'component signed to its own anchored fraction - so agreement between the groups is '
      'agreement between independent descriptions rather than a consequence of a shared frame.'),
-    ('Figure S8', 'fig6_supp_region_examples.pdf',
+    ('Figure S6', 'fig6_supp_region_examples.pdf',
      'The state outside MEC, where MEC does not dominate the sample',
      'Sessions chosen for their sampling rather than their result: visual-rich and '
      'subicular-rich sessions, and the two with enough cerebellar cells to build an axis. '
      'Cerebellum carries a matching state in both, having been included as a distant negative '
      'control that it turned out not to be. One visual session runs the other way, and is shown '
      'for that reason.'),
-    ('Figure S9', 'fig6_supp_dimensionality.pdf',
+    ('Figure S7', 'fig6_supp_dimensionality.pdf',
      'One axis is an adequate description of the state',
      'Out-of-sample variance explained, with the axis built from one half of a region\'s cells '
      'and scored on the other. (A) Neuron-dropping curve per region against the circular-shift '
      'null, showing the cell-count dependence rather than hiding it behind one matched number. '
      '(B) By component at matched cell count: the first carries roughly fifty times the '
      'generalising structure of the second, so the label matrix is effectively one-dimensional.'),
-    ('Figure S10', 'fig7_supp_band_examples.pdf',
+    ('Figure S8', 'fig7_supp_band_examples.pdf',
      'Band power tracking the population state in individual sessions',
      'Four sessions as the population axis, the log-spaced spectrogram and the three band traces '
      'on a shared trial axis. A-C show the population pattern; D is drawn in red as a '
@@ -326,25 +327,49 @@ REFS_FULL = [
     'theta sweeps in entorhinal-hippocampal maps of space. Nature 639, 995-1005.',
     'Robinson, J., Ying, J., Hasselmo, M.E., and Brandon, M.P. (2024). Septal GABAergic '
     'control of grid cell periodicity and phase precession. Cell Rep. 43, 114590.',
+    'Aston-Jones, G., and Cohen, J.D. (2005). An integrative theory of locus '
+    'coeruleus-norepinephrine function: adaptive gain and optimal performance. Annu. Rev. '
+    'Neurosci. 28, 403-450.',
+    'Colgin, L.L., Denninger, T., Fyhn, M., Hafting, T., Bonnevie, T., Jensen, O., Moser, M.-B., '
+    'and Moser, E.I. (2009). Frequency of gamma oscillations routes flow of information in the '
+    'hippocampus. Nature 462, 353-357.',
+    'Fuhrmann, F., Justus, D., Sosulina, L., Kaneko, H., Beutel, T., Friedrichs, D., Schoch, S., '
+    'Schwarz, M.K., Fuhrmann, M., and Remy, S. (2015). Locomotion, theta oscillations, and the '
+    'speed-correlated firing of hippocampal neurons are controlled by a medial septal '
+    'glutamatergic circuit. Neuron 86, 1253-1264.',
+    'Gil, M., Ancau, M., Schlesiger, M.I., Neitz, A., Allen, K., De Marco, R.J., and Monyer, H. '
+    '(2018). Impaired path integration in mice with disrupted grid cell firing. Nat. Neurosci. '
+    '21, 81-91.',
+    'Hallanger, A.E., and Wainer, B.H. (1988). Ascending projections from the pedunculopontine '
+    'tegmental nucleus and the adjacent mesopontine tegmentum in the rat. J. Comp. Neurol. 274, '
+    '483-515.',
+    'Jacob, P.-Y., Gordillo-Salas, M., Facchini, J., Poucet, B., Save, E., and Sargolini, F. '
+    '(2019). Path integration maintains spatial periodicity of grid cell firing in a 1D circular '
+    'track. Nat. Commun. 10, 840.',
+    'Justus, D., Dalugge, D., Bothe, S., Fuhrmann, F., Hannes, C., Kaneko, H., Friedrichs, D., '
+    'Sosulina, L., Schwarz, I., Elliott, D.A., et al. (2017). Glutamatergic synaptic integration '
+    'of locomotion speed via septoentorhinal projections. Nat. Neurosci. 20, 16-19.',
+    'Kempter, R., Leibold, C., Buzsaki, G., Diba, K., and Schmidt, R. (2012). Quantifying '
+    'circular-linear associations: hippocampal phase precession. J. Neurosci. Methods 207, '
+    '113-124.',
+    'Kropff, E., Carmichael, J.E., Moser, M.-B., and Moser, E.I. (2015). Speed cells in the medial '
+    'entorhinal cortex. Nature 523, 419-424.',
+    'Low, I.I.C., Williams, A.H., Campbell, M.G., Linderman, S.W., and Giocomo, L.M. (2021). '
+    'Dynamic and reversible remapping of network representations in an unchanging environment. '
+    'Neuron 109, 2967-2980.',
+    'Tennant, S.A., Fischer, L., Garden, D.L.F., Gerlei, K.Z., Martinez-Gonzalez, C., McClure, C., '
+    'Wood, E.R., and Nolan, M.F. (2018). Stellate cells in the medial entorhinal cortex are '
+    'required for spatial learning. Cell Rep. 22, 1313-1324.',
+    'Tort, A.B.L., Komorowski, R., Eichenbaum, H., and Kopell, N. (2010). Measuring '
+    'phase-amplitude coupling between neuronal oscillations of different frequencies. J. '
+    'Neurophysiol. 104, 1195-1210.',
+    'Ye, J., Witter, M.P., Moser, M.-B., and Moser, E.I. (2018). Entorhinal fast-spiking speed '
+    'cells project to the hippocampus. Proc. Natl. Acad. Sci. USA 115, E1627-E1636.',
 ]
 REFS_PARTIAL = [
-    'Aston-Jones, G., and Cohen, J.D. - adaptive gain theory of locus coeruleus function.',
-    'Colgin, L.L. - slow and fast gamma as markers of distinct input streams.',
-    'Fuhrmann, F., et al. (2015) - glutamatergic septal projections and locomotion.',
-    'Gil, M., et al. (2018) - NMDA receptor deletion, grid cells and path integration.',
-    'Hallanger, A.E., and Wainer, B.H. (1988) - pedunculopontine projections to the septum.',
-    'Jacob, P.-Y., et al. (2019) - grid cells encode distance on circular tracks.',
-    'Justus, D., et al. (2017) - septal speed signals reaching entorhinal cortex.',
-    'Kempter, R., et al. (2012) - circular-linear regression for phase precession.',
-    'Kropff, E., et al. (2015) - speed cells in the medial entorhinal cortex.',
-    'Low, I.I.C., et al. (2021) - spontaneous remapping of entorhinal network states.',
-    'Qin, H., et al. (2018); Tennant, S.A., et al. (2018) - layer 2 stellate cell inactivation; '
-    'and, under altered locomotion-to-visual gain on this task, mice following self-motion '
-    'rather than the visual scene.',
-    'Colgin, L.L., et al. (2009) - gamma frequency routing of input streams in the hippocampus, '
-    'the source of the slow/fast band assignment the Discussion treats as borrowed.',
-    'Tort, A.B.L., et al. - the modulation index for phase-amplitude coupling.',
-    'Ye, J., et al. (2018) - entorhinal speed cells are fast-spiking PV+ interneurons.',
+    'Qin, H., et al. (2018) - layer 2 stellate cell inactivation. Cited by name in the source '
+    'draft; the full citation could not be verified and is left outstanding rather than '
+    'reconstructed from memory.',
 ]
 
 GREEK = {'ρ': 'rho', 'σ': 'sigma', 'λ': 'lambda', 'α': 'alpha', 'β': 'beta',
@@ -543,7 +568,35 @@ def parse_methods(path):
     holds them alongside correction notes, warnings and TODOs in blockquotes.
     Those are working-draft matter, not manuscript text, so every '>' line is
     dropped here rather than typeset into the article.
+
+    FILENAMES ARE STRIPPED TOO. PAPER.md names the script behind each analysis,
+    which is exactly what it is for -- it is the record of why the analyses are
+    what they are. A manuscript does not cite its own source files, so every
+    reference to a .py or .ipynb is removed on the way into the document, along
+    with the parentheses or backticks left holding it. PAPER.md keeps them.
     """
+    def _strip_files(t):
+        """Drop source-file references on the way into the manuscript.
+
+        PAPER.md records which script produced each analysis as an
+        "Implementation: ..." sentence. That belongs to the working draft; a
+        manuscript does not cite its own source files. The leading sentence is
+        removed and anything substantive after it is kept, because some of
+        those paragraphs continue into real methods text.
+        """
+        if re.match(r'\*{0,2}Implementation[.:]', t):
+            parts = re.split(r'(?<=\.)\s+(?=[A-Z])', t, maxsplit=1)
+            t = parts[1] if len(parts) > 1 else ''
+        t = re.sub(r'\s*\((?:see\s+)?`?[\w./-]+\.(?:py|ipynb)`?\s*\)', '', t)
+        t = re.sub(r'`?\b[\w./-]*[\w-]\.(?:py|ipynb)`?', '', t)
+        t = re.sub(r'\(\s*[,;]?\s*\)', '', t)
+        t = re.sub(r'\s{2,}', ' ', t)
+        t = re.sub(r'\s+([,.;:])', r'\1', t)
+        t = re.sub(r'(?:^|\s)(?:in|with|using|via|from)\s*(?=[,.;:])', '', t)
+        t = re.sub(r',\s*(?=[,.;:])', '', t)          # the comma the file left behind
+        t = re.sub(r'\s{2,}', ' ', t)
+        return t.strip(' ,;')
+
     if not os.path.exists(path):
         return []
     src = open(path).read()
@@ -555,7 +608,7 @@ def parse_methods(path):
 
     def flush():
         if buf:
-            out.append(('p', ' '.join(' '.join(buf).split())))
+            out.append(('p', _strip_files(' '.join(' '.join(buf).split()))))
             buf.clear()
 
     for raw in body.split('\n'):
@@ -774,14 +827,15 @@ def main():
 
     # ---- references --------------------------------------------------------
     doc.heading('REFERENCES', size=H1, font=SANS_B, color=RULE, pre=10)
-    doc.para('Verified citations for works consulted directly in preparing this draft:',
+    doc.para('Citations for works named in the text. The source manuscript carries '
+             'unresolved superscript placeholders and no bibliography; these were '
+             'resolved against the published record rather than reconstructed from '
+             'memory, and should still be checked against the originals before submission:',
              font=SERIF_I, size=7.4, lead=9.2, gap=3)
     for i, r in enumerate(REFS_FULL, 1):
         doc.para(f'{i}. {r}', size=7.4, lead=9.2, gap=2.0, indent=6)
-    doc.para('Works cited by name in the text whose full bibliographic details are '
-             'outstanding. The source manuscript carries unresolved superscript '
-             'placeholders and no bibliography; these are listed rather than '
-             'fabricated, and must be completed before submission:',
+    doc.para('Still outstanding. Named in the source draft but not verifiable against the '
+             'published record here, and left incomplete rather than invented:',
              font=SERIF_I, size=7.4, lead=9.2, gap=3)
     for i, r in enumerate(REFS_PARTIAL, len(REFS_FULL) + 1):
         doc.para(f'{i}. {r}', size=7.4, lead=9.2, gap=2.0, indent=6)

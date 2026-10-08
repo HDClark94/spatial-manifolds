@@ -174,7 +174,18 @@ SIGMA = 2.0        # position bins (4 cm), matching Figure 1
 CMAP = os.environ.get('FIG2_CMAP', 'viridis')
 MAJOR_FILT = 9        # trials, odd; as Figure 1 -- see session_row
 # Deliberately NOT M26 D18, which Figure 1 uses as its example.
-EXAMPLES = [(25, 23), (28, 25)]
+#
+# Chosen so the GRID panel is legible. Selection within a session is still by
+# agreement alone (see example_units), but that only picks the best cell the
+# session HAS: M25 D23 held just three grid cells in the population and its
+# best fired at ~2 Hz, so the panel showed a correct but near-empty map. These
+# two sessions have 23 and 34 grid cells, and their top-agreement grid cells
+# are also the best-structured ones in the dataset -- M25 D24 cl 160
+# (r = 0.92, open-field grid score 1.33, track spatial information 0.83,
+# 13.5 Hz peak) and M28 D23 cl 115 (r = 0.69, 0.97, 0.95, 3.9 Hz). Both are
+# switching sessions carrying all four identities and both locked classes, as
+# the rows require.
+EXAMPLES = [(25, 24), (28, 23)]
 
 # r_null: each cell's own circular-shift chance level. It is computed by
 # build_per_cell_pc1.py but dropped when per_cell_pc1.csv is written, so it has

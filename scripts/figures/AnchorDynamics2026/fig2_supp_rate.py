@@ -70,6 +70,18 @@ plt.rcParams['mathtext.bf'] = 'Arial:bold'
 plt.rcParams['font.monospace'] = ['Menlo', 'Courier New', 'Courier']
 
 
+# This figure is no longer a supplement of its own: it is stacked beneath
+# fig2_supp_nonanchored to form ONE supplement covering both what a
+# non-anchored trial is and whether firing rate changes with the state. Its
+# panels therefore continue that figure's lettering (A-D) rather than
+# restarting at A.
+LETTER_OFFSET = 4
+
+
+def _L(s):
+    return ''.join(chr(ord(c) + LETTER_OFFSET) for c in s)
+
+
 def _lp(ax, s, dx=-.16, dy=1.0):
     """Bold panel letter, drawn separately from the title and always 10 pt,
     matching every other figure (the titles here previously carried a plain,
@@ -124,9 +136,14 @@ for i, (a, b, nm) in enumerate(MEAS):
                 ha='center', fontsize=6.2, color='0.25')
 ax.axhline(0, color='k', lw=1, ls='--')
 ax.set_ylim(-.8, .8)
-ax.set_xticks(range(3)); ax.set_xticklabels([m[2] for m in MEAS], fontsize=5.6)
+# Rotated and on one line: stacked two-line labels at this panel width ran
+# into each other -- the two "(unmatched)" spans abutted exactly -- and the
+# figure is scaled down again when it is placed in the document.
+ax.set_xticks(range(3))
+ax.set_xticklabels([m[2].replace(chr(10), ' ') for m in MEAS], fontsize=5.8,
+                   rotation=18, ha='right', rotation_mode='anchor')
 ax.set_ylabel('log2 (anchored / non-anchored)', fontsize=8)
-_lp(ax, 'A')
+_lp(ax, _L('A'))
 ax.set_title('the sign depends on the measure', fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
@@ -138,7 +155,7 @@ ax.plot(lim, lim, color=ANCH_COLOR, lw=1, ls=':')
 ax.set_xlim(lim); ax.set_ylim(lim)
 ax.set_xlabel('spatially averaged (Hz)', fontsize=7.5)
 ax.set_ylabel('time averaged (Hz)', fontsize=8)
-_lp(ax, 'B')
+_lp(ax, _L('B'))
 ax.set_title(f'r = {np.corrcoef(c.rate_pop_anch, c.rate_a)[0,1]:.2f} but offset'
              f'\n(occupancy vs seconds)', fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
@@ -154,7 +171,7 @@ ax.axhline(0, color='k', lw=1, ls='--')
 ax.set_xticks([0, 1]); ax.set_xticklabels(['unmatched', 'matched'], fontsize=7)
 ax.set_xlim(-.5, 1.5)
 ax.set_ylabel('speed difference (cm/s)', fontsize=8)
-_lp(ax, 'C')
+_lp(ax, _L('C'))
 ax.set_title('speed barely differs either way', fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
@@ -173,7 +190,7 @@ ax.set_xticks([0, 1])
 ax.set_xticklabels(['own label\n(circular)', 'population\nstate'], fontsize=6.5)
 ax.set_xlim(-.5, 1.5)
 ax.set_ylabel('log2 ratio', fontsize=8)
-_lp(ax, 'D')
+_lp(ax, _L('D'))
 ax.set_title('and on the circularity control', fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
@@ -191,7 +208,7 @@ for j, (a, b, nm) in enumerate(((('rate_a', 'rate_n', 'unmatched')),
     ax.set_ylim(-.6, .6)
     ax.set_xticks(range(4)); ax.set_xticklabels(SHORT, fontsize=7)
     ax.set_ylabel('log2 ratio', fontsize=8)
-    _lp(ax, "EF"[j])
+    _lp(ax, _L("EF"[j]))
     ax.set_title(f'{nm}, by identity', fontsize=7.5, loc='left')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
@@ -206,7 +223,7 @@ ax.axhline(0, color='k', lw=1, ls='--')
 ax.set_xticks([0, 1]); ax.set_xticklabels(['unmatched', 'matched'], fontsize=7)
 ax.set_xlim(-.5, 1.5)
 ax.set_ylabel('log2 ratio, per mouse', fontsize=8)
-_lp(ax, 'G')
+_lp(ax, _L('G'))
 ax.set_title(f'per mouse (n={M.mouse.nunique()})', fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
