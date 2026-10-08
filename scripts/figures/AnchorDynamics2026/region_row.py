@@ -54,7 +54,16 @@ TA_NORM = BoundaryNorm([-.5, .5, 1.5], TA_CMAP.N)
 MAP_SIGMA = 2.0
 N_MAPS = 2
 SLICE_STEP = 12
-WR = [1.70, 1.20, .78, .78, 1.20, .78, .78, 1.20, .78, .78, 1.00]
+# One slice column, then THREE columns per region (its anchoring raster and two
+# example rate maps), then the PC1 overlay. Built from the number of regions the
+# row actually has rather than fixed at three: a two-region row left columns
+# 7-9 empty and opened a wide band of white between its last rate map and the
+# PC1 panel.
+def row_widths(n_regions):
+    return [1.70] + [1.20, .78, .78] * n_regions + [1.00]
+
+
+WR = row_widths(3)          # retained for callers that lay out their own rows
 
 _CLS = pd.read_csv(f'{ROOT}/data/cell_classifications_v2.csv')
 
@@ -153,7 +162,8 @@ def draw_row(fig, cell, mo, dy, d, regions, letter='', headline=''):
     picks = {r: [d[r][1][i] for i in np.argsort(ax_[r][1])[::-1][:N_MAPS]]
              for r in regions}
     maps = trial_maps(mo, dy, [c for r in regions for c in picks[r]])
-    G = cell.subgridspec(1, len(WR), wspace=.26, width_ratios=WR)
+    wr = row_widths(len(regions))
+    G = cell.subgridspec(1, len(wr), wspace=.26, width_ratios=wr)
     n_tr = d[regions[0]][0].shape[1]
 
     # ---- the slice, with this session's cells on it --------------------------
@@ -232,7 +242,7 @@ def draw_row(fig, cell, mo, dy, d, regions, letter='', headline=''):
             for sp in ax.spines.values():
                 sp.set_visible(False)
 
-    ax = fig.add_subplot(G[10])
+    ax = fig.add_subplot(G[len(wr) - 1])
     for r in regions:
         p_ = ax_[r][0]
         ax.plot((p_ - p_.mean()) / (p_.std() or 1), np.arange(n_tr),
