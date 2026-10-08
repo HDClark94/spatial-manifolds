@@ -622,7 +622,12 @@ from spatial_manifolds.anchoring import (ANCH_COLOR as ANCH_C,
                                          NONANCH_COLOR as NONANCH_C,
                                          load_session_labels)
 
-gR = G[2].subgridspec(1, 4, width_ratios=[2.25, .30, .18, 1.55], wspace=.30)
+# wspace is wider than the rows above because this one now carries a colorbar
+# on the slice panel: the bar's tick labels and the raster's rotated y-label
+# both float outward by a fixed point padding that no gridspec setting accounts
+# for, so a gap that looks ample between the axes boxes still collides in ink.
+gR = G[2].subgridspec(1, 5, width_ratios=[.88, 2.25, .30, .18, 1.55],
+                      wspace=.46)
 _z = load_session_labels(RAST_MO, RAST_DY)
 _ids = [int(c) for c in _z['cluster_id']]
 _co = (C[(C.mouse == RAST_MO) & (C.day == RAST_DY)]
@@ -638,9 +643,51 @@ _n_tr = _L.shape[1]
 _st = median_filter((_frac > .5).astype(float), size=9, mode='nearest') > .5
 _tr = list(np.where(np.diff(_st.astype(int)) != 0)[0] + 1)
 
+# ---- H: the same session on its own best-fit slice -----------------------
+# The raster beside this orders cells medial -> lateral as a number; this shows
+# where those cells actually sit, in the style of the region-example rows, so
+# the gradient can be read off the tissue rather than off an axis label.
+_rr0 = (pd.read_csv(f'{PS}/pc1_by_region.csv')
+        .query('mouse == @RAST_MO and day == @RAST_DY')
+        .set_index('cluster_id'))
+axsl = fig.add_subplot(gR[0])
+_cells = (C[(C.mouse == RAST_MO) & (C.day == RAST_DY)]
+          .dropna(subset=['coord_SCs_x', 'coord_SCs_y', 'coord_SCs_z']))
+_cpts = np.array([stereo_to_ccf(r) for r in
+                  _cells[['coord_SCs_z', 'coord_SCs_y',
+                          'coord_SCs_x']].values])
+_contacts = get_mouse_contacts(RAST_MO)
+_fitH = fit_best_slice(_contacts, extent_pts=_cpts)
+_uv, _vv, _grid = sample_region_grid(_fitH)
+axsl.imshow(_grid, origin='lower', aspect='equal', cmap=region_cmap,
+            norm=region_norm, zorder=1,
+            extent=[_uv[0], _uv[-1], _vv[0], _vv[-1]])
+_pu, _pv = _fitH['project'](_cpts)
+_cr = np.array([_rr0.r.get(c, np.nan) for c in _cells.cluster_id])
+_okc = np.isfinite(_cr)
+axsl.scatter(_pu[~_okc], _pv[~_okc], s=2.0, color='0.80', alpha=.5, lw=0, zorder=2)
+_sc = axsl.scatter(_pu[_okc], _pv[_okc], c=_cr[_okc], s=7.0, cmap='viridis',
+                   vmin=np.nanpercentile(_cr, 5), vmax=np.nanpercentile(_cr, 95),
+                   alpha=.9, lw=0, zorder=3)
+axsl.set_aspect('equal', adjustable='box')
+axsl.invert_yaxis()
+axsl.set_xlabel('medial–lateral (µm)', fontsize=7)
+axsl.set_ylabel('dorsal–ventral (µm)', fontsize=7)
+axsl.xaxis.set_major_locator(plt.MaxNLocator(2))
+axsl.yaxis.set_major_locator(plt.MaxNLocator(3))
+axsl.tick_params(labelsize=6)
+axsl.spines[['top', 'right']].set_visible(False)
+_cb = fig.colorbar(_sc, ax=axsl, fraction=.045, pad=.03)
+# label ABOVE the bar, not rotated beside it: the rotated label floats outward
+# by a fixed point padding and ran into the raster's y-axis label next door
+_cb.ax.set_title('agreement\n(r)', fontsize=5.5, pad=3, linespacing=1.15)
+_cb.ax.tick_params(labelsize=5.5); _cb.outline.set_visible(False)
+_lp(axsl, 'H', dx=-.42, dy=1.02)
+axsl.set_title('where these cells sit', fontsize=7.4, loc='left')
+
 TA_ = ListedColormap([NONANCH_C, ANCH_C])
 NORM_ = BoundaryNorm([-.5, .5, 1.5], TA_.N)
-ax = fig.add_subplot(gR[0])
+ax = fig.add_subplot(gR[1])
 ax.imshow(_L.T, aspect='auto', cmap=TA_, norm=NORM_, interpolation='nearest',
           extent=[0, len(_rows), _n_tr, 1])
 for tb in _tr:
@@ -655,7 +702,6 @@ for u in np.unique(_mls):
                 fontsize=6, color='0.25')
 ax.set_xlabel('MEC cells, ordered medial → lateral  (µm, per shank)', fontsize=8)
 ax.set_ylabel('Trial', fontsize=8)
-_lp(ax, 'H', dy=1.09)
 ax.set_title(f'M{RAST_MO} D{RAST_DY} — the raster behind I, ordered by position '
              f'rather than by PC1\n{len(_rows)} MEC cells across '
              f'{len(np.unique(_mls))} shanks, {(_frac > .5).mean() * 100:.0f}% of '
@@ -664,7 +710,7 @@ ax.tick_params(labelsize=7)
 for sp_ in ax.spines.values():
     sp_.set_visible(False)
 
-axp = fig.add_subplot(gR[1])
+axp = fig.add_subplot(gR[2])
 _pc = np.nan_to_num(np.asarray(_z['pc1'], float))
 _y = np.arange(1, len(_pc) + 1)
 axp.fill_betweenx(_y, 0, _pc, where=_pc >= 0, color=ANCH_C, lw=0, edgecolor='none',
@@ -680,7 +726,7 @@ for sp_ in axp.spines.values():
     sp_.set_visible(False)
 
 # the same cells' agreement, on the same ordering -- the link to panel H
-axa = fig.add_subplot(gR[3])
+axa = fig.add_subplot(gR[4])
 _rr = (pd.read_csv(f'{PS}/pc1_by_region.csv')
        .query('mouse == @RAST_MO and day == @RAST_DY')
        .set_index('cluster_id'))

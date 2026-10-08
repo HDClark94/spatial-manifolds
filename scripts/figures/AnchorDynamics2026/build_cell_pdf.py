@@ -288,28 +288,46 @@ SUPPLEMENTS = [
      'read off a rate map divides by occupancy and occupancy is set by running speed. Nothing that '
      'reverses sign under a change of denominator should be reported as a rate effect, and the '
      'conclusion is that anchoring concerns where cells fire rather than how much.'),
-    ('Figure S5', 'fig6_region_examples.pdf',
+    ('Figure S5', 'fig3_supp_laminar.pdf',
+     'Recording sites are biased toward superficial layers medially, and what that does to '
+     'the mediolateral results',
+     'MEC is curved and a four-shank probe is flat, so shanks at different mediolateral '
+     'positions do not enter the tissue at the same depth relative to the layers. (A) They do '
+     'not: superficial layers are 90.3% of entorhinal recording sites in the most medial '
+     'quartile and 59.8% in the most lateral (pooled rho = -0.267, p = 4e-80), a gradient '
+     'present in every animal (within-mouse median rho = -0.447, negative in 6 of 6, p = '
+     '0.031). (B) The same bias in the neurons actually analysed (within-session median rho = '
+     '-0.402, p = 0.016). (C, D) Stratifying the mediolateral tests by layer separates the two '
+     'results Figure 3 reports. The identity gradient does not survive: within superficial '
+     'cells it roughly halves and loses significance (median rho = -0.051, p = 0.24, 25 '
+     'sessions) against -0.078 (p = 0.025) across all layers. The following gradient does '
+     'survive, and is if anything stronger within superficial cells (-0.144, p = 0.043, 22 '
+     'sessions) than across all layers (-0.109, p = 0.034). Deep layers are too sparsely '
+     'sampled to test alone (6-7 sessions), so those columns are underpowered rather than '
+     'null. Stratification is not mediation: it shows the mediolateral effect is not carried '
+     'by layer differences within a stratum, not that layer plays no part.'),
+    ('Figure S6', 'fig6_region_examples.pdf',
      'The same state, described separately by each structure',
      'Two sessions bracketing the range among those recording all three structures, read left to '
      'right as entorhinal, subicular and visual cortex. Everything within a structure is built '
      'from that structure\'s own cells - the raster ordered by its own PC1 loading, the '
      'component signed to its own anchored fraction - so agreement between the groups is '
      'agreement between independent descriptions rather than a consequence of a shared frame.'),
-    ('Figure S6', 'fig6_supp_region_examples.pdf',
+    ('Figure S7', 'fig6_supp_region_examples.pdf',
      'The state outside MEC, where MEC does not dominate the sample',
      'Sessions chosen for their sampling rather than their result: visual-rich and '
      'subicular-rich sessions, and the two with enough cerebellar cells to build an axis. '
      'Cerebellum carries a matching state in both, having been included as a distant negative '
      'control that it turned out not to be. One visual session runs the other way, and is shown '
      'for that reason.'),
-    ('Figure S7', 'fig6_supp_dimensionality.pdf',
+    ('Figure S8', 'fig6_supp_dimensionality.pdf',
      'One axis is an adequate description of the state',
      'Out-of-sample variance explained, with the axis built from one half of a region\'s cells '
      'and scored on the other. (A) Neuron-dropping curve per region against the circular-shift '
      'null, showing the cell-count dependence rather than hiding it behind one matched number. '
      '(B) By component at matched cell count: the first carries roughly fifty times the '
      'generalising structure of the second, so the label matrix is effectively one-dimensional.'),
-    ('Figure S8', 'fig7_supp_band_examples.pdf',
+    ('Figure S9', 'fig7_supp_band_examples.pdf',
      'Band power tracking the population state in individual sessions',
      'Four sessions as the population axis, the log-spaced spectrogram and the three band traces '
      'on a shared trial axis. A-C show the population pattern; D is drawn in red as a '
