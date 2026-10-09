@@ -316,7 +316,9 @@ for _k, _s in enumerate(EXAMPLES):
         if m.sum() >= 2:
             ax.text(.205, y[m].mean(), L.replace('ENTm', 'L'), fontsize=5.2,
                     color='0.3', va='center', ha='left')
-    ax.set_xlim(-.2, .2); ax.set_ylim(y.max() + DZ, y.min() - DZ)
+    # probe_y runs from the tip upward, so plotting it increasing UP puts the
+    # tip at the bottom, which is the way a depth profile is read
+    ax.set_xlim(-.2, .2); ax.set_ylim(y.min() - DZ, y.max() + DZ)
     ax.set_xticks([-.2, 0, .2])
     ax.set_xlabel('time from theta peak (s)', fontsize=7.5)
     if _k == 0:

@@ -527,14 +527,50 @@ SUPS = {'⁻': '-', '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '�
         '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9'}
 
 
+SUP_ON, SUP_OFF = '\x01', '\x02'
+SUP_SCALE, SUP_RISE = .66, .32      # of the body size
+
+
+def join_line(words):
+    """A wrapped line as plain text, markers stripped.
+
+    wrap() returns the words of a line, not a string, because measurement and
+    justification both need them separately. Callers that just want to stamp a
+    line go through here -- drawing the list itself silently stacked every word
+    at one point, which is what broke the cover page.
+    """
+    if isinstance(words, str):
+        words = [words]
+    return ' '.join(words).replace(SUP_ON, '').replace(SUP_OFF, '')
+
+
+def runs(word):
+    """Split a word into (text, superscript?) runs at the markers."""
+    out, sup = [], False
+    for part in word.replace(SUP_OFF, SUP_ON).split(SUP_ON):
+        if part:
+            out.append((part, sup))
+        sup = not sup
+    return out or [('', False)]
+
+
+def run_len(word, font, size):
+    return sum(text_len(t, font, size * (SUP_SCALE if sup else 1.0))
+               for t, sup in runs(word))
+
+
 def clean(t):
     """Markdown and unicode down to what the base-14 fonts can actually set."""
     t = re.sub(r'\*\*(.+?)\*\*', r'\1', t)
     t = re.sub(r'(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)', r'\1', t)
     t = t.replace('`', '')
-    # superscript runs become ^-6 style so exponents survive
-    t = re.sub(r'10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)',
-               lambda m: '10^' + ''.join(SUPS.get(c, c) for c in m.group(1)), t)
+    # Superscripts are MARKED, not flattened. They used to come out as the
+    # literal '10^-6', which is a typesetting failure visible on every page;
+    # the markers survive wrapping and are set raised and smaller at draw time.
+    t = re.sub(r'([A-Za-z0-9])([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)',
+               lambda m: m.group(1) + SUP_ON
+               + ''.join(SUPS.get(c, c) for c in m.group(2)) + SUP_OFF, t)
+    t = re.sub(r'\^\{?(-?\d+)\}?', lambda m: SUP_ON + m.group(1) + SUP_OFF, t)
     for a, b in {**GREEK, **SUPS}.items():
         t = t.replace(a, b)
     for a, b in {'—': '-', '–': '-', '×': 'x', '≈': '~', '≥': '>=', '≤': '<=',
@@ -613,31 +649,57 @@ class Doc:
         src.close()
 
     def wrap(self, text, font, size, width):
-        words, lines, cur = text.split(), [], ''
-        for w in words:
-            t = (cur + ' ' + w).strip()
-            if text_len(t, font, size) <= width:
-                cur = t
+        """Greedy wrap, measuring superscript runs at their own size."""
+        sp = text_len(' ', font, size)
+        lines, cur, cw = [], [], 0.0
+        for w in text.split():
+            ww = run_len(w, font, size)
+            if cur and cw + sp + ww > width:
+                lines.append(cur); cur, cw = [w], ww
             else:
-                if cur:
-                    lines.append(cur)
-                cur = w
+                cw += (sp if cur else 0) + ww
+                cur.append(w)
         if cur:
             lines.append(cur)
         return lines
 
+    def draw_line(self, words, x, width, font, size, color, justify=False):
+        """One line of words, optionally justified, superscripts raised.
+
+        Justification spreads the slack between words rather than scaling the
+        glyphs. The last line of a paragraph is never stretched, and neither
+        is a line whose slack would open gaps wider than a third of the
+        measure -- a short line forced by a long word looks broken that way.
+        """
+        sp = text_len(' ', font, size)
+        nat = sum(run_len(t, font, size) for t in words) + sp * (len(words) - 1)
+        extra = 0.0
+        if justify and len(words) > 1:
+            slack = width - nat
+            if 0 < slack < width / 3.0:
+                extra = slack / (len(words) - 1)
+        for w in words:
+            for t, sup in runs(w):
+                fs = size * (SUP_SCALE if sup else 1.0)
+                yy = self.y - size * SUP_RISE if sup else self.y
+                self.page.insert_text(pymupdf.Point(x, yy), t, fontname=font,
+                                      fontsize=fs, color=color)
+                x += text_len(t, font, fs)
+            x += sp + extra
+
     def para(self, text, font=SERIF, size=BODY, lead=BODY_LEAD, indent=0.0,
-             color=(0, 0, 0), gap=3.0, width=None):
+             color=(0, 0, 0), gap=3.0, width=None, justify=True):
         x0, x1 = self.col_rect()
         w = width if width else (x1 - x0)
-        for i, ln in enumerate(self.wrap(clean(text), font, size, w - indent)):
+        wrapped = self.wrap(clean(text), font, size, w - indent)
+        for i, ln in enumerate(wrapped):
             if self.y + lead > PH - MARGIN_BOT:
                 self.next_col()
                 x0, x1 = self.col_rect()
                 if width is None:
                     w = x1 - x0
-            self.page.insert_text(pymupdf.Point(x0 + indent, self.y), ln,
-                                  fontname=font, fontsize=size, color=color)
+            self.draw_line(ln, x0 + indent, w - indent, font, size, color,
+                           justify=justify and i < len(wrapped) - 1)
             self.y += lead
         self.y += gap
 
@@ -847,7 +909,7 @@ def main():
 
     def rpara(txt, font=SERIF, size=8.0, lead=10.0, gap=3.0, color=(0, 0, 0)):
         for ln in doc.wrap(clean(txt), font, size, rw):
-            p.insert_text(pymupdf.Point(rx0, doc.y), ln, fontname=font,
+            p.insert_text(pymupdf.Point(rx0, doc.y), join_line(ln), fontname=font,
                           fontsize=size, color=color)
             doc.y += lead
         doc.y += gap
@@ -868,7 +930,7 @@ def main():
         p.draw_circle(pymupdf.Point(MARGIN_X + 3, by - 3), 2.1,
                       color=None, fill=CELL_BLUE)
         for ln in doc.wrap(clean(h), SERIF, 8.4, full - 16):
-            p.insert_text(pymupdf.Point(MARGIN_X + 14, doc.y), ln,
+            p.insert_text(pymupdf.Point(MARGIN_X + 14, doc.y), join_line(ln),
                           fontname=SERIF, fontsize=8.4)
             doc.y += 10.6
         doc.y += 4
