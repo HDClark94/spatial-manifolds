@@ -169,14 +169,24 @@ def mec_state(mo, dy):
                   .cluster_id.astype(int))
     ids = [int(c) for c in z['cluster_id']]
     rows = [i for i, c in enumerate(ids) if c in mec_ids]
-    L = np.asarray(z['labels'])[rows]
+    L = np.asarray(z['labels'])[rows].astype(float)
     load = np.asarray(z['pc1_load'], float)[rows]
-    L = L[np.argsort(load)[::-1]]
+    # Cells that never vary carry no PC1 loading and would sort arbitrarily
+    # among the ones that do, so they are separated to the right of a gap as in
+    # Figure 1: the varying cells in PC1 order, then the locked ones.
+    varies = np.nanstd(L, axis=1) > 0
+    Lv = L[varies][np.argsort(load[varies])[::-1]]
+    Ll = L[~varies]
+    if len(Ll):
+        Ll = Ll[np.argsort(np.nanmean(Ll, axis=1))[::-1]]
+    gap = max(2, int(round(.03 * len(L))))
+    L = np.vstack([Lv, np.full((gap, L.shape[1]), np.nan), Ll]) if len(Ll) else Lv
+    n_var, n_lock = len(Lv), len(Ll)
     pc1 = np.nan_to_num(np.asarray(z['pc1'], float))
     frac = np.asarray(z['frac_anch'], float)
     st = median_filter((frac > .5).astype(float), size=9, mode='nearest') > .5
     tr = list(np.where(np.diff(st.astype(int)) != 0)[0] + 1)
-    return L, pc1, tr
+    return L, pc1, tr, n_var, n_lock, gap
 
 
 if __name__ == '__main__':
@@ -230,7 +240,8 @@ if __name__ == '__main__':
     outer = fig.add_gridspec(3, 1, height_ratios=[1.45, 1.0, 1.0], hspace=.62,
                              left=.065, right=.975, top=.915, bottom=.065)
     gex = outer[0].subgridspec(1, 2, wspace=.30)
-    gmid = outer[1].subgridspec(1, 3, width_ratios=[1.0, 1.0, 1.25], wspace=.44)
+    gmid = outer[1].subgridspec(1, 4, width_ratios=[.86, .86, .92, 1.20],
+                                wspace=.46)
     gbot = outer[2].subgridspec(1, 3, width_ratios=[1.12, .88, .78], wspace=.66)
 
     # ---- A, B: two sessions, each with its MEC state beside its VIS cells ----
@@ -239,16 +250,29 @@ if __name__ == '__main__':
                        key=consistency, reverse=True)[:3]
         if len(cells) < 3:
             print(f'  ! M{mo}D{dy} has only {len(cells)} cells'); continue
-        L, pc1, tr = mec_state(mo, dy)
+        L, pc1, tr, n_var, n_lock, gap = mec_state(mo, dy)
         n_tr = cells[0]['maps'].shape[0]
-        gg = gex[si].subgridspec(1, 5, width_ratios=[1.05, .30, .72, .72, .72],
-                                 wspace=.14)
+        # only the right-hand block carries the colourbar: both blocks use the
+        # same scaling (each map normalised to its own peak) so one bar serves
+        # them, and a second would just repeat it in the middle of the row
+        _last = si == len(EX_SESSIONS) - 1
+        _wr = [1.05, .26, .66, .66, .66] + ([.075] if _last else [])
+        gg = gex[si].subgridspec(1, len(_wr), width_ratios=_wr, wspace=.16)
         # the MEC anchoring raster
         ax = fig.add_subplot(gg[0])
-        ax.imshow(L.T, aspect='auto', interpolation='nearest',
-                  cmap=ListedColormap([NONANCH_COLOR, ANCH_COLOR]),
+        _tac = ListedColormap([NONANCH_COLOR, ANCH_COLOR])
+        _tac.set_bad('white')
+        ax.imshow(np.ma.masked_invalid(L.T), aspect='auto',
+                  interpolation='nearest', cmap=_tac,
                   norm=BoundaryNorm([-.5, .5, 1.5], 2),
                   extent=[0, L.shape[0], L.shape[1] - .5, -.5])
+        if n_lock:
+            ax.annotate(f'varies (PC1 order)', (n_var / 2, 1.004),
+                        xycoords=('data', 'axes fraction'), ha='center',
+                        va='bottom', fontsize=5.6, color='0.35')
+            ax.annotate(f'locked ({n_lock})', (n_var + gap + n_lock / 2, 1.004),
+                        xycoords=('data', 'axes fraction'), ha='center',
+                        va='bottom', fontsize=5.6, color='0.35')
         for t_ in tr:
             ax.axhline(t_, color='k', lw=.9, ls='--', zorder=4)
         ax.set_ylabel('Trial', fontsize=8)
@@ -260,7 +284,7 @@ if __name__ == '__main__':
         # the explanatory line is set once at figure level: spelled out per
         # panel it runs the width of the block and collides with the PC1 and
         # cluster sub-titles beside it
-        ax.set_title(f'M{mo} D{dy}', fontsize=8, loc='left', pad=9)
+        ax.set_title(f'M{mo} D{dy}', fontsize=8, loc='left', pad=14)
         # PC1
         axp = fig.add_subplot(gg[1])
         y_ = np.arange(len(pc1))
@@ -277,50 +301,87 @@ if __name__ == '__main__':
         for sp in axp.spines.values():
             sp.set_visible(False)
         # the VIS cells
+        _im = None
         for k, r in enumerate(cells):
-            axc = fig.add_subplot(gg[2 + k])
-            axc.imshow(r['maps'], aspect='auto', cmap=CMAP,
-                       interpolation='nearest',
-                       extent=[0, TL, r['maps'].shape[0] - .5, -.5])
+            gc_ = gg[2 + k].subgridspec(2, 1, height_ratios=[.40, 1.0],
+                                        hspace=.10)
+            # mean rate against position IN EACH STATE: the raster shows the
+            # field is there every trial, this shows it is the same field
+            axq = fig.add_subplot(gc_[0])
+            st_ = median_filter(r['pop'].astype(float), size=9,
+                                mode='nearest') > .5
+            for m_, c_ in ((st_, ANCH_COLOR), (~st_, NONANCH_COLOR)):
+                if m_.sum() >= 5:
+                    axq.plot(x, np.nanmean(r['maps'][m_], 0), color=c_, lw=1.0)
+            axq.set_xlim(0, TL); axq.set_xticks([])
+            axq.tick_params(labelsize=5.5)
+            axq.set_title(f'cl {r["cluster_id"]}', fontsize=6, pad=2)
+            if k == 0:
+                axq.set_ylabel('Hz', fontsize=6)
+            axq.spines[['top', 'right']].set_visible(False)
+
+            axc = fig.add_subplot(gc_[1])
+            _mx = np.nanmax(r['maps']) or 1.0
+            _im = axc.imshow(r['maps'] / _mx, aspect='auto', cmap=CMAP,
+                             vmin=0, vmax=1, interpolation='nearest',
+                             extent=[0, TL, r['maps'].shape[0] - .5, -.5])
             for t_ in tr:
                 if t_ < r['maps'].shape[0]:
                     axc.axhline(t_, color='w', lw=.9, ls='--', zorder=4)
             axc.set_xticks([0, 100, 200]); axc.tick_params(labelsize=6)
             axc.tick_params(labelleft=False)
-            axc.set_title(f'cl {r["cluster_id"]}', fontsize=6, pad=2)
             if k == 1:
                 axc.set_xlabel('Position (cm)', fontsize=7.5)
             for sp in axc.spines.values():
                 sp.set_visible(False)
+        # one colourbar per block: each map is scaled to its own peak, so the
+        # bar is a fraction, which is the only thing comparable across cells
+        if _last:
+            axcb = fig.add_subplot(gg[5])
+            cb = fig.colorbar(_im, cax=axcb)
+            cb.ax.set_title('rate\n(/peak)', fontsize=5.4, pad=3,
+                            linespacing=1.1)
+            cb.ax.tick_params(labelsize=5.4); cb.outline.set_visible(False)
 
-    # ---- C: all cells, sorted by peak ---------------------------------------
-    ax = fig.add_subplot(gmid[0]); _lp(ax, 'C', dx=-.21)
-    o = np.argsort(np.argmax(PV, axis=1))
-    ax.imshow(PV[o], aspect='auto', cmap=CMAP, interpolation='nearest',
-              extent=[0, TL, len(PV) - .5, -.5])
-    for b in RZ:
-        ax.axvline(b, color='w', lw=1.0, ls='--')
-    ax.set_xlabel('Position (cm)', fontsize=8)
-    ax.set_ylabel('VIS cell (sorted)', fontsize=8)
-    ax.set_title(f'all {len(PV)} cells, normalised', fontsize=7.5, loc='left')
-    ax.tick_params(labelsize=7)
+    # ---- C, D: the two populations on the same plot ------------------------
+    # The entorhinal cells are shown the same way beside them, because the
+    # comparison that matters is whether the visual concentration at the ends
+    # of the track is peculiar to visual cortex or is simply what any
+    # persistently anchored cell does here.
+    for _k, (_P, _lab, _nm) in enumerate(((PV, 'VIS cell (sorted)', 'VIS'),
+                                          (PM, 'MEC cell (sorted)', 'MEC'))):
+        ax = fig.add_subplot(gmid[_k]); _lp(ax, 'CD'[_k], dx=-.26)
+        o = np.argsort(np.argmax(_P, axis=1))
+        ax.imshow(_P[o], aspect='auto', cmap=CMAP, interpolation='nearest',
+                  extent=[0, TL, len(_P) - .5, -.5])
+        for b in RZ:
+            ax.axvline(b, color='w', lw=1.0, ls='--')
+        ax.set_xlabel('Position (cm)', fontsize=8)
+        ax.set_ylabel(_lab, fontsize=8)
+        ax.set_title(f'{_nm}: all {len(_P)} cells,\nnormalised', fontsize=7.5,
+                     loc='left')
+        ax.tick_params(labelsize=7)
 
-    # ---- D: peak positions ---------------------------------------------------
-    ax = fig.add_subplot(gmid[1]); _lp(ax, 'D', dx=-.26)
+    # ---- E: peak positions, cumulative --------------------------------------
+    # Cumulative rather than binned: the KS statistic beneath the panel is a
+    # distance between these curves and the diagonal, so the plot and the test
+    # are then the same object, and no bin width has to be chosen.
+    ax = fig.add_subplot(gmid[2]); _lp(ax, 'E', dx=-.30)
     pk = x[np.argmax(PV, axis=1)]; pkm = x[np.argmax(PM, axis=1)]
-    bins = np.linspace(0, TL, 21)
-    ax.hist(pk, bins=bins, color='#8C6BB1', alpha=.85, lw=0, density=True,
-            label=f'VIS ({len(pk)})')
-    ax.hist(pkm, bins=bins, histtype='step', color='0.35', lw=1.2, density=True,
-            label=f'MEC ({len(pkm)})')
-    ax.axhline(1 / TL, color='0.5', lw=.9, ls=':')
+    for v_, c_, lab in ((pk, '#8C6BB1', f'VIS ({len(pk)})'),
+                        (pkm, '0.35', f'MEC ({len(pkm)})')):
+        ax.step(np.r_[0, np.sort(v_), TL],
+                np.r_[0, np.arange(1, len(v_) + 1) / len(v_), 1.0],
+                where='post', color=c_, lw=1.4, label=lab)
+    ax.plot([0, TL], [0, 1], color='0.6', lw=.9, ls=':', label='uniform')
     ax.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
     ks = kstest(pk / TL, 'uniform'); ksm = kstest(pkm / TL, 'uniform')
+    ax.set_xlim(0, TL); ax.set_ylim(0, 1)
     ax.set_xlabel('peak position (cm)', fontsize=8)
-    ax.set_ylabel('density', fontsize=8)
+    ax.set_ylabel('cumulative fraction', fontsize=8)
     ax.set_title(f'VIS vs uniform p = {ks.pvalue:.1g}\n'
                  f'MEC vs uniform p = {ksm.pvalue:.1g}', fontsize=7, loc='left')
-    ax.legend(fontsize=6, frameon=False)
+    ax.legend(fontsize=6, frameon=False, loc='upper left')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     # ---- E: one cell, trials sorted by type, means above ---------------------
@@ -346,7 +407,7 @@ if __name__ == '__main__':
         sc = np.nanstd(np.nanmean(r['maps'], 0)) + 1e-12
         return float((np.nanmean(pa[rzm]) - np.nanmean(pb[rzm])) / sc)
     ex = max(V, key=_cue_gain)
-    gd = gmid[2].subgridspec(2, 1, height_ratios=[.50, 1.0], hspace=.12)
+    gd = gmid[3].subgridspec(2, 1, height_ratios=[.50, 1.0], hspace=.12)
     axm = fig.add_subplot(gd[0])
     for tag, c_, lab in (('b', '#c04744', 'cued (beacon)'),
                          ('nb', '#2b6cb0', 'uncued')):
@@ -360,7 +421,7 @@ if __name__ == '__main__':
                   f'sorted by type\npopulation: reward zone p = {w.pvalue:.2g} '
                   f'({n} cells)', fontsize=7.4, loc='left')
     axm.spines[['top', 'right']].set_visible(False)
-    _lp(axm, 'E', dx=-.17, dy=1.02)
+    _lp(axm, 'F', dx=-.17, dy=1.02)
     ax = fig.add_subplot(gd[1], sharex=axm)
     o_cue = np.argsort(ex['cue'] != 'b')
     ax.imshow(ex['maps'][o_cue], aspect='auto', cmap=CMAP,
@@ -379,7 +440,7 @@ if __name__ == '__main__':
         sp.set_visible(False)
 
     # ---- F: the luminance proxy ---------------------------------------------
-    ax = fig.add_subplot(gbot[0]); _lp(ax, 'F', dx=-.22)
+    ax = fig.add_subplot(gbot[0]); _lp(ax, 'G', dx=-.22)
     axb = ax.twinx()
     axb.plot(x, _pup_i, color='#b8860b', lw=1.4, zorder=3)
     axb.set_ylabel('z(pupil) — dilated = darker', fontsize=6.8,
@@ -396,7 +457,7 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7); ax.spines[['top']].set_visible(False)
 
     # ---- G: per-cell correlations, as a boxplot -----------------------------
-    ax = fig.add_subplot(gbot[1]); _lp(ax, 'G', dx=-.30)
+    ax = fig.add_subplot(gbot[1]); _lp(ax, 'H', dx=-.30)
     _df = pd.DataFrame({'r': np.r_[_rv[np.isfinite(_rv)], _rm[np.isfinite(_rm)]],
                         'region': (['VIS'] * int(np.isfinite(_rv).sum())
                                    + ['MEC'] * int(np.isfinite(_rm).sum()))})
@@ -419,7 +480,7 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     # ---- H: the counts by structure -----------------------------------------
-    ax = fig.add_subplot(gbot[2]); _lp(ax, 'H', dx=-.32)
+    ax = fig.add_subplot(gbot[2]); _lp(ax, 'I', dx=-.32)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
