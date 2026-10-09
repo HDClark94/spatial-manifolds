@@ -437,8 +437,13 @@ if __name__ == '__main__':
     # only the row's vertical extent is taken from this: F and G are moved
     # under the C and D heatmaps after those exist, and H and I then fill
     # whatever is left to the right
-    grow = outer[3].subgridspec(1, 3, width_ratios=[1.1, 1.0, .95],
-                                wspace=.58)
+    # The census and the test share one x axis and sit one above the other:
+    # they are the same four populations asked two questions, and separating
+    # them made the reader rebuild the correspondence by eye. The census goes
+    # on top because it is the finding -- which cells never let go -- and the
+    # test below it says what those cells follow.
+    grow = outer[3].subgridspec(1, 2, width_ratios=[1.45, 1.0], wspace=.52)
+    gstack = grow[0].subgridspec(2, 1, height_ratios=[.72, 1.0], hspace=.12)
 
     # ---- A, B: one session per row -----------------------------------------
     # Left to right: where the cells are, then the entorhinal population, its
@@ -805,8 +810,50 @@ if __name__ == '__main__':
                   f'surrogate |r| 95th pct {np.percentile(np.abs(nul), 95):.3f}, '
                   f'p = {pv:.3f}')
 
-    ax = fig.add_subplot(grow[0])
-    _lp(ax, 'E', dx=-.24)
+    # ---- E: how lopsided each population is ---------------------------------
+    _u = pd.read_csv(f'{PS}/unit_table.csv')
+    _rg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
+                                                  'brain_region']]
+    _d = _u.merge(_rg, on=['mouse', 'day', 'cluster_id'], how='left',
+                  suffixes=('', '_r'))
+    _d['br'] = _d.brain_region_r.fillna(_d.brain_region).astype(str)
+    _sw = _d[_d.sess_switches & (_d.label_sd == 0)].dropna(subset=['speed_p'])
+    _CENS = {}
+    for _gn, _pref, _hi in (('VIS-', 'VIS', False), ('VIS+', 'VIS', True),
+                            ('ENT-', 'ENTm', False), ('ENT+', 'ENTm', True)):
+        g_ = _sw[_sw.br.str.startswith(_pref) & ((_sw.speed_p < .05) == _hi)]
+        _CENS[_gn] = (int((g_.cell_frac_anch == 1).sum()),
+                      int((g_.cell_frac_anch == 0).sum()))
+    _par = _sw[_sw.br.str.startswith('PAR')]
+    print('  locked anchored : locked non-anchored  '
+          + ',  '.join(f'{k} {v[0]}:{v[1]}' for k, v in _CENS.items())
+          + f",  PAR {int((_par.cell_frac_anch == 1).sum())}:"
+            f"{int((_par.cell_frac_anch == 0).sum())}")
+
+    axc = fig.add_subplot(gstack[0])
+    _lp(axc, 'E', dx=-.24)
+    _gx0 = np.arange(4)
+    _ons = [_CENS[k][0] for k in ('VIS-', 'VIS+', 'ENT-', 'ENT+')]
+    _offs = [_CENS[k][1] for k in ('VIS-', 'VIS+', 'ENT-', 'ENT+')]
+    axc.bar(_gx0 - .19, _ons, .38, color=ANCH_COLOR, lw=0,
+            label='locked anchored')
+    axc.bar(_gx0 + .19, _offs, .38, color=NONANCH_COLOR, lw=0,
+            label='locked non-anchored')
+    for i_, (o_, f_) in enumerate(zip(_ons, _offs)):
+        axc.text(i_, max(o_, f_) * 1.06, f'{o_ / max(f_, 1):.1f}:1',
+                 ha='center', fontsize=6.4, color='0.3')
+    axc.set_xlim(-.6, 3.4); axc.set_xticks(_gx0)
+    axc.tick_params(labelbottom=False, labelsize=7)
+    axc.set_ylabel('cells', fontsize=8)
+    axc.set_ylim(0, max(_ons + _offs) * 1.30)
+    axc.set_title('both visual groups lock anchored; neither entorhinal one does',
+                  fontsize=7.0, loc='left')
+    axc.legend(fontsize=5.8, frameon=False, loc='upper left', ncol=2,
+               handlelength=.9, columnspacing=1.0)
+    axc.spines[['top', 'right']].set_visible(False)
+
+    ax = fig.add_subplot(gstack[1])
+    _lp(ax, 'F', dx=-.24)
     # The null is drawn as what it is -- the spread of 500 random curves --
     # rather than as a band behind a bar, which reads as an error bar on the
     # bar and means the opposite of what it is.
@@ -828,16 +875,17 @@ if __name__ == '__main__':
                 ax.text(xx, obs + .035, '*', ha='center', va='bottom',
                         fontsize=8, color='0.15')
     ax.axhline(0, color='0.75', lw=.7, ls=':')
-    ax.set_xticks(_gx); ax.set_xticklabels([g[2] for g in _GL], fontsize=6.0,
+    ax.set_xticks(_gx); ax.set_xticklabels([g[2] for g in _GL], fontsize=6.4,
                                            linespacing=1.3)
-    ax.set_xlim(-.6, len(_GL) - .4)
+    ax.set_xlim(-.6, len(_GL) - .6)
     ax.set_ylim(-.26, .46)
     ax.set_ylabel('how well the firing matches\nthe curve (median r)',
                   fontsize=7.5)
-    ax.set_title('dot = these cells.  grey = 500 random\ncurves of the same smoothness',
-                 fontsize=6.8, loc='left')
-    ax.legend(fontsize=5.8, frameon=False, loc='lower left',
-              handlelength=.8, handletextpad=.4)
+    _h, _l = ax.get_legend_handles_labels()
+    _h.append(plt.Rectangle((0, 0), 1, 1, facecolor='0.86', edgecolor='none'))
+    _l.append('500 random curves,\nsame smoothness')
+    ax.legend(_h, _l, fontsize=5.4, frameon=False, loc='lower left',
+              handlelength=.8, handletextpad=.4, labelspacing=.5)
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     # ---- F: where these cells' position structure actually sits -------------
@@ -847,7 +895,7 @@ if __name__ == '__main__':
     # subtraction the panel above does not license.
     BB = 30.0                    # black box at each end of the 200 cm track
     ax = fig.add_subplot(grow[1])
-    _lp(ax, 'F', dx=-.26)
+    _lp(ax, 'G', dx=-.26)
     _bbs = {}
     for _gn, _lab, _c in (('VIS', 'visual cortex', '#3f9b4f'),
                          ('ENT', 'entorhinal cortex', '#7b4173')):
@@ -873,35 +921,6 @@ if __name__ == '__main__':
                  fontsize=6.8, loc='left')
     ax.legend(fontsize=5.6, frameon=False, loc='upper center', ncol=1,
               handlelength=1.2)
-    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
-
-    # ---- G: the counts by structure -----------------------------------------
-    ax = fig.add_subplot(grow[2])
-    _lp(ax, 'G', dx=-.24)
-    u = pd.read_csv(f'{PS}/unit_table.csv')
-    reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
-                                                  'brain_region']]
-    d = u.merge(reg, on=['mouse', 'day', 'cluster_id'], how='left',
-                suffixes=('', '_r'))
-    d['br'] = d.brain_region_r.fillna(d.brain_region).astype(str)
-    sw = d[d.sess_switches].dropna(subset=['speed_p'])
-    lk = sw[(sw.label_sd == 0) & (sw.speed_p >= .05)]
-    labs, ons, offs = [], [], []
-    for nm, pref in (('VIS', 'VIS'), ('MEC', 'ENTm'), ('PAR', 'PAR')):
-        g = lk[lk.br.str.startswith(pref)]
-        labs.append(nm); ons.append(int((g.cell_frac_anch == 1).sum()))
-        offs.append(int((g.cell_frac_anch == 0).sum()))
-    xx = np.arange(len(labs))
-    ax.bar(xx - .19, ons, .38, color=ANCH_COLOR, lw=0, label='locked anchored')
-    ax.bar(xx + .19, offs, .38, color=NONANCH_COLOR, lw=0,
-           label='locked non-anchored')
-    for i, (o_, f_) in enumerate(zip(ons, offs)):
-        ax.text(i, max(o_, f_) * 1.05, f'{o_/max(f_,1):.1f}:1', ha='center',
-                fontsize=6.4, color='0.3')
-    ax.set_xticks(xx); ax.set_xticklabels(labs, fontsize=7.5)
-    ax.set_ylabel('cells with no open-field\nspeed tuning', fontsize=8)
-    ax.set_title('only VIS locks anchored', fontsize=7.5, loc='left')
-    ax.legend(fontsize=5.8, frameon=False, loc='upper left')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     plt.savefig(OUT, dpi=200, bbox_inches='tight')
