@@ -278,8 +278,10 @@ if __name__ == '__main__':
     # heatmaps show, summarised, so it belongs beside them rather than opening
     # a row of its own
     gclu = outer[1].subgridspec(1, 3, wspace=.11)
-    gbot = outer[2].subgridspec(1, 4, width_ratios=[.92, 1.05, .82, .78],
-                                wspace=.62)
+    # only the row's vertical extent is taken from this: F and G are moved
+    # under the C and D heatmaps after those exist, and H and I then fill
+    # whatever is left to the right
+    gbot = outer[2].subgridspec(1, 4)
 
     # ---- A, B: two sessions, each with its MEC state beside its VIS cells ----
     for si, (mo, dy) in enumerate(EX_SESSIONS):
@@ -391,6 +393,7 @@ if __name__ == '__main__':
     # cluster's mean gets its own axes on the right so a flat cluster reads as
     # flat instead of being stretched to fill a band.
     _cpal = ['#c0553a', '#d4a017', '#2f8f7a', '#2b4a7a', '#b5485c']
+    _cmeans, _hpos = {}, {}      # reused by F and G in the bottom row
     _sets = ((PV, 'VIS', 'visual cortex, no speed tuning'),
              (PM, 'MEC', 'entorhinal, no speed tuning'),
              (PS_, 'MECSPD', 'entorhinal, speed-modulated'))
@@ -461,12 +464,15 @@ if __name__ == '__main__':
                       fontsize=7.2, loc='left')
 
         # one axes per cluster, stacked, each with its own mean +/- SEM
+        _hpos[_nm] = axh.get_position()
         edges = np.r_[0, bounds, n_]
+        _cm = []
         gp = gg[2].subgridspec(len(edges) - 1, 1, hspace=.46)
         for ci, (a_, b_) in enumerate(zip(edges[:-1], edges[1:])):
             memb = _P[np.array(order)[a_:b_]]
             mu = memb.mean(0); se = memb.std(0) / np.sqrt(len(memb))
             c_ = cmap_[ordered[a_]]
+            _cm.append((mu, se, c_, b_ - a_))
             axc2 = fig.add_subplot(gp[ci])
             axc2.fill_between(x, mu - se, mu + se, color=c_, alpha=.30, lw=0)
             axc2.plot(x, mu, color=c_, lw=1.2)
@@ -486,28 +492,7 @@ if __name__ == '__main__':
                                pad=10)
             for sp in ('top', 'right', 'left'):
                 axc2.spines[sp].set_visible(False)
-
-    # ---- E: peak positions, cumulative --------------------------------------
-    # Cumulative rather than binned: the KS statistic beneath the panel is a
-    # distance between these curves and the diagonal, so the plot and the test
-    # are then the same object, and no bin width has to be chosen.
-    ax = fig.add_subplot(gbot[0]); _lp(ax, 'F', dx=-.34)
-    pk = x[np.argmax(PV, axis=1)]; pkm = x[np.argmax(PM, axis=1)]
-    for v_, c_, lab in ((pk, '#8C6BB1', f'VIS ({len(pk)})'),
-                        (pkm, '0.35', f'MEC ({len(pkm)})')):
-        ax.step(np.r_[0, np.sort(v_), TL],
-                np.r_[0, np.arange(1, len(v_) + 1) / len(v_), 1.0],
-                where='post', color=c_, lw=1.4, label=lab)
-    ax.plot([0, TL], [0, 1], color='0.6', lw=.9, ls=':', label='uniform')
-    ax.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
-    ks = kstest(pk / TL, 'uniform'); ksm = kstest(pkm / TL, 'uniform')
-    ax.set_xlim(0, TL); ax.set_ylim(0, 1)
-    ax.set_xlabel('peak position (cm)', fontsize=8)
-    ax.set_ylabel('cumulative fraction', fontsize=8)
-    ax.set_title(f'VIS vs uniform p = {ks.pvalue:.1g}\n'
-                 f'MEC vs uniform p = {ksm.pvalue:.1g}', fontsize=7, loc='left')
-    ax.legend(fontsize=6, frameon=False, loc='upper left')
-    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+        _cmeans[_nm] = _cm
 
     # The cued/uncued example panel was removed; the population statistic it
     # carried is still computed here and quoted in the caption, since it is one
@@ -527,35 +512,72 @@ if __name__ == '__main__':
     w = wilcoxon(CA[:n][:, rzm].mean(1), CB[:n][:, rzm].mean(1))
     print(f'  cued vs uncued in the reward zone: p = {w.pvalue:.3g} ({n} cells)')
 
+    # the cumulative peak-position panel is gone, but its test is not: both
+    # populations are far from uniform, which is why the caption can say the
+    # positional concentration is not peculiar to visual cortex
+    for _nm, _P in (('VIS', PV), ('MEC', PM)):
+        _pk = x[np.argmax(_P, axis=1)]
+        print(f'  {_nm} peak positions vs uniform: '
+              f'p = {kstest(_pk / TL, "uniform").pvalue:.3g}')
+    for _nm, _r in (('VIS', _rv), ('MEC', _rm)):
+        _f = _r[np.isfinite(_r)]
+        print(f'  {_nm} corr with pupil: mean {np.mean(_f):+.3f} '
+              f'median {np.median(_f):+.3f} p = {wilcoxon(_f).pvalue:.3g}')
 
-    # ---- F: the luminance proxy ---------------------------------------------
-    ax = fig.add_subplot(gbot[1]); _lp(ax, 'G', dx=-.22)
-    axb = ax.twinx()
-    axb.plot(x, _pup_i, color='#b8860b', lw=1.4, zorder=3)
-    axb.set_ylabel('z(pupil) — dilated = darker', fontsize=6.8,
-                   color='#b8860b', labelpad=2)
-    axb.tick_params(labelsize=6.5, colors='#b8860b')
-    ax.plot(x, PV.mean(0), color='#8C6BB1', lw=1.5, zorder=4)
-    ax.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
-    ax.set_xlabel('Position (cm)', fontsize=8)
-    ax.set_ylabel('VIS firing (normalised)', fontsize=8, color='#8C6BB1')
-    _wv = wilcoxon(_rv[np.isfinite(_rv)])
-    ax.set_title(f'against the luminance proxy\n'
-                 f'VIS r = {np.nanmean(_rv):+.2f} (p = {_wv.pvalue:.1g})',
-                 fontsize=7.4, loc='left')
-    ax.tick_params(labelsize=7); ax.spines[['top']].set_visible(False)
+    # ---- F, G: the cluster means against the luminance proxy ----------------
+    # One panel per population, each set to the x-extent of its own heatmap
+    # above, so the position axis of F lines up with C and of G with D: a
+    # feature in a cluster mean can be read straight down from the rows it
+    # came from. The cumulative peak-position panel that used to open this row
+    # is gone -- these show the same positional structure with the cluster
+    # identities kept, which the pooled distribution threw away.
+    _PUP_C = '0.15'          # not a palette colour: the pupil is the reference
+    for _j, (_nm, _ttl, _r) in enumerate(
+            (('VIS', 'visual cortex, no speed tuning', _rv),
+             ('MEC', 'entorhinal, no speed tuning', _rm))):
+        ax = fig.add_subplot(gbot[_j])
+        _p = ax.get_position(); _hp = _hpos[_nm]
+        _bx = [_hp.x0, _p.y0, _hp.width, _p.height]
+        # twinx shares the SubplotSpec, so the twin is laid out by the
+        # gridspec and ignores a set_position on its parent: both have to be
+        # moved, and only once the twin exists
+        axb = ax.twinx()
+        ax.set_position(_bx); axb.set_position(_bx)
+        axb.plot(x, _pup_i, color=_PUP_C, lw=1.7, ls='--', zorder=2)
+        axb.set_ylabel('z(pupil) - dilated = darker', fontsize=6.2,
+                       color=_PUP_C, labelpad=2)
+        axb.tick_params(labelsize=6.2, colors=_PUP_C)
+        axb.spines['right'].set_color(_PUP_C)
+        axb.spines[['top', 'left']].set_visible(False)
+        for mu, se, c_, _nc in _cmeans[_nm]:
+            ax.fill_between(x, mu - se, mu + se, color=c_, alpha=.25,
+                            linewidth=0, edgecolor='none')
+            ax.plot(x, mu, color=c_, lw=1.3)
+        ax.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
+        ax.set_xlim(0, TL); ax.set_xticks([0, 50, 100, 150, 200])
+        ax.set_xlabel('Position (cm)', fontsize=8)
+        ax.set_ylabel('cluster mean (normalised)', fontsize=8)
+        _w = wilcoxon(_r[np.isfinite(_r)])
+        ax.set_title(f'{_ttl}\nmedian r = {np.nanmedian(_r):+.2f} with the '
+                     f'pupil (p = {_w.pvalue:.1g})', fontsize=6.8, loc='left')
+        ax.tick_params(labelsize=7); ax.spines[['top']].set_visible(False)
+        _lp(ax, 'FG'[_j], dx=-.30)
 
-    # ---- G: per-cell correlations, as a boxplot -----------------------------
-    ax = fig.add_subplot(gbot[2]); _lp(ax, 'H', dx=-.30)
+    # H and I take the width left to the right of G
+    _PAD = .075
+    _rx0 = _hpos['MEC'].x1 + _PAD
+    _rw = (.975 - _rx0 - _PAD) / 2
+
+    # ---- H: per-cell correlations, as a boxplot -----------------------------
+    ax = fig.add_subplot(gbot[2])
+    _p = ax.get_position(); ax.set_position([_rx0, _p.y0, _rw, _p.height])
+    _lp(ax, 'H', dx=-.26)
     _df = pd.DataFrame({'r': np.r_[_rv[np.isfinite(_rv)], _rm[np.isfinite(_rm)]],
                         'region': (['VIS'] * int(np.isfinite(_rv).sum())
                                    + ['MEC'] * int(np.isfinite(_rm).sum()))})
     sns.boxplot(data=_df, x='region', y='r', hue='region', legend=False,
                 palette={'VIS': '#8C6BB1', 'MEC': '0.65'}, width=.6,
                 fliersize=0, linewidth=.9, ax=ax)
-    sns.stripplot(data=_df, x='region', y='r', hue='region', legend=False,
-                  palette={'VIS': '#5e4078', 'MEC': '0.35'}, size=2.2,
-                  alpha=.55, jitter=.22, ax=ax)
     ax.axhline(0, color='0.6', lw=.8, ls=':')
     for i_, reg_ in enumerate(['VIS', 'MEC']):
         v_ = _df.r[_df.region == reg_]
@@ -569,7 +591,10 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     # ---- H: the counts by structure -----------------------------------------
-    ax = fig.add_subplot(gbot[3]); _lp(ax, 'I', dx=-.32)
+    ax = fig.add_subplot(gbot[3])
+    _p = ax.get_position()
+    ax.set_position([_rx0 + _rw + _PAD, _p.y0, _rw, _p.height])
+    _lp(ax, 'I', dx=-.28)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
