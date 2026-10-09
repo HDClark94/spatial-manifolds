@@ -257,9 +257,17 @@ if __name__ == '__main__':
         # them, and a second would just repeat it in the middle of the row
         _last = si == len(EX_SESSIONS) - 1
         _wr = [1.05, .26, .66, .66, .66] + ([.075] if _last else [])
-        gg = gex[si].subgridspec(1, len(_wr), width_ratios=_wr, wspace=.16)
+        # Two rows sharing one trial axis. The mean-rate traces sit in the top
+        # row above their own cells, and every raster -- MEC, PC1 and the three
+        # visual cells -- sits in the bottom row, so a trial is at the same
+        # height in all of them. Previously the traces were nested inside the
+        # visual columns only, which pushed those rasters down relative to the
+        # MEC raster beside them and made the comparison impossible to read off.
+        gg = gex[si].subgridspec(2, len(_wr), height_ratios=[.38, 1.0],
+                                 width_ratios=_wr, hspace=.10, wspace=.16)
+
         # the MEC anchoring raster
-        ax = fig.add_subplot(gg[0])
+        ax = fig.add_subplot(gg[1, 0])
         _tac = ListedColormap([NONANCH_COLOR, ANCH_COLOR])
         _tac.set_bad('white')
         ax.imshow(np.ma.masked_invalid(L.T), aspect='auto',
@@ -267,7 +275,7 @@ if __name__ == '__main__':
                   norm=BoundaryNorm([-.5, .5, 1.5], 2),
                   extent=[0, L.shape[0], L.shape[1] - .5, -.5])
         if n_lock:
-            ax.annotate(f'varies (PC1 order)', (n_var / 2, 1.004),
+            ax.annotate('varies (PC1 order)', (n_var / 2, 1.004),
                         xycoords=('data', 'axes fraction'), ha='center',
                         va='bottom', fontsize=5.6, color='0.35')
             ax.annotate(f'locked ({n_lock})', (n_var + gap + n_lock / 2, 1.004),
@@ -280,13 +288,14 @@ if __name__ == '__main__':
         ax.tick_params(labelsize=6.5)
         for sp in ax.spines.values():
             sp.set_visible(False)
-        _lp(ax, 'AB'[si], dx=-.34, dy=1.02)
-        # the explanatory line is set once at figure level: spelled out per
-        # panel it runs the width of the block and collides with the PC1 and
-        # cluster sub-titles beside it
-        ax.set_title(f'M{mo} D{dy}', fontsize=8, loc='left', pad=14)
-        # PC1
-        axp = fig.add_subplot(gg[1])
+        # the session label goes in the empty top-left slot, clear of the
+        # column sub-titles beside it
+        axt = fig.add_subplot(gg[0, 0]); axt.axis('off')
+        axt.text(0, .18, f'M{mo} D{dy}', fontsize=8, va='bottom')
+        _lp(axt, 'AB'[si], dx=-.30, dy=.10)
+
+        # PC1, on the same trial axis
+        axp = fig.add_subplot(gg[1, 1], sharey=ax)
         y_ = np.arange(len(pc1))
         axp.fill_betweenx(y_, 0, pc1, where=pc1 >= 0, color=ANCH_COLOR, lw=0,
                           interpolate=True)
@@ -295,19 +304,15 @@ if __name__ == '__main__':
         axp.axvline(0, color='0.4', lw=.7)
         for t_ in tr:
             axp.axhline(t_, color='k', lw=.9, ls='--', zorder=4)
-        axp.set_ylim(len(pc1) - .5, -.5)
         axp.set_xticks([]); axp.tick_params(labelleft=False, left=False)
         axp.set_title('PC1', fontsize=6.8, pad=3)
         for sp in axp.spines.values():
             sp.set_visible(False)
-        # the VIS cells
+
         _im = None
         for k, r in enumerate(cells):
-            gc_ = gg[2 + k].subgridspec(2, 1, height_ratios=[.40, 1.0],
-                                        hspace=.10)
-            # mean rate against position IN EACH STATE: the raster shows the
-            # field is there every trial, this shows it is the same field
-            axq = fig.add_subplot(gc_[0])
+            # mean rate against position IN EACH STATE, above its own cell
+            axq = fig.add_subplot(gg[0, 2 + k])
             st_ = median_filter(r['pop'].astype(float), size=9,
                                 mode='nearest') > .5
             for m_, c_ in ((st_, ANCH_COLOR), (~st_, NONANCH_COLOR)):
@@ -320,7 +325,7 @@ if __name__ == '__main__':
                 axq.set_ylabel('Hz', fontsize=6)
             axq.spines[['top', 'right']].set_visible(False)
 
-            axc = fig.add_subplot(gc_[1])
+            axc = fig.add_subplot(gg[1, 2 + k], sharey=ax)
             _mx = np.nanmax(r['maps']) or 1.0
             _im = axc.imshow(r['maps'] / _mx, aspect='auto', cmap=CMAP,
                              vmin=0, vmax=1, interpolation='nearest',
@@ -334,10 +339,8 @@ if __name__ == '__main__':
                 axc.set_xlabel('Position (cm)', fontsize=7.5)
             for sp in axc.spines.values():
                 sp.set_visible(False)
-        # one colourbar per block: each map is scaled to its own peak, so the
-        # bar is a fraction, which is the only thing comparable across cells
         if _last:
-            axcb = fig.add_subplot(gg[5])
+            axcb = fig.add_subplot(gg[1, 5])
             cb = fig.colorbar(_im, cax=axcb)
             cb.ax.set_title('rate\n(/peak)', fontsize=5.4, pad=3,
                             linespacing=1.1)
