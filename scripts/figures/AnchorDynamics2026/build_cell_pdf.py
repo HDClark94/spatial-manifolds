@@ -224,14 +224,8 @@ FIGURES = [
      'against fast gamma change: the two are uncorrelated (rho = -0.08) and the quadrant count is '
      'what the marginals imply, so this is not a demonstrated redistribution. (I) The difference '
      'index per session. (J) The pooled difference profile, with the SEM across sessions, crossing '
-     'zero near 67 Hz in 25 of 26 sessions. (K, L) Where in the theta cycle each frequency reaches '
-     'its amplitude peak, for each state, over 28 sessions. Each frequency row is normalised to '
-     'sum to one, so colour is where a frequency peaks rather than how much power it carries. '
-     '(M) The same information as preferred phase against frequency. The relationship is a '
-     'continuous gradient rather than a step between two bands: preferred phase runs from about '
-     '130 degrees at 20-30 Hz to about 41 degrees at 60-100 Hz, and the whole gradient sits '
-     'later in the cycle in the non-anchored state. The slow-minus-fast separation is itself '
-     'state-dependent, +34 degrees when anchored against +52 when not.'),
+     'zero near 67 Hz in 25 of 26 sessions. Where in the theta cycle each frequency peaks, '
+     'and how that moves with the state, is shown in Figure S10.'),
     ('Figure 8', 'fig8_model.pdf',
      'A two-loop account of the anchoring state (hypothesis)',
      'A proposed mechanism, placed with Ideas and speculation rather than with the Results. '
@@ -343,6 +337,24 @@ SUPPLEMENTS = [
      'on a shared trial axis. A-C show the population pattern; D is drawn in red as a '
      'counterexample, a session with clear transitions whose bands do not follow them, included '
      'because the effect is 16 of 26 sessions rather than all of them.'),
+    ('Figure S10', 'fig7_supp_comodulogram.pdf',
+     'Where in the theta cycle each frequency peaks, and how it moves with the state',
+     'The band analysis in Figure 7 fixes two gamma bands in advance and asks how strongly each '
+     'is nested in theta; the modulation index discards phase, so it cannot ask where in the '
+     'cycle they peak. (A, B) The phase-frequency map for each state across 28 sessions. Each '
+     'frequency row is normalised to sum to one, so colour is where a frequency peaks rather '
+     'than how much power it carries; without that the 1/f background would dominate every row. '
+     'The mains band is marked: it does not drive these panels, and is if anything less '
+     'modulated than its neighbours (0.0081 against 0.0102), which is what a line uncorrelated '
+     'with theta does. (C) Their difference. The state effect is a phase shift rather than a '
+     'gain change, so it appears as a dipole -- anchored higher on the earlier flank and lower '
+     'on the later one -- strongest where the amplitude itself is, around 50-75 Hz. It is a '
+     'small difference on a noisy map. (D) The same information as preferred phase against '
+     'frequency. The relationship is a continuous gradient rather than a step between two bands: '
+     'preferred phase runs from about 130 degrees at 20-30 Hz to about 41 degrees at 60-100 Hz, '
+     'and the whole gradient sits about 20 degrees later in the cycle in the non-anchored state. '
+     'The slow-minus-fast separation is itself state-dependent, +34 degrees when anchored '
+     'against +52 when not, which a two-band test could not have shown.'),
 ]
 
 REFS_FULL = [

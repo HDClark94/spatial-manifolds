@@ -272,7 +272,7 @@ print(f'  crossover median {np.median(CX):.1f} Hz in {len(CX)}/{NS} sessions')
 # bbox_inches='tight', an aspect of only 1.2:1, so it sat squat on a portrait
 # page with the six population panels squeezed three-to-a-row. Four rows with the
 # population panels two-to-a-row fills the page and roughly doubles their width.
-fig = plt.figure(figsize=(7.6, 9.3))
+fig = plt.figure(figsize=(8.4, 7.4))
 # left/right/top/bottom are pinned near the page edges because the save uses
 # bbox_inches='tight', which discards the figure margins -- so the OUTER gridspec
 # proportions, not figsize, decide the final aspect. With matplotlib's default
@@ -283,8 +283,7 @@ fig = plt.figure(figsize=(7.6, 9.3))
 # the trial axis and have to be stacked), which left the right half of that block
 # empty while the spectra sat in a row of their own underneath. Four rows rather
 # than five, and the page is wider than it is tall by less.
-OUTER = fig.add_gridspec(4, 1, height_ratios=[2.45, 1.0, 1.0, 1.05],
-                         hspace=.46,
+OUTER = fig.add_gridspec(3, 1, height_ratios=[2.45, 1.0, 1.0], hspace=.46,
                          left=.10, right=.97, top=.965, bottom=.045)
 
 
@@ -404,7 +403,6 @@ axp.spines['right'].set_color(PAC_C['slow_gamma'])
 # Reading order stays E F / G H / I J, so A-J still runs left-to-right then down.
 GQ = OUTER[1].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.15])
 GT = OUTER[2].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.0])
-GC_ = OUTER[3].subgridspec(1, 3, wspace=.72, width_ratios=[1.0, 1.0, 1.05])
 
 # E is split in two because the state effect and the spectrum's own shape live
 # on different scales, and one axis cannot show both. The raw whitened spectrum
@@ -552,69 +550,6 @@ ax.set_ylabel('anchored $-$ non (z)', fontsize=7.5)
 ax.set_title(f'crossover at a median\n{np.median(CX):.0f} Hz, in {len(CX)}/{NS} '
              'sessions', fontsize=8)
 tidy(ax); lp(ax, 'J', x=-.17)
-
-# ── K-M: where in the theta cycle each frequency peaks ───────────────────────
-# The band analysis above fixes two bands in advance and asks how strongly each
-# is nested. This asks WHERE, as a continuous function of frequency, and the
-# answer is not a step between two bands: preferred phase runs smoothly from
-# ~130 deg at 20-30 Hz down to ~41 deg at 60-100 Hz. The whole gradient sits
-# later in the cycle in the non-anchored state. Each frequency row is
-# normalised to sum to one, so colour is WHERE a frequency peaks, not how much
-# power it carries -- otherwise 1/f would dominate every row.
-_cz = np.load(f'{ROOT}/data/lfp/theta_phase_comodulogram.npz')
-_CA, _CN, _cf = _cz['anch'], _cz['non'], _cz['freqs']
-_np_ = int(_cz['n_phase'])
-_cent = np.linspace(-np.pi, np.pi, _np_ + 1)[:-1] + np.pi / _np_
-_deg = np.degrees(_cent)
-
-
-def _pref(M):
-    # reported on [0, 360) rather than [-180, 180): every value here lies
-    # between about +40 and +180 deg, so the standard branch cut falls right
-    # through the data and made the 20 Hz point jump the full height of the axis
-    v = (M * np.exp(1j * _cent)[None, :]).sum(1)
-    return np.degrees(np.angle(v)) % 360.0
-
-
-# The map deviates from uniform by only about +/-3%, so the old +/-14% scale
-# left the structure filling a fifth of the colour range and all but invisible.
-# These limits are the 1st and 99th percentiles of the two maps, symmetric
-# about uniform.
-_vmin, _vmax = 0.97, 1.03
-for _k, (_M, _tag) in enumerate(((_CA, 'anchored'), (_CN, 'non-anchored'))):
-    ax = fig.add_subplot(GC_[_k])
-    _im = ax.pcolormesh(_deg, _cf, _M.mean(0) * _np_, cmap='magma',
-                        vmin=_vmin, vmax=_vmax, shading='nearest', rasterized=True)
-    ax.set_xticks([-180, -90, 0, 90, 180])
-    ax.set_xlabel('theta phase (deg)', fontsize=7.5)
-    if _k == 0:
-        ax.set_ylabel('frequency (Hz)', fontsize=7.5)
-    else:
-        ax.tick_params(labelleft=False)
-    ax.set_title(_tag, fontsize=8,
-                 color=ANCH_COLOR if _k == 0 else NONANCH_COLOR)
-    ax.tick_params(labelsize=6.5)
-    lp(ax, 'KL'[_k], x=-.17)
-_cb = fig.colorbar(_im, ax=ax, fraction=.042, pad=.03)
-_cb.ax.set_title('amp.\n(rel.)', fontsize=5.5, pad=3, linespacing=1.1)
-_cb.ax.tick_params(labelsize=5.5); _cb.outline.set_visible(False)
-
-ax = fig.add_subplot(GC_[2])
-for _M, _c, _lab in ((_CA, ANCH_COLOR, 'anchored'),
-                     (_CN, NONANCH_COLOR, 'non-anchored')):
-    _per = np.array([_pref(_M[i]) for i in range(_M.shape[0])])
-    _mu = np.degrees(np.angle(np.mean(np.exp(1j * np.radians(_per)), 0))) % 360.
-    _se = np.degrees(np.std(np.radians(_per), 0) / np.sqrt(len(_per)))
-    ax.fill_between(_cf, _mu - _se, _mu + _se, color=_c, alpha=.28, lw=0)
-    ax.plot(_cf, _mu, color=_c, lw=1.4, label=_lab)
-ax.axvspan(30, 48, color='0.88', alpha=.6, lw=0, zorder=0)
-ax.axvspan(60, 100, color='0.88', alpha=.6, lw=0, zorder=0)
-ax.set_xlabel('frequency (Hz)', fontsize=7.5)
-ax.set_ylabel('preferred theta\nphase (deg)', fontsize=7.5)
-ax.set_title('a gradient, not two bands', fontsize=8)
-ax.legend(fontsize=5.8, frameon=False, loc='lower left')
-ax.tick_params(labelsize=6.5)
-tidy(ax); lp(ax, 'M', x=-.22)
 
 fig.savefig(OUT, bbox_inches='tight', dpi=220)
 print(f'\nwrote {OUT}')
