@@ -154,19 +154,23 @@ def target_cells():
     d = u.merge(reg, on=['mouse', 'day', 'cluster_id'], how='left',
                 suffixes=('', '_r'))
     d['br'] = d.brain_region_r.fillna(d.brain_region).astype(str)
-    lock = d[d.sess_switches & (d.label_sd == 0) & (d.cell_frac_anch == 1)]
-    base = lock[lock.speed_p >= .05]            # no open-field speed tuning
-    spd = lock[lock.speed_p < .05]              # speed-modulated
-    return (base[base.br.str.startswith('VIS')].copy(),
-            base[base.br.str.startswith('ENTm')].copy(),
-            spd[spd.br.str.startswith('ENTm')].copy())
+    # EVERY locked-anchored cell of each structure, speed-modulated or not.
+    # An earlier version kept only cells with no open-field speed tuning, which
+    # meant selecting on a variable the figure then goes on to test. The speed
+    # tuning is carried as a flag instead, so a panel can split on it where
+    # that is the question and pool otherwise. It costs nothing: the census is
+    # 7.7:1 for visual cortex against 1.1:1 for entorhinal without the filter,
+    # against 7.5:1 and 0.8:1 with it.
+    lock = d[d.sess_switches & (d.label_sd == 0) & (d.cell_frac_anch == 1)].copy()
+    lock['spd'] = lock.speed_p < .05
+    return (lock[lock.br.str.startswith('VIS')].copy(),
+            lock[lock.br.str.startswith('ENTm')].copy())
 
 
 def build_cache():
-    vis, mec, mec_spd = target_cells()
+    vis, ent = target_cells()
     tt = pd.read_csv(f'{PS}/trial_table.csv')
-    want = pd.concat([vis.assign(grp='VIS'), mec.assign(grp='MEC'),
-                      mec_spd.assign(grp='MECSPD')])
+    want = pd.concat([vis.assign(grp='VIS'), ent.assign(grp='ENT')])
     rows = []
     for (mo, dy), g in want.groupby(['mouse', 'day']):
         z = load_session_labels(int(mo), int(dy))
@@ -199,9 +203,9 @@ def build_cache():
         for c in have:
             M = np.asarray(tc[c]).reshape(n_all, NBIN)[keep]
             S = np.array([smooth_nanaware(r, sigma=SIGMA) for r in M])
-            grp = g[g.cluster_id == c].grp.iloc[0]
-            rows.append(dict(mouse=mo, day=dy, cluster_id=c, grp=grp,
-                             maps=S.astype(np.float32),
+            _row = g[g.cluster_id == c].iloc[0]
+            rows.append(dict(mouse=mo, day=dy, cluster_id=c, grp=_row.grp,
+                             spd=bool(_row.spd), maps=S.astype(np.float32),
                              cue=ct, pop=(frac > .5)))
         print(f'  M{mo}D{dy}: {len(have)} cells', flush=True)
     np.savez_compressed(CACHE, rows=np.array(rows, dtype=object),
@@ -355,12 +359,25 @@ def mec_state(mo, dy, prefix='ENTm'):
 
 if __name__ == '__main__':
     rows = load_rows()
+    # Cells with no open-field speed test at all cannot be placed on either
+    # side of the speed split, so they are dropped rather than defaulted into
+    # the untuned group -- doing that quietly added 29 visual cells and pulled
+    # the luminance result from p = 0.014 to p = 0.082.
+    _sp = pd.read_csv(f'{PS}/unit_table.csv')[['mouse', 'day', 'cluster_id',
+                                               'speed_p']]
+    _spd = {(int(a), int(b), int(c)): d for a, b, c, d in
+            _sp.itertuples(index=False)}
+    for r in rows:
+        r['speed_p'] = _spd.get((int(r['mouse']), int(r['day']),
+                                 int(r['cluster_id'])), np.nan)
+    rows = [r for r in rows if np.isfinite(r['speed_p'])]
     V = [r for r in rows if r['grp'] == 'VIS']
-    M_ = [r for r in rows if r['grp'] == 'MEC']
-    MS = [r for r in rows if r['grp'] == 'MECSPD']
+    E_ = [r for r in rows if r['grp'] == 'ENT']
     nb = V[0]['maps'].shape[1]
     x = (np.arange(nb) + .5) * (TL / nb)
-    print(f'{len(V)} VIS, {len(M_)} MEC non-speed, {len(MS)} MEC speed-modulated')
+    print(f'{len(V)} locked-anchored visual cells '
+          f'({sum(r["speed_p"] < .05 for r in V)} speed-modulated), '
+          f'{len(E_)} entorhinal ({sum(r["speed_p"] < .05 for r in E_)})')
 
     def profile(r):
         p = np.nanmean(r['maps'], axis=0)
@@ -379,8 +396,7 @@ if __name__ == '__main__':
         return float(np.mean(v)) if v else -1
 
     PV = np.array([profile(r) for r in V])
-    PM = np.array([profile(r) for r in M_])
-    PS_ = np.array([profile(r) for r in MS])
+    PE = np.array([profile(r) for r in E_])
 
     # ---- the luminance proxy ------------------------------------------------
     # Screen luminance was not recorded, but the pupil constricts in brightness,
@@ -400,7 +416,7 @@ if __name__ == '__main__':
         return np.nan if d == 0 else float(np.nansum(a * b) / d)
 
     _rv = np.array([_corr(p_, _pup_i) for p_ in PV])
-    _rm = np.array([_corr(p_, _pup_i) for p_ in PM])
+    _rm = np.array([_corr(p_, _pup_i) for p_ in PE])
 
     # A and B each take a full row. Side by side there was no width for a
     # probe map and a second population raster, and the two examples are read
@@ -417,7 +433,7 @@ if __name__ == '__main__':
     # E sits with C and D: it is the same peak-position information those two
     # heatmaps show, summarised, so it belongs beside them rather than opening
     # a row of its own
-    gclu = outer[2].subgridspec(1, 3, wspace=.11)
+    gclu = outer[2].subgridspec(1, 2, wspace=.30)
     # only the row's vertical extent is taken from this: F and G are moved
     # under the C and D heatmaps after those exist, and H and I then fill
     # whatever is left to the right
@@ -580,9 +596,12 @@ if __name__ == '__main__':
     # cluster's mean gets its own axes on the right so a flat cluster reads as
     # flat instead of being stretched to fill a band.
     _cpal = ['#c0553a', '#d4a017', '#2f8f7a', '#2b4a7a', '#b5485c']
-    _sets = ((PV, 'VIS', 'visual cortex, no speed tuning'),
-             (PM, 'MEC', 'entorhinal, no speed tuning'),
-             (PS_, 'MECSPD', 'entorhinal, speed-modulated'))
+    # One panel per structure. The entorhinal cells that are speed-modulated in
+    # the open field used to have a panel of their own; they are pooled here
+    # because the split belongs in the test panel below, where it is measured,
+    # rather than in the selection.
+    _sets = ((PV, 'VIS', 'visual cortex'),
+             (PE, 'ENT', 'entorhinal cortex'))
     for _k, (_P, _nm, _desc) in enumerate(_sets):
         # the inner gaps have to clear the heatmap's tick labels on both
         # sides: the cell numbers sit left of it over the dendrogram, and its
@@ -628,7 +647,7 @@ if __name__ == '__main__':
         axd.set_ylabel('Cells', fontsize=8, labelpad=2)
         for sp in axd.spines.values():
             sp.set_visible(False)
-        _lp(axd, 'CDE'[_k], dx=-.22, dy=1.0)
+        _lp(axd, 'CD'[_k], dx=-.22, dy=1.0)
 
         axh = fig.add_subplot(gg[1])
         axh.imshow(_P[order], aspect='auto', cmap=CMAP, origin='upper',
@@ -647,7 +666,7 @@ if __name__ == '__main__':
         # locked anchored in switching sessions and differ only in region and
         # in whether they are speed-modulated
         axh.set_title(f'{_desc}\n{n_} cells, locked anchored',
-                      fontsize=7.2, loc='left')
+                      fontsize=7.6, loc='left')
 
         # one axes per cluster, stacked, each with its own mean +/- SEM
         edges = np.r_[0, bounds, n_]
@@ -688,16 +707,20 @@ if __name__ == '__main__':
                     pr = np.nanmean(r['maps'][m], axis=0)
                     acc.append((pr - np.nanmean(pr)) / (np.nanstd(pr) + 1e-12))
         return np.array(a), np.array(b)
-    CA, CB = cue_split(V)
-    n = min(len(CA), len(CB))
     rzm = (x >= RZ[0]) & (x <= RZ[1])
-    w = wilcoxon(CA[:n][:, rzm].mean(1), CB[:n][:, rzm].mean(1))
-    print(f'  cued vs uncued in the reward zone: p = {w.pvalue:.3g} ({n} cells)')
+    for _tag, _rows_ in (('all visual', V),
+                         ('no speed tuning',
+                          [r for r in V if r['speed_p'] >= .05])):
+        CA, CB = cue_split(_rows_)
+        n = min(len(CA), len(CB))
+        w = wilcoxon(CA[:n][:, rzm].mean(1), CB[:n][:, rzm].mean(1))
+        print(f'  cued vs uncued in the reward zone, {_tag}: '
+              f'p = {w.pvalue:.3g} ({n} cells)')
 
     # the cumulative peak-position panel is gone, but its test is not: both
     # populations are far from uniform, which is why the caption can say the
     # positional concentration is not peculiar to visual cortex
-    for _nm, _P in (('VIS', PV), ('MEC', PM)):
+    for _nm, _P in (('VIS', PV), ('ENT', PE)):
         _pk = x[np.argmax(_P, axis=1)]
         print(f'  {_nm} peak positions vs uniform: '
               f'p = {kstest(_pk / TL, "uniform").pvalue:.3g}')
@@ -706,7 +729,7 @@ if __name__ == '__main__':
         print(f'  {_nm} corr with pupil: mean {np.mean(_f):+.3f} '
               f'median {np.median(_f):+.3f} p = {wilcoxon(_f).pvalue:.3g}')
 
-    # ---- F, G: the two confounds, tested properly, and where the rest is ----
+    # ---- E, F: the two confounds, tested properly, and where the rest is ----
     # THE CHANCE LEVEL IS THE WHOLE PROBLEM HERE, and two earlier versions of
     # this panel got it wrong. Both the speed profile and the luminance proxy
     # are smooth functions of position, and ANY smooth function of position
@@ -727,7 +750,7 @@ if __name__ == '__main__':
     # sign is consistent across cells rather than how much variance one curve
     # soaks up.
     _SPD = speed_profile(sorted({(r['mouse'], r['day'])
-                                 for r in V + M_ + MS}), len(x))
+                                 for r in V + E_}), len(x))
     N_SUR = 500
 
     def _z(v):
@@ -741,9 +764,20 @@ if __name__ == '__main__':
         ph = _rng.uniform(0, 2 * np.pi, len(F_)); ph[0] = 0.
         return _z(np.fft.irfft(np.abs(F_) * np.exp(1j * ph), n=len(v)))
 
-    _GL = [('VIS', V, 'VIS\nno speed', '#3f9b4f'),
-           ('MEC', M_, 'MEC\nno speed', '#7b4173'),
-           ('MECSPD', MS, 'MEC\nspeed-mod', '#c0723a')]
+    # Four groups, because the speed split is the question here rather than a
+    # selection criterion. Pooling each structure across it was tried and is
+    # wrong for visual cortex: the luminance relationship lives entirely in
+    # the cells with no open-field speed tuning (+0.34, p = 0.014) and the
+    # speed-modulated visual cells have none (+0.05, p = 0.43), so the pooled
+    # population reads +0.11, p = 0.21. Entorhinal cortex pools without loss.
+    _GL = [('VIS-', [r for r in V if r['speed_p'] >= .05], 'VIS\nno speed',
+            '#3f9b4f'),
+           ('VIS+', [r for r in V if r['speed_p'] < .05], 'VIS\nspeed-mod',
+            '#8fcf96'),
+           ('ENT-', [r for r in E_ if r['speed_p'] >= .05], 'ENT\nno speed',
+            '#7b4173'),
+           ('ENT+', [r for r in E_ if r['speed_p'] < .05], 'ENT\nspeed-mod',
+            '#bb8bb0')]
     _PROF = {}
     for _gn, _rows_, _, _ in _GL:
         _PROF[_gn] = np.array([_z(np.nanmean(r['maps'], 0) -
@@ -769,7 +803,7 @@ if __name__ == '__main__':
                   f'p = {pv:.3f}')
 
     ax = fig.add_subplot(grow[0])
-    _lp(ax, 'F', dx=-.24)
+    _lp(ax, 'E', dx=-.24)
     _gx = np.arange(len(_GL))
     for _j, (_rn_, _reg, _c) in enumerate(_REG):
         off = (_j - .5) * .36
@@ -785,37 +819,40 @@ if __name__ == '__main__':
                     ha='center', va='center', fontsize=6.2,
                     color='0.15' if pv < .05 else '0.45')
     ax.axhline(0, color='k', lw=.9)
-    ax.set_xticks(_gx); ax.set_xticklabels([g[2] for g in _GL], fontsize=6.8,
+    ax.set_xticks(_gx); ax.set_xticklabels([g[2] for g in _GL], fontsize=6.0,
                                            linespacing=1.3)
-    ax.set_ylim(-.42, .60)
+    ax.set_ylim(-.42, .62)
     ax.set_ylabel('median correlation of the\nposition profile', fontsize=7.5)
     ax.set_title('grey = what a curve of the same\nsmoothness reaches by chance',
                  fontsize=6.8, loc='left')
     ax.legend(fontsize=5.8, frameon=False, loc='lower left')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-    # ---- G: where these cells' position structure actually sits -------------
+    # ---- F: where these cells' position structure actually sits -------------
     # Plotted on the raw profiles, not the residuals: since neither regressor
     # clears its null, residualising changes this picture by a few points at
     # most (black-box share 52 -> 50% in VIS) and a residual would imply a
     # subtraction the panel above does not license.
     BB = 30.0                    # black box at each end of the 200 cm track
     ax = fig.add_subplot(grow[1])
-    _lp(ax, 'G', dx=-.26)
+    _lp(ax, 'F', dx=-.26)
     _bbs = {}
-    for _gn, _, _lab, _c in _GL:
-        v = (_PROF[_gn] ** 2).mean(0)
+    for _gn, _lab, _c in (('VIS', 'visual cortex', '#3f9b4f'),
+                         ('ENT', 'entorhinal cortex', '#7b4173')):
+        v = (np.vstack([_PROF[k] for k in _PROF if k.startswith(_gn)])
+             ** 2).mean(0)
         _bbs[_gn] = float(v[(x < BB) | (x > TL - BB)].sum() / v.sum())
-        ax.plot(x, v / v.mean(), lw=1.4, color=_c,
-                label=f"{_lab.replace(chr(10), ' ')}  {_bbs[_gn]:.0%}")
+        ax.plot(x, v / v.mean(), lw=1.5, color=_c,
+                label=f'{_lab}  {_bbs[_gn]:.0%}')
     for _b in ((0, BB), (TL - BB, TL)):
         ax.axvspan(*_b, color='0.84', alpha=.8, lw=0, zorder=0)
     ax.axvspan(*RZ, color='#d8e4d0', alpha=.9, lw=0, zorder=0)
     for _xx, _t in ((15, 'black\nbox'), (185, 'black\nbox'), (100, 'reward')):
-        ax.text(_xx, .08, _t, fontsize=5.2, color='0.3', ha='center',
-                linespacing=1.1)
+        ax.text(_xx, .035, _t, fontsize=5.2, color='0.3', ha='center',
+                va='bottom', linespacing=1.1,
+                transform=ax.get_xaxis_transform())
     print('  share of profile variance inside the black boxes (30% of track): '
-          + ', '.join(f'{g} {_bbs[g]:.0%}' for g, _, _, _ in _GL))
+          + ', '.join(f'{g} {v:.0%}' for g, v in _bbs.items()))
     ax.set_xlim(0, TL); ax.set_xticks([0, 50, 100, 150, 200])
     ax.set_xlabel('Position (cm)', fontsize=8)
     ax.set_ylabel('variance of the position\nprofile (1 = track average)',
@@ -826,9 +863,9 @@ if __name__ == '__main__':
               handlelength=1.2)
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-    # ---- H: the counts by structure -----------------------------------------
+    # ---- G: the counts by structure -----------------------------------------
     ax = fig.add_subplot(grow[2])
-    _lp(ax, 'H', dx=-.24)
+    _lp(ax, 'G', dx=-.24)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
