@@ -54,6 +54,8 @@ from matplotlib.colors import BoundaryNorm, ListedColormap
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 import pynapple as nap
 import seaborn as sns
+
+import anatomy_slice as ANA
 from scipy.cluster.hierarchy import dendrogram, fcluster, linkage
 from scipy.ndimage import median_filter
 from scipy.spatial.distance import pdist
@@ -90,6 +92,54 @@ for _c in json.load(open(f'{FIG}/lick_raster_by_trial_type.ipynb'))['cells']:
         continue
     exec(compile(_s, '<nb>', 'exec'), _g)
 globals().update({k: v for k, v in _g.items() if not k.startswith('__')})
+
+
+# the probe maps are the same construction as Figure S7's: the session's
+# best-fit slice through the atlas in neutral greys, every contact in pale
+# grey, and the cells that build the rasters coloured by structure
+RCOL = {'MEC': '#7b4173', 'VIS': '#3f9b4f'}
+SLICE_STEP = 12
+
+
+def _macro(r):
+    r = str(r)
+    if r.startswith('ENTm'):
+        return 'MEC'
+    if r.startswith('VIS'):
+        return 'VIS'
+    return 'other'
+
+
+_CXYZ = pd.read_csv(f'{ROOT}/data/cell_classifications_v2.csv')
+_CXYZ['macro'] = _CXYZ.brain_region.map(_macro)
+CELLXYZ = _CXYZ.dropna(subset=['coord_SCs_x', 'coord_SCs_y', 'coord_SCs_z'])
+
+
+def draw_slice(ax, mo, dy):
+    """Figure S7's probe map, for one session."""
+    con = ANA.contacts_ccf(mo)
+    fit = ANA.fit_best_slice(con)
+    u_vals, v_vals, grid = ANA.sample_region_grid(fit, step=SLICE_STEP)
+    ax.imshow(grid, origin='lower', aspect='equal', zorder=1,
+              cmap=ANA.region_cmap_neutral, norm=ANA.region_norm_neutral,
+              extent=[u_vals[0], u_vals[-1], v_vals[0], v_vals[-1]])
+    cu, cv = fit['project'](con)
+    ax.scatter(cu, cv, s=.4, color='0.75', alpha=.45, lw=0, zorder=2)
+    cells = CELLXYZ[(CELLXYZ.mouse == mo) & (CELLXYZ.day == dy)]
+    for r_, c_ in RCOL.items():
+        k = cells[cells.macro == r_]
+        if not len(k):
+            continue
+        pts = ANA.to_ccf(k, ('coord_SCs_z', 'coord_SCs_y', 'coord_SCs_x'))
+        pu, pv = fit['project'](pts)
+        ax.scatter(pu, pv, s=4.0, color=c_, alpha=.85, lw=0, zorder=3)
+    # v increases with depth, so plotting it upward would put MEC above visual
+    # cortex; invert so the slice reads the way the brain does
+    ax.set_ylim(v_vals[-1], v_vals[0])
+    ax.set_aspect('equal', adjustable='box')
+    ax.set_xticks([]); ax.set_yticks([])
+    for sp in ax.spines.values():
+        sp.set_visible(False)
 
 
 def _lp(ax, s, dx=-.16, dy=1.0):
@@ -167,8 +217,13 @@ def load_rows():
 
 
 
-def mec_state(mo, dy):
-    """That session's MEC anchoring raster, its PC1, and the major transitions.
+def mec_state(mo, dy, prefix='ENTm'):
+    """That session's anchoring raster, its PC1, and the major transitions.
+
+    PREFIX picks the structure the raster is built from. The PC1 and the
+    transitions are the session's, whichever structure is asked for, so the
+    entorhinal and visual rasters are read against one and the same state --
+    which is the comparison the panel exists to make.
 
     Read straight from the label file rather than cached with the rate maps:
     it costs nothing (the labels are an npz) and keeps the example panels on
@@ -177,7 +232,7 @@ def mec_state(mo, dy):
     z = load_session_labels(int(mo), int(dy))
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')
     reg = reg[(reg.mouse == mo) & (reg.day == dy)]
-    mec_ids = set(reg[reg.brain_region.astype(str).str.startswith('ENTm')]
+    mec_ids = set(reg[reg.brain_region.astype(str).str.startswith(prefix)]
                   .cluster_id.astype(int))
     ids = [int(c) for c in z['cluster_id']]
     rows = [i for i, c in enumerate(ids) if c in mec_ids]
@@ -270,71 +325,95 @@ if __name__ == '__main__':
     _rv = np.array([_corr(p_, _pup_i) for p_ in PV])
     _rm = np.array([_corr(p_, _pup_i) for p_ in PM])
 
-    fig = plt.figure(figsize=(11.6, 9.4))
-    outer = fig.add_gridspec(3, 1, height_ratios=[1.30, 1.20, 1.0], hspace=.60,
-                             left=.065, right=.975, top=.97, bottom=.055)
-    gex = outer[0].subgridspec(1, 2, wspace=.30)
+    # A and B each take a full row. Side by side there was no width for a
+    # probe map and a second population raster, and the two examples are read
+    # one after the other rather than against each other anyway.
+    fig = plt.figure(figsize=(11.6, 10.4))
+    outer = fig.add_gridspec(4, 1, height_ratios=[1.0, 1.0, 1.22, 1.0],
+                             hspace=.62, left=.065, right=.975, top=.965,
+                             bottom=.050)
     # E sits with C and D: it is the same peak-position information those two
     # heatmaps show, summarised, so it belongs beside them rather than opening
     # a row of its own
-    gclu = outer[1].subgridspec(1, 3, wspace=.11)
+    gclu = outer[2].subgridspec(1, 3, wspace=.11)
     # only the row's vertical extent is taken from this: F and G are moved
     # under the C and D heatmaps after those exist, and H and I then fill
     # whatever is left to the right
-    gbot = outer[2].subgridspec(1, 4)
+    gbot = outer[3].subgridspec(1, 4)
 
-    # ---- A, B: two sessions, each with its MEC state beside its VIS cells ----
+    # ---- A, B: one session per row -----------------------------------------
+    # Left to right: where the cells are, then the entorhinal population, its
+    # PC1, the visual population, and three visual cells. Both rasters are
+    # built the same way and both are cut by the same transition lines, so the
+    # claim -- one population reorganises at those lines and the other does
+    # not -- is made by the figure rather than asserted in the caption.
     for si, (mo, dy) in enumerate(EX_SESSIONS):
         cells = sorted([r for r in V if (r['mouse'], r['day']) == (mo, dy)],
                        key=consistency, reverse=True)[:3]
         if len(cells) < 3:
             print(f'  ! M{mo}D{dy} has only {len(cells)} cells'); continue
         L, pc1, tr, n_var, n_lock, gap = mec_state(mo, dy)
+        LV, _, _, v_var, v_lock, v_gap = mec_state(mo, dy, 'VIS')
         n_tr = cells[0]['maps'].shape[0]
-        # only the right-hand block carries the colourbar: both blocks use the
-        # same scaling (each map normalised to its own peak) so one bar serves
-        # them, and a second would just repeat it in the middle of the row
+        # only the lower block carries the colourbar: both use the same scaling
+        # (each map normalised to its own peak) so one bar serves them
         _last = si == len(EX_SESSIONS) - 1
-        _wr = [1.05, .26, .66, .66, .66] + ([.075] if _last else [])
+        # the slice holds a square aspect, so a wide column just pads it with
+        # whitespace; the rasters take the width instead
+        _wr = [.62, 1.35, .28, 1.05, .72, .72, .72] + ([.07] if _last else [])
         # Two rows sharing one trial axis. The mean-rate traces sit in the top
-        # row above their own cells, and every raster -- MEC, PC1 and the three
-        # visual cells -- sits in the bottom row, so a trial is at the same
-        # height in all of them. Previously the traces were nested inside the
-        # visual columns only, which pushed those rasters down relative to the
-        # MEC raster beside them and made the comparison impossible to read off.
-        gg = gex[si].subgridspec(2, len(_wr), height_ratios=[.38, 1.0],
-                                 width_ratios=_wr, hspace=.10, wspace=.16)
+        # row above their own cells, and every raster -- both populations, PC1
+        # and the three visual cells -- sits in the bottom row, so a trial is
+        # at the same height in all of them.
+        gg = outer[si].subgridspec(2, len(_wr), height_ratios=[.34, 1.0],
+                                   width_ratios=_wr, hspace=.10, wspace=.16)
 
-        # the MEC anchoring raster
-        ax = fig.add_subplot(gg[1, 0])
+        # the probe map, spanning both rows
+        axs = fig.add_subplot(gg[:, 0])
+        draw_slice(axs, mo, dy)
+        axs.set_title(f'M{mo} D{dy}', fontsize=8, pad=4, loc='left')
+        # the slice keeps a square aspect, so its axes box floats inside the
+        # gridspec cell and an axes-fraction offset puts the letter somewhere
+        # different in each row; anchor it to the cell instead
+        _cb = gg[:, 0].get_position(fig)
+        fig.text(_cb.x0 - .012, _cb.y1, 'AB'[si], fontsize=10, weight='bold',
+                 va='bottom', ha='left')
+
         _tac = ListedColormap([NONANCH_COLOR, ANCH_COLOR])
         _tac.set_bad('white')
-        ax.imshow(np.ma.masked_invalid(L.T), aspect='auto',
-                  interpolation='nearest', cmap=_tac,
-                  norm=BoundaryNorm([-.5, .5, 1.5], 2),
-                  extent=[0, L.shape[0], L.shape[1] - .5, -.5])
-        if n_lock:
-            ax.annotate('varies (PC1 order)', (n_var / 2, 1.004),
-                        xycoords=('data', 'axes fraction'), ha='center',
-                        va='bottom', fontsize=5.6, color='0.35')
-            ax.annotate(f'locked ({n_lock})', (n_var + gap + n_lock / 2, 1.004),
-                        xycoords=('data', 'axes fraction'), ha='center',
-                        va='bottom', fontsize=5.6, color='0.35')
-        for t_ in tr:
-            ax.axhline(t_, color='k', lw=.8, ls='--', zorder=4)
-        ax.set_ylabel('Trial', fontsize=8)
-        ax.set_xlabel('MEC cell', fontsize=7.5)
-        ax.tick_params(labelsize=6.5)
-        for sp in ax.spines.values():
-            sp.set_visible(False)
-        # the session label goes in the empty top-left slot, clear of the
-        # column sub-titles beside it
-        axt = fig.add_subplot(gg[0, 0]); axt.axis('off')
-        axt.text(0, .18, f'M{mo} D{dy}', fontsize=8, va='bottom')
-        _lp(axt, 'AB'[si], dx=-.30, dy=.10)
+        _ax0 = None
+        for gi, (_M, _nv, _nl, _gp, _rn) in enumerate(
+                ((L, n_var, n_lock, gap, 'MEC'),
+                 (LV, v_var, v_lock, v_gap, 'VIS'))):
+            ax = fig.add_subplot(gg[1, 1 if gi == 0 else 3],
+                                 **({} if _ax0 is None else {'sharey': _ax0}))
+            if _ax0 is None:
+                _ax0 = ax
+            ax.imshow(np.ma.masked_invalid(_M.T), aspect='auto',
+                      interpolation='nearest', cmap=_tac,
+                      norm=BoundaryNorm([-.5, .5, 1.5], 2),
+                      extent=[0, _M.shape[0], _M.shape[1] - .5, -.5])
+            if _nl:
+                ax.annotate('varies (PC1 order)', (_nv / 2, 1.004),
+                            xycoords=('data', 'axes fraction'), ha='center',
+                            va='bottom', fontsize=5.6, color='0.35')
+                ax.annotate(f'locked ({_nl})', (_nv + _gp + _nl / 2, 1.004),
+                            xycoords=('data', 'axes fraction'), ha='center',
+                            va='bottom', fontsize=5.6, color='0.35')
+            for t_ in tr:
+                ax.axhline(t_, color='k', lw=.8, ls='--', zorder=4)
+            ax.set_xlabel(f'{_rn} cell', fontsize=7.5, color=RCOL[_rn])
+            ax.tick_params(labelsize=6.5)
+            if gi == 0:
+                ax.set_ylabel('Trial', fontsize=8)
+            else:
+                ax.tick_params(labelleft=False)
+            for sp in ax.spines.values():
+                sp.set_visible(False)
+        ax = _ax0
 
-        # PC1, on the same trial axis
-        axp = fig.add_subplot(gg[1, 1], sharey=ax)
+        # PC1, on the same trial axis, between the two populations
+        axp = fig.add_subplot(gg[1, 2], sharey=ax)
         y_ = np.arange(len(pc1))
         axp.fill_betweenx(y_, 0, pc1, where=pc1 >= 0, color=ANCH_COLOR, lw=0,
                           interpolate=True)
@@ -351,7 +430,7 @@ if __name__ == '__main__':
         _im = None
         for k, r in enumerate(cells):
             # mean rate against position IN EACH STATE, above its own cell
-            axq = fig.add_subplot(gg[0, 2 + k])
+            axq = fig.add_subplot(gg[0, 4 + k])
             st_ = median_filter(r['pop'].astype(float), size=9,
                                 mode='nearest') > .5
             for m_, c_ in ((st_, ANCH_COLOR), (~st_, NONANCH_COLOR)):
@@ -364,7 +443,7 @@ if __name__ == '__main__':
                 axq.set_ylabel('Hz', fontsize=6)
             axq.spines[['top', 'right']].set_visible(False)
 
-            axc = fig.add_subplot(gg[1, 2 + k], sharey=ax)
+            axc = fig.add_subplot(gg[1, 4 + k], sharey=ax)
             _mx = np.nanmax(r['maps']) or 1.0
             _im = axc.imshow(r['maps'] / _mx, aspect='auto', cmap=CMAP,
                              vmin=0, vmax=1, interpolation='nearest',
@@ -380,7 +459,7 @@ if __name__ == '__main__':
             for sp in axc.spines.values():
                 sp.set_visible(False)
         if _last:
-            axcb = fig.add_subplot(gg[1, 5])
+            axcb = fig.add_subplot(gg[1, 7])
             cb = fig.colorbar(_im, cax=axcb)
             cb.ax.set_title('rate\n(/peak)', fontsize=5.4, pad=3,
                             linespacing=1.1)
