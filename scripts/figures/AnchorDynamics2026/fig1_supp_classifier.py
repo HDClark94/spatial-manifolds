@@ -402,6 +402,7 @@ g2 = G[1].subgridspec(1, 4, width_ratios=[1.12, 1.12, 1.22, .55], wspace=.5)
 # a rate map at all, not a step of the classifier, so it is not given a panel.
 ax = fig.add_subplot(g2[0])
 ax.imshow(sm, aspect='auto', origin='lower', cmap='viridis',
+          vmin=0, vmax=np.nanpercentile(sm, 99),
           interpolation='nearest', extent=[0, TRACK_CM, 0, N_TRIALS])
 for b in (T1, T2):
     ax.axhline(b, color='w', ls='--', lw=.8)

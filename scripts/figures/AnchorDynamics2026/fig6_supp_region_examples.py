@@ -68,7 +68,10 @@ SESSIONS = [
     (28, 20, 'visual-rich; its visual cells sit ~720 um from MEC'),
     (21, 25, 'visual cortex contributes more cells than MEC — and disagrees'),
     (25, 21, 'subicular complex contributes more cells than MEC'),
-    (26, 13, 'the probe reaches cerebellum'),
+    # The cerebellar session was a fifth row. It rested on 15-18 cells, which
+    # is below what an axis can be estimated from with any confidence, and the
+    # claim it illustrated -- that the intended distant control is not one --
+    # is made in the text where its weakness can be stated.
 ]
 
 rows = []

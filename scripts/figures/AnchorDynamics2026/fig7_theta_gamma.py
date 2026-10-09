@@ -95,9 +95,11 @@ LINE = [(48, 52), (98, 102), (148, 152)]
 BANDS = [('theta 6–10', 6, 10, '#7b4173'),
          ('slow gamma 30–48', 30, 48, '#2b6cb0'),
          ('fast gamma 60–100', 60, 100, '#c04744')]
+# mid gamma (60-100) and HFO (150-250) were dropped from this panel: the
+# 60-100 band already has a panel of its own in the band traces above, and HFO
+# at this reference carries no state effect worth a column.
 PBANDS = [('delta', 2, 5), ('theta', 6, 10), ('beta', 12, 20),
-          ('slow\ngamma', 30, 48), ('mid\ngamma', 60, 100),
-          ('high\ngamma', 100, 150), ('HFO', 150, 250)]
+          ('slow\ngamma', 30, 48), ('high\ngamma', 100, 150)]
 
 
 def not_mains(f):
@@ -272,7 +274,7 @@ print(f'  crossover median {np.median(CX):.1f} Hz in {len(CX)}/{NS} sessions')
 # bbox_inches='tight', an aspect of only 1.2:1, so it sat squat on a portrait
 # page with the six population panels squeezed three-to-a-row. Four rows with the
 # population panels two-to-a-row fills the page and roughly doubles their width.
-fig = plt.figure(figsize=(8.4, 7.4))
+fig = plt.figure(figsize=(8.4, 5.9))
 # left/right/top/bottom are pinned near the page edges because the save uses
 # bbox_inches='tight', which discards the figure margins -- so the OUTER gridspec
 # proportions, not figsize, decide the final aspect. With matplotlib's default
@@ -283,7 +285,7 @@ fig = plt.figure(figsize=(8.4, 7.4))
 # the trial axis and have to be stacked), which left the right half of that block
 # empty while the spectra sat in a row of their own underneath. Four rows rather
 # than five, and the page is wider than it is tall by less.
-OUTER = fig.add_gridspec(3, 1, height_ratios=[2.45, 1.0, 1.0], hspace=.46,
+OUTER = fig.add_gridspec(2, 1, height_ratios=[2.45, 1.0], hspace=.46,
                          left=.10, right=.97, top=.965, bottom=.045)
 
 
@@ -317,7 +319,10 @@ def shade(ax, lines=True):
 
 
 # ---- A-D: the example, with E and F beside it ---------------------------------
-TOP = OUTER[0].subgridspec(1, 2, width_ratios=[1.0, .66], wspace=.40)
+# A-D take more of the width; E and F are a spectrum and a band summary and
+# read perfectly well narrower, while the example spectrogram and the band
+# traces do not.
+TOP = OUTER[0].subgridspec(1, 2, width_ratios=[1.0, .52], wspace=.40)
 GE = TOP[0].subgridspec(4, 2, height_ratios=[.42, 1.55, .95, .78],
                         width_ratios=[1, .022], hspace=.26, wspace=.02)
 # generous hspace: E's lower axis carries tick labels and an x-axis label,
@@ -402,7 +407,6 @@ axp.spines['right'].set_color(PAC_C['slow_gamma'])
 # ---- E-J: the population, two panels per row ---------------------------------
 # Reading order stays E F / G H / I J, so A-J still runs left-to-right then down.
 GQ = OUTER[1].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.15])
-GT = OUTER[2].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.0])
 
 # E is split in two because the state effect and the spectrum's own shape live
 # on different scales, and one axis cannot show both. The raw whitened spectrum
@@ -517,39 +521,10 @@ ax.annotate(f'$\\rho$ = {rho:+.2f}, p = {prho:.2f}\n(the two changes are not cou
             va='bottom')
 tidy(ax); lp(ax, 'H', x=-.17)
 
-ax = fig.add_subplot(GT[0])
-v = TR['shift'].sort_values().values
-ax.bar(np.arange(len(v)), v, .82,
-       color=[GRID_C if y > 0 else '0.65' for y in v], linewidth=0)
-ax.axhline(0, color='0.4', lw=1)
-ax.set_xlabel('session (sorted)', fontsize=7.5)
-ax.set_ylabel('slow $-$ fast change (z)', fontsize=7.5)
-ax.set_title(f'positive in {int((TR["shift"] > 0).sum())}/{len(TR)},\n'
-             f'p = {wilcoxon(TR["shift"]).pvalue:.0e}'.replace('e-0', 'e-'),
-             fontsize=8)
-tidy(ax); lp(ax, 'I', x=-.17)
-
-ax = fig.add_subplot(GT[1])
-# SEM across sessions, not across frequency bins: the question the panel answers
-# is whether the SESSIONS agree on where the difference changes sign, so the
-# spread that matters is between sessions at each frequency. Without the band a
-# reader cannot tell whether the crossover is resolved or whether the profile is
-# one noisy curve that happens to cross zero.
-prof = Wok.groupby('freq').d.agg(['mean', 'sem'])
-m = (prof.index >= 20) & (prof.index <= 120)
-pm, ps = prof.loc[m, 'mean'], prof.loc[m, 'sem']
-ax.fill_between(prof.index[m], pm - ps, pm + ps, color=GRID_C, alpha=.25,
-                linewidth=0, edgecolor='none')
-ax.plot(prof.index[m], pm, color=GRID_C, lw=1.2)
-ax.axhline(0, color='0.4', lw=1, ls='--')
-ax.set_xscale('log'); ax.set_xticks([20, 40, 60, 100])
-ax.set_xticklabels(['20', '40', '60', '100'], fontsize=6.5)
-ax.xaxis.set_minor_formatter(plt.NullFormatter())
-ax.set_xlabel('frequency (Hz)', fontsize=7.5)
-ax.set_ylabel('anchored $-$ non (z)', fontsize=7.5)
-ax.set_title(f'crossover at a median\n{np.median(CX):.0f} Hz, in {len(CX)}/{NS} '
-             'sessions', fontsize=8)
-tidy(ax); lp(ax, 'J', x=-.17)
+# Panels I and J were removed. I ranked the per-session slow-minus-fast
+# shift, which the population panel already carries, and J plotted the
+# crossover profile -- a restatement of E at lower resolution. The
+# crossover number itself is quoted in the text; it is printed above.
 
 fig.savefig(OUT, bbox_inches='tight', dpi=220)
 print(f'\nwrote {OUT}')

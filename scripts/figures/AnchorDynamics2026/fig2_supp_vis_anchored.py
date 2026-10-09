@@ -562,8 +562,11 @@ if __name__ == '__main__':
                             np.nanmean(r['maps'][m_], 0))))
 
                 axc = fig.add_subplot(gg[_c0 + k], sharey=ax)
-                _mx = np.nanmax(r['maps']) or 1.0
-                _im = axc.imshow(r['maps'] / _mx, aspect='auto', cmap=CMAP,
+                # 99th percentile, not the max: one hot bin otherwise sets
+                # the scale and flattens the rest of the map
+                _mx = np.nanpercentile(r['maps'], 99) or 1.0
+                _im = axc.imshow(np.clip(r['maps'] / _mx, 0, 1),
+                                 aspect='auto', cmap=CMAP,
                                  vmin=0, vmax=1, interpolation='nearest',
                                  extent=[0, TL, r['maps'].shape[0] - .5, -.5])
                 for t_ in tr:

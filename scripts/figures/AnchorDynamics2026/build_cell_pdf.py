@@ -211,7 +211,7 @@ FIGURES = [
      'the excess is present in every one of the 15 sessions contributing such cells. (A, B) One '
      'session '
      'per row. The probe map at the left is the session\'s best-fit slice through the atlas, as '
-     'in Figure S7, with every contact in pale grey and the recorded cells coloured by '
+     'in Figure S6, with every contact in pale grey and the recorded cells coloured by '
      'structure, so the rasters beside it can be read against where their cells actually sit. '
      'Then the entorhinal anchoring raster, the session PC1, and the visual raster. Both '
      'rasters are built the same way -- cells that vary in PC1-loading order, then the cells '
@@ -377,48 +377,35 @@ SUPPLEMENTS = [
      'sampled to test alone (6-7 sessions), so those columns are underpowered rather than '
      'null. Stratification is not mediation: it shows the mediolateral effect is not carried '
      'by layer differences within a stratum, not that layer plays no part.'),
-    ('Figure S6', 'fig6_cross_region.pdf',
-     'One state, shared across structures, read out most strongly by one cell type',
-     '(A) One session recording all three structures, with the per-trial anchored fraction '
-     'computed separately from each. (B) Does each region have a state of its own? Split-half '
-     'reliability of each region\'s own first principal component, size-matched to 8 cells per '
-     'half: MEC +0.447, subicular +0.474, visual cortex +0.330 (p = 2.4e-5). (C) Is it the same '
-     'state? Cross-region agreement divided by the geometric mean of the two reliabilities; '
-     'corrected, MEC-subicular +0.920 and MEC-visual +0.863, neither differing from 1. (D) Per- '
-     'cell expression of the state by group, with every cell scored out of sample against an axis '
-     'built from half the entorhinal population. (E) The panel the figure turns on: grid cells '
-     'exceed visual cortex by +0.149 (p = 9.9e-6) and interneurons by +0.144, against +0.050 for '
-     'other entorhinal cells, while the region-level difference does not reach significance (p = '
-     '0.065). The cell-type contrast is three times the regional one. (F) The Anchoring Dependence '
-     'Index by region.'),
-    ('Figure S7', 'fig6_region_examples.pdf',
+    ('Figure S6', 'fig6_region_examples.pdf',
      'The same state, described separately by each structure',
      'Two sessions bracketing the range among those recording all three structures, read left to '
      'right as entorhinal, subicular and visual cortex. Everything within a structure is built '
      'from that structure\'s own cells - the raster ordered by its own PC1 loading, the '
      'component signed to its own anchored fraction - so agreement between the groups is '
      'agreement between independent descriptions rather than a consequence of a shared frame.'),
-    ('Figure S8', 'fig6_supp_region_examples.pdf',
+    ('Figure S7', 'fig6_supp_region_examples.pdf',
      'The state outside MEC, where MEC does not dominate the sample',
-     'Sessions chosen for their sampling rather than their result: visual-rich and '
-     'subicular-rich sessions, and the two with enough cerebellar cells to build an axis. '
-     'Cerebellum carries a matching state in both, having been included as a distant negative '
-     'control that it turned out not to be. One visual session runs the other way, and is shown '
-     'for that reason.'),
-    ('Figure S9', 'fig6_supp_dimensionality.pdf',
+     'Four sessions chosen for their sampling rather than their result: two visual-rich, one in '
+     'which visual cortex contributes more cells than entorhinal and disagrees with it, and one '
+     'in which the subicular complex does. The cerebellar session that was a fifth row has been '
+     'removed: it rested on 15 to 18 cells, too few for an axis to be estimated with confidence, '
+     'and the claim it illustrated -- that the distant structure included as a negative control '
+     'is not one -- is made in the text, where that weakness can be stated.'),
+    ('Figure S8', 'fig6_supp_dimensionality.pdf',
      'One axis is an adequate description of the state',
      'Out-of-sample variance explained, with the axis built from one half of a region\'s cells '
      'and scored on the other. (A) Neuron-dropping curve per region against the circular-shift '
      'null, showing the cell-count dependence rather than hiding it behind one matched number. '
      '(B) By component at matched cell count: the first carries roughly fifty times the '
      'generalising structure of the second, so the label matrix is effectively one-dimensional.'),
-    ('Figure S10', 'fig7_supp_band_examples.pdf',
+    ('Figure S9', 'fig7_supp_band_examples.pdf',
      'Band power tracking the population state in individual sessions',
      'Four sessions as the population axis, the log-spaced spectrogram and the three band traces '
      'on a shared trial axis. A-C show the population pattern; D is drawn in red as a '
      'counterexample, a session with clear transitions whose bands do not follow them, included '
      'because the effect is 16 of 26 sessions rather than all of them.'),
-    ('Figure S11', 'fig7_supp_comodulogram.pdf',
+    ('Figure S10', 'fig7_supp_comodulogram.pdf',
      'Where in the theta cycle each frequency peaks, and how little it moves with the state',
      'The band analysis in Figure 7 fixes two gamma bands in advance and asks how strongly each '
      'is nested in theta; the modulation index discards phase, so it cannot ask where in the '

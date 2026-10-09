@@ -284,7 +284,9 @@ for blk, u in enumerate(use):
         for k, c in enumerate(picks[r]):
             ax = fig.add_subplot(G[col0 + 1 + k])
             if c in maps:
+                # scaled to the 99th percentile, as in Figure 2
                 ax.imshow(maps[c], aspect='auto', origin='lower', cmap='viridis',
+                          vmin=0, vmax=np.nanpercentile(maps[c], 99),
                           interpolation='nearest', extent=[0, TL, 0, n_tr])
             lab = M[ids_.index(c)]
             axl = ax.inset_axes([-.26, 0, .20, 1])
