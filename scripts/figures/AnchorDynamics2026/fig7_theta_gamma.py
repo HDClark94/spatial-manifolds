@@ -272,14 +272,18 @@ print(f'  crossover median {np.median(CX):.1f} Hz in {len(CX)}/{NS} sessions')
 # bbox_inches='tight', an aspect of only 1.2:1, so it sat squat on a portrait
 # page with the six population panels squeezed three-to-a-row. Four rows with the
 # population panels two-to-a-row fills the page and roughly doubles their width.
-fig = plt.figure(figsize=(7.0, 11.3))
+fig = plt.figure(figsize=(7.6, 9.3))
 # left/right/top/bottom are pinned near the page edges because the save uses
 # bbox_inches='tight', which discards the figure margins -- so the OUTER gridspec
 # proportions, not figsize, decide the final aspect. With matplotlib's default
 # margins (gridspec spanning ~78% of width and ~77% of height) a nominal 7x10
 # figure trimmed to 6.6x8.4 in, an aspect of 1.28:1, which is why the first
 # attempt at "portrait" barely changed anything.
-OUTER = fig.add_gridspec(5, 1, height_ratios=[2.45, 1.0, 1.0, 1.0, 1.05],
+# E and F moved up beside the example stack: A-D are tall and narrow (they share
+# the trial axis and have to be stacked), which left the right half of that block
+# empty while the spectra sat in a row of their own underneath. Four rows rather
+# than five, and the page is wider than it is tall by less.
+OUTER = fig.add_gridspec(4, 1, height_ratios=[2.45, 1.0, 1.0, 1.05],
                          hspace=.46,
                          left=.10, right=.97, top=.965, bottom=.045)
 
@@ -313,9 +317,14 @@ def shade(ax, lines=True):
             ax.axvline(tr_ - .5, color='0.35', ls='--', lw=.7, zorder=5)
 
 
-# ---- A-D: the example --------------------------------------------------------
-GE = OUTER[0].subgridspec(4, 2, height_ratios=[.42, 1.55, .95, .78],
-                          width_ratios=[1, .022], hspace=.26, wspace=.02)
+# ---- A-D: the example, with E and F beside it ---------------------------------
+TOP = OUTER[0].subgridspec(1, 2, width_ratios=[1.0, .66], wspace=.40)
+GE = TOP[0].subgridspec(4, 2, height_ratios=[.42, 1.55, .95, .78],
+                        width_ratios=[1, .022], hspace=.26, wspace=.02)
+# generous hspace: E's lower axis carries tick labels and an x-axis label,
+# and F carries a two-line title, so the two run into each other at the
+# spacing the other rows use
+GEF = TOP[1].subgridspec(3, 1, height_ratios=[.46, 1.0, 1.02], hspace=1.15)
 x = np.arange(len(nums))
 
 ax = fig.add_subplot(GE[0, 0])
@@ -332,7 +341,7 @@ ax.legend(handles=[Patch(facecolor=ANCH_COLOR, alpha=.35, label='anchored'),
           fontsize=5.6, frameon=False, ncol=2, loc='lower right',
           bbox_to_anchor=(1.0, 1.02), handlelength=1.0, columnspacing=.9,
           borderpad=.1)
-tidy(ax); lp(ax, 'A')
+tidy(ax); lp(ax, 'A', x=-.20)
 axs = ax.twinx()
 axs.plot(x, uniform_filter1d(tspd, SMOOTH, mode='nearest'), color='#b8860b',
          lw=.8, alpha=.85)
@@ -355,7 +364,7 @@ ax.set_ylabel('frequency (Hz)', fontsize=7)
 cb = fig.colorbar(im, cax=fig.add_subplot(GE[1, 1]))
 cb.set_label('power (z per frequency)', fontsize=5.6)
 cb.ax.tick_params(labelsize=5.2); cb.outline.set_visible(False)
-lp(ax, 'B')
+lp(ax, 'B', x=-.20)
 
 ax = fig.add_subplot(GE[2, 0]); shade(ax)
 for nm, lo, hi, c in BANDS:
@@ -365,7 +374,7 @@ ax.set_xlim(-.5, len(x) - .5); ax.set_xticks([])
 ax.set_ylabel('band power (z)', fontsize=7)
 ax.legend(fontsize=5.6, frameon=False, ncol=3, loc='lower left',
           handlelength=1.1, columnspacing=1.1)
-tidy(ax); lp(ax, 'C')
+tidy(ax); lp(ax, 'C', x=-.20)
 
 ax = fig.add_subplot(GE[3, 0]); shade(ax)
 # Slow gamma on its own axis: its MI is ~5x smaller than fast gamma's, so on a
@@ -378,7 +387,7 @@ ax.set_xlabel('trial', fontsize=7.5)
 ax.set_ylabel('theta–fast-gamma\nMI $\\times 10^{3}$', fontsize=7,
               color=PAC_C['fast_gamma'])
 ax.tick_params(axis='y', colors=PAC_C['fast_gamma'])
-tidy(ax); lp(ax, 'D')
+tidy(ax); lp(ax, 'D', x=-.20)
 axp = ax.twinx()
 axp.plot(pac_t, pac_v['slow_gamma'] * 1e3, color=PAC_C['slow_gamma'], lw=1.1,
          alpha=.9)
@@ -393,10 +402,9 @@ axp.spines['right'].set_color(PAC_C['slow_gamma'])
 
 # ---- E-J: the population, two panels per row ---------------------------------
 # Reading order stays E F / G H / I J, so A-J still runs left-to-right then down.
-GP = OUTER[1].subgridspec(1, 2, wspace=.42, width_ratios=[1.25, 1.0])
-GQ = OUTER[2].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.15])
-GT = OUTER[3].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.0])
-GC_ = OUTER[4].subgridspec(1, 3, wspace=.72, width_ratios=[1.0, 1.0, 1.05])
+GQ = OUTER[1].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.15])
+GT = OUTER[2].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.0])
+GC_ = OUTER[3].subgridspec(1, 3, wspace=.72, width_ratios=[1.0, 1.0, 1.05])
 
 # E is split in two because the state effect and the spectrum's own shape live
 # on different scales, and one axis cannot show both. The raw whitened spectrum
@@ -407,9 +415,7 @@ GC_ = OUTER[4].subgridspec(1, 3, wspace=.72, width_ratios=[1.0, 1.0, 1.05])
 # same two states after session normalisation, which removes the shape and
 # leaves the deviations, and there the same 0.1 is a third of the axis. Both
 # panels are the two STATES, not their difference, so neither duplicates J.
-GE2 = GP[0].subgridspec(2, 1, height_ratios=[.46, 1.0], hspace=.14)
-
-axs = fig.add_subplot(GE2[0])
+axs = fig.add_subplot(GEF[0])
 for st, col, lab in (('non', NONANCH_COLOR, 'non-anchored'),
                      ('anch', ANCH_COLOR, 'anchored')):
     g = R.groupby('freq')[st].agg(['mean', 'sem'])
@@ -432,7 +438,7 @@ axs.text(.015, .05, 'same shape — no gain change', transform=axs.transAxes,
          fontsize=5.6, color='0.45', ha='left', va='bottom')
 tidy(axs); lp(axs, 'E', x=-.17)
 
-ax = fig.add_subplot(GE2[1], sharex=axs)
+ax = fig.add_subplot(GEF[1], sharex=axs)
 for st, col, lab in (('non', NONANCH_COLOR, 'non-anchored'),
                      ('anch', ANCH_COLOR, 'anchored')):
     g = W.groupby('freq')[st].agg(['mean', 'sem'])
@@ -452,7 +458,7 @@ ax.text(.985, .06, 'the bands F quantifies', transform=ax.transAxes,
         fontsize=5.8, color='0.45', ha='right')
 tidy(ax)
 
-ax = fig.add_subplot(GP[1])
+ax = fig.add_subplot(GEF[2])
 for j, (nm, lo, hi) in enumerate(PBANDS):
     g = pband(lo, hi).dropna()
     p = wilcoxon(g).pvalue
@@ -469,7 +475,7 @@ ax.set_xticklabels([b[0].replace('\n', ' ') for b in PBANDS], fontsize=5.6,
                    rotation=38, ha='right')
 ax.set_ylabel('anchored $-$ non (z)', fontsize=7.5)
 ax.set_ylim(top=ax.get_ylim()[1] * 1.55)
-ax.set_title('the difference changes SIGN,\nso it is not a gain change', fontsize=8)
+ax.set_title('the difference changes SIGN — not a gain change', fontsize=7.6)
 tidy(ax); lp(ax, 'F', x=-.17)
 
 ax = fig.add_subplot(GQ[0])
@@ -570,7 +576,11 @@ def _pref(M):
     return np.degrees(np.angle(v)) % 360.0
 
 
-_vmin, _vmax = 0.86, 1.14
+# The map deviates from uniform by only about +/-3%, so the old +/-14% scale
+# left the structure filling a fifth of the colour range and all but invisible.
+# These limits are the 1st and 99th percentiles of the two maps, symmetric
+# about uniform.
+_vmin, _vmax = 0.97, 1.03
 for _k, (_M, _tag) in enumerate(((_CA, 'anchored'), (_CN, 'non-anchored'))):
     ax = fig.add_subplot(GC_[_k])
     _im = ax.pcolormesh(_deg, _cf, _M.mean(0) * _np_, cmap='magma',
