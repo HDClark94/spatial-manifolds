@@ -431,7 +431,7 @@ g3 = outer[2].subgridspec(1, 6, width_ratios=[1.12, .16, .98, .98, 1.02, .82],
 # H is a stacked-bar summary and does not need the width of a scatter, so it
 # is narrowed and the gap to I widened -- at the old uniform wspace the two
 # read as one block
-g4 = outer[3].subgridspec(1, 3, width_ratios=[.68, 1.05, 1.30], wspace=.60)
+g4 = outer[3].subgridspec(1, 4, width_ratios=[.68, 1.05, 1.30, .95], wspace=.62)
 SHORT = ['grid', 'NGS', 'NS', 'int']   # full names collide at this width
 
 def lmm_contrast(df, dv, a, b):
@@ -827,6 +827,56 @@ print(f'  locked: {100*(P.lockstate!="varies").mean():.1f}% of cells; '
       f'interneuron always:never = {ct.loc["putative interneuron","always"]}:'
       f'{ct.loc["putative interneuron","never"]}, '
       f'non-spatial = {ct.loc["non-spatial","always"]}:{ct.loc["non-spatial","never"]}')
+
+# ── K: does the lock-on bias survive removing the speed cells? ───────────────
+# J explains the interneuron lock-on as a speed artefact: a speed-tuned profile
+# repeats on every trial and is therefore called anchored on every trial. If
+# that is the whole story, then among cells with no open-field speed tuning the
+# lock-on bias should disappear. It does. Restricted to MEC in the sessions
+# where the population actually switches, speed-modulated cells lock on at
+# twice the rate they lock off, while cells that are not speed-modulated lock
+# on and off in equal numbers -- in fact slightly more off than on. So the
+# asymmetry in H and I is carried by the speed cells, and there is no residual
+# population of MEC cells that holds the anchored mode for some other reason.
+from scipy.stats import binomtest, fisher_exact
+_sw = U[U.sess_switches & U.brain_region.astype(str).str.startswith('ENTm')]
+_sw = _sw.dropna(subset=['speed_p'])
+_lk = _sw[_sw.label_sd == 0]
+_cnt = {}
+for _lab, _m in (('speed-\nmodulated', _sw.speed_p < .05),
+                 ('not speed-\nmodulated', _sw.speed_p >= .05)):
+    _on = int(((_lk.cell_frac_anch == 1) & _m.reindex(_lk.index, fill_value=False)).sum())
+    _off = int(((_lk.cell_frac_anch == 0) & _m.reindex(_lk.index, fill_value=False)).sum())
+    _cnt[_lab] = (_on, _off)
+ax = fig.add_subplot(g4[3])
+_x = np.arange(len(_cnt))
+_w = .38
+for _i, (_lab, (_on, _off)) in enumerate(_cnt.items()):
+    ax.bar(_i - _w / 2, _on, _w, color=ANCH_COLOR, lw=0)
+    ax.bar(_i + _w / 2, _off, _w, color=NONANCH_COLOR, lw=0)
+    _p = binomtest(_on, _on + _off, .5).pvalue
+    ax.text(_i, max(_on, _off) * 1.06,
+            f'{_on / max(_off, 1):.2f}:1\n' + (f'p = {_p:.0e}' if _p < .001 else f'p = {_p:.3f}'),
+            ha='center', va='bottom', fontsize=6.2,
+            color='#a33' if _p < .05 else '0.4')
+_a, _b = _cnt['speed-\nmodulated'], _cnt['not speed-\nmodulated']
+_orr, _pf = fisher_exact([[_a[0], _a[1]], [_b[0], _b[1]]])
+ax.set_xticks(_x); ax.set_xticklabels(list(_cnt), fontsize=7)
+ax.set_ylabel('MEC cells locked\nin one mode', fontsize=8)
+ax.set_ylim(0, max(max(v) for v in _cnt.values()) * 1.22)
+# legend below the axis: the bars fill the panel and the ratio annotations sit
+# in the only headroom there is
+ax.legend(handles=[Patch(facecolor=ANCH_COLOR, label='locked anchored'),
+                   Patch(facecolor=NONANCH_COLOR, label='locked non-anchored')],
+          fontsize=6, frameon=False, loc='upper center', ncol=1,
+          bbox_to_anchor=(.5, -.20), handlelength=1.2, handletextpad=.5)
+_lp(ax, 'K')
+ax.set_title(f'the lock-on bias is the speed cells\n'
+             f'(interaction OR {_orr:.2f}, p = {_pf:.0e})',
+             fontsize=7.5, loc='left')
+ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+print(f'  K: speed-modulated {_a[0]}on/{_a[1]}off, not {_b[0]}on/{_b[1]}off, '
+      f'OR {_orr:.2f} p {_pf:.2g}')
 
 out = (f'{FIG}/fig2_single_units.pdf' if CMAP == 'viridis'
        else f'{FIG}/fig2_single_units_{CMAP}.pdf')

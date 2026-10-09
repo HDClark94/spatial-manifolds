@@ -292,7 +292,25 @@ SUPPLEMENTS = [
      'read off a rate map divides by occupancy and occupancy is set by running speed. Nothing that '
      'reverses sign under a change of denominator should be reported as a rate effect, and the '
      'conclusion is that anchoring concerns where cells fire rather than how much.'),
-    ('Figure S5', 'fig3_supp_laminar.pdf',
+    ('Figure S5', 'fig2_supp_vis_anchored.pdf',
+     'Visual-cortex cells that stay track-anchored while MEC switches',
+     'Figure 2K shows that the lock-on bias among MEC cells is carried entirely by '
+     'speed-modulated cells. Repeating that count in every recorded structure turns up one '
+     'exception: in visual cortex, cells with no open-field speed tuning lock into the anchored '
+     'mode 98 against 13, in 15 of the 19 sessions that have visual cells. (A) Three such cells, '
+     'one per session, holding their field across transitions that reorganise the entorhinal '
+     'population; dashed lines mark the state transitions. (B) All 98 cells, each normalised and '
+     'sorted by peak position. (C) Where those peaks fall. The distribution is far from uniform '
+     '(p = 9 x 10^-10), concentrated in the first 50 cm and the last 25 cm of the track rather '
+     'than spread along it. (D) The test that bears on what they follow. A visual beacon marks '
+     'the reward zone on cued trials and is absent on uncued ones, so the scene differs between '
+     'trial types at one known position; firing in the reward zone differs accordingly '
+     '(p = 0.025). (E) The equivalent entorhinal cells, for contrast. (F) The counts by '
+     'structure. Taken together, the concentration at the ends of the track and the sensitivity '
+     'to the beacon indicate that these cells follow features of the visual scene, which repeats '
+     'on every lap, rather than carrying an anchoring signal of their own. Screen luminance was '
+     'not recorded, so a direct test against light level is not possible here.'),
+    ('Figure S6', 'fig3_supp_laminar.pdf',
      'Recording sites are biased toward superficial layers medially, and what that does to '
      'the mediolateral results',
      'MEC is curved and a four-shank probe is flat, so shanks at different mediolateral '
@@ -310,34 +328,34 @@ SUPPLEMENTS = [
      'sampled to test alone (6-7 sessions), so those columns are underpowered rather than '
      'null. Stratification is not mediation: it shows the mediolateral effect is not carried '
      'by layer differences within a stratum, not that layer plays no part.'),
-    ('Figure S6', 'fig6_region_examples.pdf',
+    ('Figure S7', 'fig6_region_examples.pdf',
      'The same state, described separately by each structure',
      'Two sessions bracketing the range among those recording all three structures, read left to '
      'right as entorhinal, subicular and visual cortex. Everything within a structure is built '
      'from that structure\'s own cells - the raster ordered by its own PC1 loading, the '
      'component signed to its own anchored fraction - so agreement between the groups is '
      'agreement between independent descriptions rather than a consequence of a shared frame.'),
-    ('Figure S7', 'fig6_supp_region_examples.pdf',
+    ('Figure S8', 'fig6_supp_region_examples.pdf',
      'The state outside MEC, where MEC does not dominate the sample',
      'Sessions chosen for their sampling rather than their result: visual-rich and '
      'subicular-rich sessions, and the two with enough cerebellar cells to build an axis. '
      'Cerebellum carries a matching state in both, having been included as a distant negative '
      'control that it turned out not to be. One visual session runs the other way, and is shown '
      'for that reason.'),
-    ('Figure S8', 'fig6_supp_dimensionality.pdf',
+    ('Figure S9', 'fig6_supp_dimensionality.pdf',
      'One axis is an adequate description of the state',
      'Out-of-sample variance explained, with the axis built from one half of a region\'s cells '
      'and scored on the other. (A) Neuron-dropping curve per region against the circular-shift '
      'null, showing the cell-count dependence rather than hiding it behind one matched number. '
      '(B) By component at matched cell count: the first carries roughly fifty times the '
      'generalising structure of the second, so the label matrix is effectively one-dimensional.'),
-    ('Figure S9', 'fig7_supp_band_examples.pdf',
+    ('Figure S10', 'fig7_supp_band_examples.pdf',
      'Band power tracking the population state in individual sessions',
      'Four sessions as the population axis, the log-spaced spectrogram and the three band traces '
      'on a shared trial axis. A-C show the population pattern; D is drawn in red as a '
      'counterexample, a session with clear transitions whose bands do not follow them, included '
      'because the effect is 16 of 26 sessions rather than all of them.'),
-    ('Figure S10', 'fig7_supp_comodulogram.pdf',
+    ('Figure S11', 'fig7_supp_comodulogram.pdf',
      'Where in the theta cycle each frequency peaks, and how it moves with the state',
      'The band analysis in Figure 7 fixes two gamma bands in advance and asks how strongly each '
      'is nested in theta; the modulation index discards phase, so it cannot ask where in the '
