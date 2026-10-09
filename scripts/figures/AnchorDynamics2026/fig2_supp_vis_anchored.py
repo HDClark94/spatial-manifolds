@@ -54,7 +54,9 @@ from matplotlib.colors import BoundaryNorm, ListedColormap
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 import pynapple as nap
 import seaborn as sns
+from scipy.cluster.hierarchy import dendrogram, fcluster, linkage
 from scipy.ndimage import median_filter
+from scipy.spatial.distance import pdist
 from scipy.stats import kstest, wilcoxon
 from spatial_manifolds.anchoring import (ANCH_COLOR, NONANCH_COLOR,
                                          load_session_labels, smooth_nanaware)
@@ -71,6 +73,7 @@ SIGMA = 2.0
 RZ = (90., 110.)          # reward zone
 CMAP = 'viridis'          # rate maps are viridis throughout the paper
 MIN_BLOCK_FRAC = .05      # a 'major' block is >=5% of the session's trials
+N_CLUST = 4               # clusters cut from the profile dendrogram
 # Two mice. M21D19 is the clean case -- three transitions, strong PC1 -- and
 # M27D23 is the demanding one: 21 transitions over 393 trials, so a visual
 # field that survives it is surviving the entorhinal population reorganising
@@ -262,13 +265,14 @@ if __name__ == '__main__':
     _rv = np.array([_corr(p_, _pup_i) for p_ in PV])
     _rm = np.array([_corr(p_, _pup_i) for p_ in PM])
 
-    fig = plt.figure(figsize=(10.6, 8.8))
-    outer = fig.add_gridspec(3, 1, height_ratios=[1.45, 1.0, 1.0], hspace=.62,
-                             left=.065, right=.975, top=.965, bottom=.065)
+    fig = plt.figure(figsize=(10.6, 11.4))
+    outer = fig.add_gridspec(4, 1, height_ratios=[1.35, 1.15, 1.0, 1.0],
+                             hspace=.60, left=.065, right=.975, top=.97,
+                             bottom=.045)
     gex = outer[0].subgridspec(1, 2, wspace=.30)
-    gmid = outer[1].subgridspec(1, 4, width_ratios=[.86, .86, .92, 1.20],
-                                wspace=.46)
-    gbot = outer[2].subgridspec(1, 3, width_ratios=[1.12, .88, .78], wspace=.66)
+    gclu = outer[1].subgridspec(1, 2, wspace=.34)
+    gmid = outer[2].subgridspec(1, 3, width_ratios=[.90, 1.25, 1.05], wspace=.52)
+    gbot = outer[3].subgridspec(1, 2, width_ratios=[1.0, .85], wspace=.42)
 
     # ---- A, B: two sessions, each with its MEC state beside its VIS cells ----
     for si, (mo, dy) in enumerate(EX_SESSIONS):
@@ -373,30 +377,105 @@ if __name__ == '__main__':
                             linespacing=1.1)
             cb.ax.tick_params(labelsize=5.4); cb.outline.set_visible(False)
 
-    # ---- C, D: the two populations on the same plot ------------------------
-    # The entorhinal cells are shown the same way beside them, because the
-    # comparison that matters is whether the visual concentration at the ends
-    # of the track is peculiar to visual cortex or is simply what any
-    # persistently anchored cell does here.
-    for _k, (_P, _lab, _nm) in enumerate(((PV, 'VIS cell (sorted)', 'VIS'),
-                                          (PM, 'MEC cell (sorted)', 'MEC'))):
-        ax = fig.add_subplot(gmid[_k]); _lp(ax, 'CD'[_k], dx=-.26)
-        o = np.argsort(np.argmax(_P, axis=1))
-        ax.imshow(_P[o], aspect='auto', cmap=CMAP, interpolation='nearest',
-                  extent=[0, TL, len(_P) - .5, -.5])
+    # ---- C, D: each population clustered on its profile shape ---------------
+    # Sorting by peak position imposes a diagonal whether or not the population
+    # has structure. Clustering on profile SHAPE lets the groups declare
+    # themselves: the dendrogram shows how separable they are, and each
+    # cluster's mean gets its own axes on the right so a flat cluster reads as
+    # flat instead of being stretched to fill a band.
+    _cpal = ['#c0553a', '#d4a017', '#2f8f7a', '#2b4a7a', '#b5485c']
+    for _k, (_P, _nm) in enumerate(((PV, 'VIS'), (PM, 'MEC'))):
+        gg = gclu[_k].subgridspec(1, 3, width_ratios=[.30, 1.0, .60],
+                                  wspace=.10)
+        # correlation distance: cells with the same field shape at different
+        # rates should group together, and the profiles are normalised per cell
+        Zl = linkage(pdist(_P, metric='correlation'), method='average')
+        lab_ = fcluster(Zl, N_CLUST, criterion='maxclust')
+        n_ = len(_P)
+
+        # colour each link by the cluster of its descendants, grey above the
+        # cut -- done explicitly rather than via color_threshold so the branch
+        # colours and the cluster means are guaranteed to be the same mapping
+        _lc = {}
+        for _i, (_a, _b, _d, _c) in enumerate(Zl):
+            _a, _b = int(_a), int(_b)
+            _ca = lab_[_a] if _a < n_ else _lc.get(_a)
+            _cb = lab_[_b] if _b < n_ else _lc.get(_b)
+            _lc[n_ + _i] = _ca if (_ca is not None and _ca == _cb) else None
+
+        axd = fig.add_subplot(gg[0])
+        dn = dendrogram(Zl, orientation='left', ax=axd, no_labels=True,
+                        link_color_func=lambda i: '0.45')
+        order = dn['leaves']
+        axd.invert_yaxis()           # leaf order now reads top-down
+        ordered = lab_[order]
+        # map cluster id -> palette entry by where it first appears, top-down,
+        # so the top block is cluster 1
+        seen, cmap_ = [], {}
+        for c_ in ordered:
+            if c_ not in seen:
+                seen.append(c_); cmap_[c_] = _cpal[(len(seen) - 1) % len(_cpal)]
+        for _coll, _link in zip(axd.collections, [None]):
+            pass
+        # recolour the drawn links
+        axd.clear()
+        dn = dendrogram(Zl, orientation='left', ax=axd, no_labels=True,
+                        link_color_func=lambda i: cmap_.get(_lc.get(i), '0.45'))
+        axd.invert_yaxis()
+        axd.set_xticks([]); axd.set_yticks([])
+        axd.set_ylabel('Cells', fontsize=8, labelpad=2)
+        for sp in axd.spines.values():
+            sp.set_visible(False)
+        _lp(axd, 'CD'[_k], dx=-.22, dy=1.0)
+
+        axh = fig.add_subplot(gg[1])
+        axh.imshow(_P[order], aspect='auto', cmap=CMAP, origin='upper',
+                   interpolation='nearest', extent=[0, TL, 10 * n_, 0])
         for b in RZ:
-            ax.axvline(b, color='w', lw=1.0, ls='--')
-        ax.set_xlabel('Position (cm)', fontsize=8)
-        ax.set_ylabel(_lab, fontsize=8)
-        ax.set_title(f'{_nm}: all {len(_P)} cells,\nnormalised', fontsize=7.5,
-                     loc='left')
-        ax.tick_params(labelsize=7)
+            axh.axvline(b, color='w', lw=1.0, ls='--')
+        bounds = np.where(np.diff(ordered) != 0)[0] + 1
+        for b_ in bounds:
+            axh.axhline(10 * b_, color='w', lw=1.1)
+        axh.set_ylim(10 * n_, 0)
+        axh.set_yticks([5, 10 * n_ - 5]); axh.set_yticklabels(['1', str(n_)],
+                                                              fontsize=6.5)
+        axh.set_xlabel('Position (cm)', fontsize=8)
+        axh.tick_params(labelsize=7)
+        axh.set_title(f'{_nm}: {n_} cells, clustered on profile shape',
+                      fontsize=7.5, loc='left')
+
+        # one axes per cluster, stacked, each with its own mean +/- SEM
+        edges = np.r_[0, bounds, n_]
+        gp = gg[2].subgridspec(len(edges) - 1, 1, hspace=.46)
+        for ci, (a_, b_) in enumerate(zip(edges[:-1], edges[1:])):
+            memb = _P[np.array(order)[a_:b_]]
+            mu = memb.mean(0); se = memb.std(0) / np.sqrt(len(memb))
+            c_ = cmap_[ordered[a_]]
+            axc2 = fig.add_subplot(gp[ci])
+            axc2.fill_between(x, mu - se, mu + se, color=c_, alpha=.30, lw=0)
+            axc2.plot(x, mu, color=c_, lw=1.2)
+            axc2.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
+            axc2.set_xlim(0, TL)
+            axc2.text(1.0, 1.01, f'cluster {ci + 1} (n={b_ - a_})', color=c_,
+                      fontsize=5.8, ha='right', va='bottom',
+                      transform=axc2.transAxes, clip_on=False)
+            axc2.set_yticks([]); axc2.tick_params(labelsize=6.2)
+            if ci == len(edges) - 2:
+                axc2.set_xticks([0, 100, 200])
+                axc2.set_xlabel('Position (cm)', fontsize=7.5)
+            else:
+                axc2.set_xticks([])
+            if ci == 0:
+                axc2.set_title('cluster means', fontsize=6.8, loc='left',
+                               pad=10)
+            for sp in ('top', 'right', 'left'):
+                axc2.spines[sp].set_visible(False)
 
     # ---- E: peak positions, cumulative --------------------------------------
     # Cumulative rather than binned: the KS statistic beneath the panel is a
     # distance between these curves and the diagonal, so the plot and the test
     # are then the same object, and no bin width has to be chosen.
-    ax = fig.add_subplot(gmid[2]); _lp(ax, 'E', dx=-.30)
+    ax = fig.add_subplot(gmid[0]); _lp(ax, 'E', dx=-.30)
     pk = x[np.argmax(PV, axis=1)]; pkm = x[np.argmax(PM, axis=1)]
     for v_, c_, lab in ((pk, '#8C6BB1', f'VIS ({len(pk)})'),
                         (pkm, '0.35', f'MEC ({len(pkm)})')):
@@ -437,7 +516,7 @@ if __name__ == '__main__':
         sc = np.nanstd(np.nanmean(r['maps'], 0)) + 1e-12
         return float((np.nanmean(pa[rzm]) - np.nanmean(pb[rzm])) / sc)
     ex = max(V, key=_cue_gain)
-    gd = gmid[3].subgridspec(2, 1, height_ratios=[.50, 1.0], hspace=.12)
+    gd = gmid[1].subgridspec(2, 1, height_ratios=[.50, 1.0], hspace=.12)
     axm = fig.add_subplot(gd[0])
     for tag, c_, lab in (('b', '#c04744', 'cued (beacon)'),
                          ('nb', '#2b6cb0', 'uncued')):
@@ -470,7 +549,7 @@ if __name__ == '__main__':
         sp.set_visible(False)
 
     # ---- F: the luminance proxy ---------------------------------------------
-    ax = fig.add_subplot(gbot[0]); _lp(ax, 'G', dx=-.22)
+    ax = fig.add_subplot(gmid[2]); _lp(ax, 'G', dx=-.26)
     axb = ax.twinx()
     axb.plot(x, _pup_i, color='#b8860b', lw=1.4, zorder=3)
     axb.set_ylabel('z(pupil) — dilated = darker', fontsize=6.8,
@@ -487,7 +566,7 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7); ax.spines[['top']].set_visible(False)
 
     # ---- G: per-cell correlations, as a boxplot -----------------------------
-    ax = fig.add_subplot(gbot[1]); _lp(ax, 'H', dx=-.30)
+    ax = fig.add_subplot(gbot[0]); _lp(ax, 'H', dx=-.22)
     _df = pd.DataFrame({'r': np.r_[_rv[np.isfinite(_rv)], _rm[np.isfinite(_rm)]],
                         'region': (['VIS'] * int(np.isfinite(_rv).sum())
                                    + ['MEC'] * int(np.isfinite(_rm).sum()))})
@@ -510,7 +589,7 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     # ---- H: the counts by structure -----------------------------------------
-    ax = fig.add_subplot(gbot[2]); _lp(ax, 'I', dx=-.32)
+    ax = fig.add_subplot(gbot[1]); _lp(ax, 'I', dx=-.26)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
