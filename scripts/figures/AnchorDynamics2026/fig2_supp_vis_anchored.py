@@ -70,7 +70,13 @@ CACHE = f'{PS}/vis_anchored_maps.npz'
 SIGMA = 2.0
 RZ = (90., 110.)          # reward zone
 CMAP = 'viridis'          # rate maps are viridis throughout the paper
-EX_SESSIONS = [(21, 19), (28, 20)]   # two mice, each with >= 3 qualifying cells
+MIN_BLOCK_FRAC = .05      # a 'major' block is >=5% of the session's trials
+# Two mice. M21D19 is the clean case -- three transitions, strong PC1 -- and
+# M27D23 is the demanding one: 21 transitions over 393 trials, so a visual
+# field that survives it is surviving the entorhinal population reorganising
+# twenty times. M28D20 was used here before and switches only once, which is
+# too weak a test to carry the panel.
+EX_SESSIONS = [(21, 19), (27, 23)]
 
 _g = {}
 for _c in json.load(open(f'{FIG}/lick_raster_by_trial_type.ipynb'))['cells']:
@@ -185,6 +191,26 @@ def mec_state(mo, dy):
     pc1 = np.nan_to_num(np.asarray(z['pc1'], float))
     frac = np.asarray(z['frac_anch'], float)
     st = median_filter((frac > .5).astype(float), size=9, mode='nearest') > .5
+    # MAJOR transitions only. The median filter still leaves brief excursions,
+    # and a session like M27D23 has 21 crossings over 393 trials -- drawn on
+    # every panel they occlude the rate maps they are meant to be read against.
+    # Runs shorter than MIN_BLOCK are absorbed into the preceding state, so the
+    # lines mark the block structure the figure actually refers to.
+    # the threshold is a FRACTION of the session, not a fixed count: 20 trials
+    # is most of a 107-trial session and a flicker in a 393-trial one, so a
+    # fixed value either strips real blocks from the short sessions or leaves
+    # the long ones unreadable (M27D23 keeps 21 crossings at a count of 5)
+    _minblk = max(5, int(round(MIN_BLOCK_FRAC * len(st))))
+    st = st.copy()
+    changed = True
+    while changed:
+        changed = False
+        edges = np.r_[0, np.where(np.diff(st.astype(int)) != 0)[0] + 1, len(st)]
+        for a, b in zip(edges[:-1], edges[1:]):
+            if b - a < _minblk and a > 0:
+                st[a:b] = st[a - 1]
+                changed = True
+                break
     tr = list(np.where(np.diff(st.astype(int)) != 0)[0] + 1)
     return L, pc1, tr, n_var, n_lock, gap
 
@@ -238,7 +264,7 @@ if __name__ == '__main__':
 
     fig = plt.figure(figsize=(10.6, 8.8))
     outer = fig.add_gridspec(3, 1, height_ratios=[1.45, 1.0, 1.0], hspace=.62,
-                             left=.065, right=.975, top=.915, bottom=.065)
+                             left=.065, right=.975, top=.965, bottom=.065)
     gex = outer[0].subgridspec(1, 2, wspace=.30)
     gmid = outer[1].subgridspec(1, 4, width_ratios=[.86, .86, .92, 1.20],
                                 wspace=.46)
@@ -282,7 +308,7 @@ if __name__ == '__main__':
                         xycoords=('data', 'axes fraction'), ha='center',
                         va='bottom', fontsize=5.6, color='0.35')
         for t_ in tr:
-            ax.axhline(t_, color='k', lw=.9, ls='--', zorder=4)
+            ax.axhline(t_, color='k', lw=.8, ls='--', zorder=4)
         ax.set_ylabel('Trial', fontsize=8)
         ax.set_xlabel('MEC cell', fontsize=7.5)
         ax.tick_params(labelsize=6.5)
@@ -332,7 +358,8 @@ if __name__ == '__main__':
                              extent=[0, TL, r['maps'].shape[0] - .5, -.5])
             for t_ in tr:
                 if t_ < r['maps'].shape[0]:
-                    axc.axhline(t_, color='w', lw=.9, ls='--', zorder=4)
+                    axc.axhline(t_, color='w', lw=.8, ls='--', alpha=.85,
+                                zorder=4)
             axc.set_xticks([0, 100, 200]); axc.tick_params(labelsize=6)
             axc.tick_params(labelleft=False)
             if k == 1:
@@ -510,11 +537,5 @@ if __name__ == '__main__':
     ax.legend(fontsize=5.8, frameon=False, loc='upper right')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-    fig.suptitle('Visual-cortex cells that stay track-anchored while MEC switches',
-                 fontsize=9, y=.995)
-    fig.text(.5, .962, 'A, B: the MEC anchoring raster and its PC1 beside three '
-             'visual cells from the same session, on one trial axis. Dashed '
-             'lines are the major state transitions.',
-             fontsize=7, color='0.35', ha='center')
     plt.savefig(OUT, dpi=200, bbox_inches='tight')
     print(f'wrote {OUT}')
