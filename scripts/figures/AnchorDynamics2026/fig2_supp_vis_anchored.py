@@ -411,7 +411,7 @@ if __name__ == '__main__':
     # more panels -- so the census and the variance-explained panel take a row
     # of their own. Dropping the mean-rate strip from A and B paid for it:
     # the example rasters are no shorter than before.
-    outer = fig.add_gridspec(5, 1, height_ratios=[.92, .92, 1.10, .95, .85],
+    outer = fig.add_gridspec(4, 1, height_ratios=[1.0, 1.0, 1.22, .92],
                              hspace=.62, left=.065, right=.975, top=.965,
                              bottom=.050)
     # E sits with C and D: it is the same peak-position information those two
@@ -421,8 +421,7 @@ if __name__ == '__main__':
     # only the row's vertical extent is taken from this: F and G are moved
     # under the C and D heatmaps after those exist, and H and I then fill
     # whatever is left to the right
-    gbot = outer[3].subgridspec(1, 2)
-    grow = outer[4].subgridspec(1, 3, width_ratios=[1.25, 1.0, .55],
+    grow = outer[3].subgridspec(1, 3, width_ratios=[1.25, 1.0, .55],
                                 wspace=.55)
 
     # ---- A, B: one session per row -----------------------------------------
@@ -449,8 +448,10 @@ if __name__ == '__main__':
                        pop=np.asarray(load_session_labels(mo, dy)['frac_anch'],
                                       float) > .5)
                   for c in mec_ids[:3] if c in _mex]
-        # only the lower block carries the colourbar: both use the same scaling
-        # (each map normalised to its own peak) so one bar serves them
+        # Only the lower block DRAWS the colourbar -- both use the same scaling,
+        # each map normalised to its own peak, so one bar serves them -- but
+        # both RESERVE the column. Adding the column to one row only made that
+        # row's maps narrower than the other's, so A and B stopped lining up.
         _last = si == len(EX_SESSIONS) - 1
         # the slice holds a square aspect, so a wide column just pads it with
         # whitespace; the rasters take the width instead. Each population sits
@@ -459,8 +460,7 @@ if __name__ == '__main__':
         # PC1 sits immediately right of the raster, against its locked block,
         # the way Figure 1E has it: the state and the cells it is computed
         # from read as one object instead of being separated by three maps.
-        _wr = ([.62, 1.20, .26, .70, .70, .70, .95, .70, .70, .70]
-               + ([.07] if _last else []))
+        _wr = [.62, 1.20, .26, .70, .70, .70, .95, .70, .70, .70, .07]
         # Two rows sharing one trial axis. The mean-rate traces sit in the top
         # row above their own cells, and every raster -- both populations, PC1
         # and the three visual cells -- sits in the bottom row, so a trial is
@@ -580,7 +580,6 @@ if __name__ == '__main__':
     # cluster's mean gets its own axes on the right so a flat cluster reads as
     # flat instead of being stretched to fill a band.
     _cpal = ['#c0553a', '#d4a017', '#2f8f7a', '#2b4a7a', '#b5485c']
-    _cmeans, _hpos = {}, {}      # reused by F and G in the bottom row
     _sets = ((PV, 'VIS', 'visual cortex, no speed tuning'),
              (PM, 'MEC', 'entorhinal, no speed tuning'),
              (PS_, 'MECSPD', 'entorhinal, speed-modulated'))
@@ -651,15 +650,12 @@ if __name__ == '__main__':
                       fontsize=7.2, loc='left')
 
         # one axes per cluster, stacked, each with its own mean +/- SEM
-        _hpos[_nm] = axh.get_position()
         edges = np.r_[0, bounds, n_]
-        _cm = []
         gp = gg[2].subgridspec(len(edges) - 1, 1, hspace=.46)
         for ci, (a_, b_) in enumerate(zip(edges[:-1], edges[1:])):
             memb = _P[np.array(order)[a_:b_]]
             mu = memb.mean(0); se = memb.std(0) / np.sqrt(len(memb))
             c_ = cmap_[ordered[a_]]
-            _cm.append((mu, se, c_, np.array(order)[a_:b_]))
             axc2 = fig.add_subplot(gp[ci])
             axc2.fill_between(x, mu - se, mu + se, color=c_, alpha=.30, lw=0)
             axc2.plot(x, mu, color=c_, lw=1.2)
@@ -679,7 +675,6 @@ if __name__ == '__main__':
                                pad=10)
             for sp in ('top', 'right', 'left'):
                 axc2.spines[sp].set_visible(False)
-        _cmeans[_nm] = _cm
 
     # The cued/uncued example panel was removed; the population statistic it
     # carried is still computed here and quoted in the caption, since it is one
@@ -711,92 +706,16 @@ if __name__ == '__main__':
         print(f'  {_nm} corr with pupil: mean {np.mean(_f):+.3f} '
               f'median {np.median(_f):+.3f} p = {wilcoxon(_f).pvalue:.3g}')
 
-    # ---- F, G: the cluster means against the luminance proxy ----------------
-    # One panel per population, each set to the x-extent of its own heatmap
-    # above, so the position axis of F lines up with C and of G with D: a
-    # feature in a cluster mean can be read straight down from the rows it
-    # came from. The cumulative peak-position panel that used to open this row
-    # is gone -- these show the same positional structure with the cluster
-    # identities kept, which the pooled distribution threw away.
-    #
-    # The per-cell correlations used to be one panel pooling each region. They
-    # are split by cluster and set beside the curves they belong to instead,
-    # so the question the row asks -- WHICH cells follow the luminance proxy --
-    # is answered against the shapes rather than against a region label.
-    _PUP_C = '0.15'          # not a palette colour: the pupil is the reference
-    _BOXW, _BOXPAD = .058, .072   # clear of the twin's rotated label
-    for _j, (_nm, _ttl, _r) in enumerate(
-            (('VIS', 'visual cortex, no speed tuning', _rv),
-             ('MEC', 'entorhinal, no speed tuning', _rm))):
-        ax = fig.add_subplot(gbot[_j])
-        _p = ax.get_position(); _hp = _hpos[_nm]
-        _bx = [_hp.x0, _p.y0, _hp.width, _p.height]
-        # twinx shares the SubplotSpec, so the twin is laid out by the
-        # gridspec and ignores a set_position on its parent: both have to be
-        # moved, and only once the twin exists
-        axb = ax.twinx()
-        ax.set_position(_bx); axb.set_position(_bx)
-        axb.plot(x, _pup_i, color=_PUP_C, lw=1.7, ls='--', zorder=2)
-        axb.set_ylabel('z(pupil) - dilated = darker', fontsize=6.2,
-                       color=_PUP_C, labelpad=2)
-        axb.tick_params(labelsize=6.2, colors=_PUP_C)
-        axb.spines['right'].set_color(_PUP_C)
-        axb.spines[['top', 'left']].set_visible(False)
-        for mu, se, c_, _ix in _cmeans[_nm]:
-            ax.fill_between(x, mu - se, mu + se, color=c_, alpha=.25,
-                            linewidth=0, edgecolor='none')
-            ax.plot(x, mu, color=c_, lw=1.3)
-        ax.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
-        ax.set_xlim(0, TL); ax.set_xticks([0, 50, 100, 150, 200])
-        ax.set_xlabel('Position (cm)', fontsize=8)
-        ax.set_ylabel('cluster mean (normalised)', fontsize=8)
-        _w = wilcoxon(_r[np.isfinite(_r)])
-        ax.set_title(f'{_ttl}\nmedian r = {np.nanmedian(_r):+.2f} with the '
-                     f'pupil (p = {_w.pvalue:.1g})', fontsize=6.8, loc='left')
-        ax.tick_params(labelsize=7); ax.spines[['top']].set_visible(False)
-        _lp(ax, 'FG'[_j], dx=-.30)
-
-        # one box per cluster, in the cluster's own colour, immediately right
-        # of the curves
-        axq = fig.add_axes([_hp.x1 + _BOXPAD, _p.y0, _BOXW, _p.height])
-        _rows, _pal = [], {}
-        for _ci, (_mu, _se, _c, _ix) in enumerate(_cmeans[_nm]):
-            _v = _r[_ix]; _v = _v[np.isfinite(_v)]
-            _lab = str(_ci + 1)
-            _pal[_lab] = _c
-            _rows += [{'cluster': _lab, 'r': float(q)} for q in _v]
-        _dq = pd.DataFrame(_rows)
-        sns.boxplot(data=_dq, x='cluster', y='r', hue='cluster', legend=False,
-                    palette=_pal, width=.72, fliersize=0, linewidth=.8, ax=axq)
-        axq.axhline(0, color='0.6', lw=.8, ls=':')
-        # a one-cell cluster has no spread to test, so only clusters with
-        # enough cells get a p-value
-        for _ci, (_mu, _se, _c, _ix) in enumerate(_cmeans[_nm]):
-            _v = _r[_ix]; _v = _v[np.isfinite(_v)]
-            _t = (f'{wilcoxon(_v).pvalue:.2g}' if len(_v) >= 6 else
-                  f'n={len(_v)}')
-            print(f'  {_nm} cluster {_ci + 1}: n={len(_v)} '
-                  f'median r = {np.median(_v):+.2f}')
-            axq.text(_ci, 1.01, _t, ha='center', va='bottom', fontsize=5.4,
-                     color='0.3', rotation=90,
-                     transform=axq.get_xaxis_transform())
-        axq.set_ylim(-1.05, 1.05)
-        axq.set_xlabel('cluster', fontsize=7.5, labelpad=1)
-        # the sign goes in the label rather than a title: the p-values sit
-        # above the boxes and a title there would land on top of them
-        axq.set_ylabel('corr. with pupil  (+ = darker)', fontsize=7.0,
-                       labelpad=1)
-        axq.tick_params(labelsize=6.5)
-        axq.spines[['top', 'right']].set_visible(False)
-        if _j:
-            _hbox = axq.get_position()      # H starts right of G's boxes
-
-    # ---- H: how much of the profile IS speed and luminance -------------------
-    # F and G ask what these cells correlate WITH. The question the figure is
-    # for is what is left once the two obvious confounds are taken out, and a
-    # correlation cannot answer it: position and speed are confounded by the
-    # task, and the luminance proxy is itself a function of position. So each
-    # cell's profile is regressed on both and the explained variance reported.
+    # ---- F: how much of the profile IS speed and luminance -------------------
+    # The panels that used to sit here plotted each cell's CORRELATION with the
+    # luminance proxy, cluster by cluster. They were dropped: the proxy is a
+    # fixed function of position, so that correlation is close to a restatement
+    # of where a cell fires -- every large cluster in both regions scored
+    # strongly, with the sign set by peak position -- and the cluster means
+    # beside them already appear inside C, D and E. What the figure needs is
+    # not what these cells correlate with but what is LEFT once the two
+    # confounds are taken out, which a correlation cannot say. Each cell's
+    # profile is regressed on both and the explained variance reported.
     _SPD = speed_profile(sorted({(r['mouse'], r['day'])
                                  for r in V + M_ + MS}), len(x))
 
@@ -831,7 +750,7 @@ if __name__ == '__main__':
               f'({(1 - np.median(_c)) * 100:.0f}% of the profile is neither)')
 
     ax = fig.add_subplot(grow[0])
-    _lp(ax, 'H', dx=-.17)
+    _lp(ax, 'F', dx=-.17)
     _gl = ['VIS', 'MEC', 'MECSPD']
     _gx = np.arange(len(_gl))
     for _j, (_k, _c, _lab) in enumerate(((0, '#4a7fb5', 'running speed'),
@@ -861,9 +780,9 @@ if __name__ == '__main__':
     ax.legend(fontsize=5.6, frameon=False, loc='upper left')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-    # ---- I: the counts by structure -----------------------------------------
+    # ---- G: the counts by structure -----------------------------------------
     ax = fig.add_subplot(grow[1])
-    _lp(ax, 'I', dx=-.20)
+    _lp(ax, 'G', dx=-.20)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
