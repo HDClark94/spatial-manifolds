@@ -372,7 +372,7 @@ if __name__ == '__main__':
     # probe map and a second population raster, and the two examples are read
     # one after the other rather than against each other anyway.
     fig = plt.figure(figsize=(11.6, 10.4))
-    outer = fig.add_gridspec(4, 1, height_ratios=[1.0, 1.0, 1.22, 1.0],
+    outer = fig.add_gridspec(4, 1, height_ratios=[1.16, 1.16, 1.14, .94],
                              hspace=.62, left=.065, right=.975, top=.965,
                              bottom=.050)
     # E sits with C and D: it is the same peak-position information those two
@@ -415,13 +415,16 @@ if __name__ == '__main__':
         # whitespace; the rasters take the width instead. Each population sits
         # beside its own examples: raster, three cells, then the next
         # structure.
-        _wr = ([.62, 1.20, .70, .70, .70, .26, .95, .70, .70, .70]
+        # PC1 sits immediately right of the raster, against its locked block,
+        # the way Figure 1E has it: the state and the cells it is computed
+        # from read as one object instead of being separated by three maps.
+        _wr = ([.62, 1.20, .26, .70, .70, .70, .95, .70, .70, .70]
                + ([.07] if _last else []))
         # Two rows sharing one trial axis. The mean-rate traces sit in the top
         # row above their own cells, and every raster -- both populations, PC1
         # and the three visual cells -- sits in the bottom row, so a trial is
         # at the same height in all of them.
-        gg = outer[si].subgridspec(2, len(_wr), height_ratios=[.34, 1.0],
+        gg = outer[si].subgridspec(2, len(_wr), height_ratios=[.26, 1.0],
                                    width_ratios=_wr, hspace=.10, wspace=.16)
 
         # the probe map, spanning both rows
@@ -469,7 +472,7 @@ if __name__ == '__main__':
         ax = _ax0
 
         # PC1, on the same trial axis, between the two populations
-        axp = fig.add_subplot(gg[1, 5], sharey=ax)
+        axp = fig.add_subplot(gg[1, 2], sharey=ax)
         y_ = np.arange(len(pc1))
         axp.fill_betweenx(y_, 0, pc1, where=pc1 >= 0, color=ANCH_COLOR, lw=0,
                           interpolate=True)
@@ -484,7 +487,7 @@ if __name__ == '__main__':
             sp.set_visible(False)
 
         _im = None
-        for _gi, (_grp, _c0, _rn) in enumerate(((mcells, 2, 'MEC'),
+        for _gi, (_grp, _c0, _rn) in enumerate(((mcells, 3, 'MEC'),
                                                 (cells, 7, 'VIS'))):
             for k, r in enumerate(_grp):
                 # mean rate against position IN EACH STATE, above its own cell
