@@ -6,8 +6,11 @@ because the modulation index discards phase. This does, as a continuous
 function of frequency, for both anchoring states.
 
     A, B  the phase-frequency map for each state, over 28 sessions
-    C     their difference, which is where the state effect lives
+    C     their difference, which is where the state effect would live
     D     the same information reduced to preferred phase against frequency
+    E-G   the same question against DEPTH: theta-triggered LFP and CSD down
+          one shank, both states overlaid, for three example sessions
+    H     the laminar phase gradient over 27 sessions, by layer
 
 WHAT IT SHOWS. The relationship is a GRADIENT, not a step between two bands:
 preferred phase runs smoothly from about 130 deg of theta at 20-30 Hz to about
@@ -25,6 +28,13 @@ within session the anchored state prefers a phase 6.6 deg earlier in the slow
 band (p = 0.33) and 2.8 deg earlier in the fast band (p = 0.16), and the
 separation does not differ between states (-7.3 deg, p = 0.27). Panel D carries
 these as n.s.
+
+DEPTH IS THE OTHER PLACE A STATE EFFECT COULD HIDE, and it does not. Theta
+advances by about 100 deg across the entorhinal layers -- the laminar signature
+of the travelling wave -- and the gradient is identical in the two states:
+referenced to each session's own layer 2, every layer differs by less than 3
+deg with p >= 0.06 (Wilcoxon, 27 sessions). The theta-triggered averages in
+E-G carry both states on the same axes and they superimpose.
 
 WHY A AND B LOOK IDENTICAL. They nearly are: the two maps share 94% of their
 pixel variance, the maps themselves deviate from uniform by only about 3%, and
@@ -117,9 +127,11 @@ vmin, vmax = 1 - hw, 1 + hw
 print(f'{NS} sessions, {len(f)} frequencies, {NP} phase bins')
 print(f'colour limits {vmin:.3f} - {vmax:.3f}')
 
-fig = plt.figure(figsize=(9.6, 3.1))
-gs = fig.add_gridspec(1, 4, width_ratios=[1, 1, 1, 1.18], wspace=.60,
-                      left=.06, right=.975, top=.80, bottom=.20)
+fig = plt.figure(figsize=(9.6, 6.6))
+_outer = fig.add_gridspec(2, 1, height_ratios=[1, 1], hspace=.46,
+                          left=.06, right=.975, top=.915, bottom=.075)
+gs = _outer[0].subgridspec(1, 4, width_ratios=[1, 1, 1, 1.18], wspace=.60)
+gs2 = _outer[1].subgridspec(1, 4, width_ratios=[1, 1, 1, 1.18], wspace=.60)
 
 for k, (M, tag, col) in enumerate(((mA, 'anchored', ANCH_COLOR),
                                    (mN, 'non-anchored', NONANCH_COLOR))):
@@ -249,9 +261,133 @@ ax.tick_params(labelsize=6.5)
 ax.spines[['top', 'right']].set_visible(False)
 lp(ax, 'D', x=-.26)
 
-fig.suptitle(f'Where in the theta cycle each frequency peaks, and how it moves '
-             f'with the anchoring state ({NS} sessions)',
-             fontsize=8.6, x=.06, ha='left', y=.99)
+# =============================================================================
+# E-H: the same question against DEPTH rather than against frequency
+# =============================================================================
+# Theta in MEC is not in phase along the probe: it advances through the layers,
+# which is the laminar signature of the entorhinal travelling wave. If the
+# anchoring state reorganised the circuit, that gradient is somewhere it could
+# show. Computed by theta_depth_profile.py.
+DZ = 60.0                      # um between channel groups, exactly, every session
+EXAMPLES = ['M21D21', 'M25D23', 'M28D19']
+LAYERS = ['ENTm1', 'ENTm2', 'ENTm3', 'ENTm5', 'ENTm6']
+REF_LAYER = 'ENTm2'            # present in 24 of 27 sessions; see below
+
+zd = np.load(f'{ROOT}/data/lfp/theta_depth_profile.npz', allow_pickle=True)
+SESS = sorted({k.split('__')[0] for k in zd.files})
+tt = (np.arange(zd[f'{SESS[0]}__trig_anch'].shape[1])
+      - zd[f'{SESS[0]}__trig_anch'].shape[1] // 2) / 1000.
+
+
+def csd(M):
+    """Current source density across depth, sinks positive.
+
+    The first and last rows are returned as NaN. A second spatial derivative
+    has no defined value at the ends of the array, and np.gradient's one-sided
+    estimate there is large enough to set the colour limits and drain the
+    interior of the map, which is the part being looked at.
+    """
+    sm = np.apply_along_axis(
+        lambda v: np.convolve(v, np.array([.25, .5, .25]), 'same'), 0, M)
+    C = -np.gradient(np.gradient(sm, DZ, axis=0), DZ, axis=0)
+    C[[0, -1]] = np.nan
+    return C
+
+
+for _k, _s in enumerate(EXAMPLES):
+    ax = fig.add_subplot(gs2[_k])
+    y = zd[f'{_s}__y']; lay = zd[f'{_s}__layer']
+    ta, tn = zd[f'{_s}__trig_anch'], zd[f'{_s}__trig_non']
+    C = csd(ta)
+    # colour limits from the INTERIOR. Theta is several times larger at the
+    # ends of the entorhinal span than in the middle, so limits taken over the
+    # whole map leave the laminar structure the panel is for washed out.
+    lim = np.nanpercentile(np.abs(C[2:-2]), 97)
+    ax.pcolormesh(tt, y, C, cmap='RdBu_r', vmin=-lim, vmax=lim,
+                  shading='nearest', rasterized=True)
+    sc = DZ * 1.1 / max(np.abs(ta).max(), np.abs(tn).max())
+    for _M, _c, _ls in ((tn, '#1d6b62', (0, (2.2, 1.4))), (ta, '#7d2f74', '-')):
+        for i in range(len(y)):
+            ax.plot(tt, y[i] + sc * _M[i], color=_c, lw=.45, ls=_ls,
+                    zorder=3 if _c.startswith('#7d') else 2)
+    # name the layers down the right-hand edge rather than tick every group
+    for L in LAYERS:
+        m = lay == L
+        if m.sum() >= 2:
+            ax.text(.205, y[m].mean(), L.replace('ENTm', 'L'), fontsize=5.2,
+                    color='0.3', va='center', ha='left')
+    ax.set_xlim(-.2, .2); ax.set_ylim(y.max() + DZ, y.min() - DZ)
+    ax.set_xticks([-.2, 0, .2])
+    ax.set_xlabel('time from theta peak (s)', fontsize=7.5)
+    if _k == 0:
+        ax.set_ylabel('depth along probe (\u00b5m)', fontsize=7.5)
+    ax.set_title(f'{_s[:3]} {_s[3:]}', fontsize=7.5, color='0.25')
+    ax.tick_params(labelsize=6.5)
+    lp(ax, 'EFG'[_k])
+
+# ---- H: the laminar phase gradient, every session, both states --------------
+# Phase is referenced to each session's own layer 2 groups. The raw reference
+# is the probe tip, which sits in a different lamina in different penetrations,
+# so averaging about it would average about a moving origin.
+rows = {L: {'a': [], 'n': []} for L in LAYERS}
+for _s in SESS:
+    lay = zd[f'{_s}__layer']
+    if (lay == REF_LAYER).sum() == 0:
+        continue
+    for _tag, _key in (('a', 'phase_anch'), ('n', 'phase_non')):
+        ph = zd[f'{_s}__{_key}']
+        ref = np.angle(np.mean(np.exp(1j * ph[lay == REF_LAYER])))
+        for L in LAYERS:
+            m = lay == L
+            rows[L][_tag].append(
+                np.angle(np.mean(np.exp(1j * (ph[m] - ref)))) if m.sum()
+                else np.nan)
+
+ax = fig.add_subplot(gs2[3])
+xs = np.arange(len(LAYERS))
+PH = {t: np.array([np.array(rows[L][t], float) for L in LAYERS]) for t in 'an'}
+for _t, _c, _lab in (('a', ANCH_COLOR, 'anchored'),
+                     ('n', NONANCH_COLOR, 'non-anchored')):
+    mu = np.array([np.degrees(np.angle(np.nanmean(np.exp(1j * v[np.isfinite(v)]))))
+                   for v in PH[_t]])
+    se = np.array([np.degrees(np.std(v[np.isfinite(v)]) /
+                              np.sqrt(max(np.isfinite(v).sum(), 1)))
+                   for v in PH[_t]])
+    ax.fill_between(xs, mu - se, mu + se, color=_c, alpha=.28, lw=0)
+    ax.plot(xs, mu, color=_c, lw=1.5, marker='o', ms=3, label=_lab)
+print('  laminar theta phase, referenced to each session\'s own ENTm2:')
+for i, L in enumerate(LAYERS):
+    a, n_ = PH['a'][i], PH['n'][i]
+    m = np.isfinite(a) & np.isfinite(n_)
+    d = np.degrees(np.angle(np.exp(1j * (a[m] - n_[m]))))
+    pv = wilcoxon(d).pvalue if m.sum() >= 5 else np.nan
+    print(f'    {L}: n={int(m.sum()):>3}  anchored '
+          f'{np.degrees(np.angle(np.mean(np.exp(1j * a[m])))):+7.1f} deg  '
+          f'non {np.degrees(np.angle(np.mean(np.exp(1j * n_[m])))):+7.1f}  '
+          f'delta {np.degrees(np.angle(np.mean(np.exp(1j * np.radians(d))))):+5.1f}  '
+          f'p = {pv:.3g} ({star(pv)})')
+    ax.text(i, .97, star(pv), fontsize=6.4, color='0.3', ha='center',
+            va='top', transform=ax.get_xaxis_transform())
+ax.axhline(0, color='0.7', lw=.7, ls=':')
+ax.set_xticks(xs)
+ax.set_xticklabels([f"{L.replace('ENTm', 'L')}\n{int(np.isfinite(PH['a'][i]).sum())}"
+                    for i, L in enumerate(LAYERS)], fontsize=6.5,
+                   linespacing=1.3)
+ax.set_xlabel('entorhinal layer, and sessions with it', fontsize=7,
+              labelpad=1)
+ax.set_ylabel('theta phase re layer 2 (deg)', fontsize=7.5)
+ax.set_title('the gradient is there and\ndoes not move', fontsize=8,
+             color='0.25')
+ax.set_ylim(-70, 78)
+ax.legend(fontsize=6, frameon=False, loc='lower left')
+ax.tick_params(labelsize=6.5)
+ax.spines[['top', 'right']].set_visible(False)
+lp(ax, 'H', x=-.26)
+
+fig.suptitle(f'Where in the theta cycle each frequency peaks, and how little it '
+             f'moves with the anchoring state ({NS} sessions; '
+             f'{len(SESS)} with a laminar profile)',
+             fontsize=8.6, x=.06, ha='left', y=.985)
 plt.savefig(OUT, dpi=220, bbox_inches='tight')
 plt.close(fig)
 print(f'wrote {OUT}')

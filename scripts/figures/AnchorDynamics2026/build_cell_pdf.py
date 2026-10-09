@@ -432,7 +432,19 @@ SUPPLEMENTS = [
      'band (p = 0.16), and the separation itself is not state-dependent (-7 degrees, p = 0.27), '
      'all Wilcoxon signed-rank over 28 sessions and marked n.s. on the panel. The gradient is '
      'the result here; the state shift visible in the grand averages does not survive pairing by '
-     'session, which is the test that respects how these data were collected.'),
+     'session, which is the test that respects how these data were collected. (E-G) The same '
+     'question asked against depth rather than frequency, for three example sessions: the '
+     'theta-triggered average LFP down one shank, triggered on the theta peak at the probe '
+     'tip, with its current source density behind it and both states drawn on the same axes '
+     '(anchored solid, non-anchored dashed). Colour limits come from the interior of the span, '
+     'since theta is several times larger at its ends. (H) The laminar phase gradient over the '
+     '27 sessions with a usable profile, referenced to each session\'s own layer 2 because the '
+     'probe tip sits in a different lamina in different penetrations. Theta advances about 100 '
+     'degrees from layer 1 to layer 6, which is the laminar signature of the entorhinal '
+     'travelling wave, and the anchoring state does not move it: every layer differs by under '
+     '3 degrees, all p >= 0.06. Taken with D, neither the frequency axis nor the depth axis of '
+     'theta-gamma organisation is reorganised by the state, which is a constraint on what the '
+     'state can be doing to this circuit rather than a failure to measure it.'),
 ]
 
 REFS_FULL = [
