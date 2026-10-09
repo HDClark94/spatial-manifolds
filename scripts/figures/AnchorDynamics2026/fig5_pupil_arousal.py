@@ -74,6 +74,11 @@ CROPS_PATH = ('/Volumes/INCR-NolanLab/ActiveProjects/Chris/Cohort12/derivatives/
 
 APPARATUS_SCALE = {'camera_and_IR_mouse.pdf': 1.10,
                    'pupilometry.pdf': 1.22}
+# Inches to the right of the box centre. The enlargements above push each
+# drawing past its own box, and A's floor rectangle met B's frame with no gap
+# at all; B has 0.63 in of empty page to its right and A has none to its left,
+# so the clearance is taken from B's side.
+APPARATUS_DX = {'pupilometry.pdf': 0.20}
 
 
 def _place_apparatus(pdf_path, boxes, tightbbox, figsize):
@@ -114,6 +119,7 @@ def _place_apparatus(pdf_path, boxes, tightbbox, figsize):
         sc *= APPARATUS_SCALE.get(name, 1.0)
         w, h = r.width * sc, r.height * sc
         cx, cy = (px0 + px1) / 2, (py0 + py1) / 2
+        cx += APPARATUS_DX.get(name, 0.0) * 72
         page.show_pdf_page(pymupdf.Rect(cx - w / 2, cy - h / 2,
                                         cx + w / 2, cy + h / 2), src, 0)
         src.close()
