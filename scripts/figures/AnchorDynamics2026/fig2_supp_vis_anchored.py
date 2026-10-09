@@ -277,7 +277,7 @@ if __name__ == '__main__':
     # E sits with C and D: it is the same peak-position information those two
     # heatmaps show, summarised, so it belongs beside them rather than opening
     # a row of its own
-    gclu = outer[1].subgridspec(1, 3, wspace=.42)
+    gclu = outer[1].subgridspec(1, 3, wspace=.11)
     gbot = outer[2].subgridspec(1, 4, width_ratios=[.92, 1.05, .82, .78],
                                 wspace=.62)
 
@@ -395,8 +395,11 @@ if __name__ == '__main__':
              (PM, 'MEC', 'entorhinal, no speed tuning'),
              (PS_, 'MECSPD', 'entorhinal, speed-modulated'))
     for _k, (_P, _nm, _desc) in enumerate(_sets):
-        gg = gclu[_k].subgridspec(1, 3, width_ratios=[.30, 1.0, .60],
-                                  wspace=.10)
+        # the inner gaps have to clear the heatmap's tick labels on both
+        # sides: the cell numbers sit left of it over the dendrogram, and its
+        # '200' sits right of it under the cluster means' '0'
+        gg = gclu[_k].subgridspec(1, 3, width_ratios=[.28, 1.0, .58],
+                                  wspace=.20)
         # correlation distance: cells with the same field shape at different
         # rates should group together, and the profiles are normalised per cell
         Zl = linkage(pdist(_P, metric='correlation'), method='average')
