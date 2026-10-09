@@ -72,6 +72,10 @@ CROPS_PATH = ('/Volumes/INCR-NolanLab/ActiveProjects/Chris/Cohort12/derivatives/
               'labels/deeplabcut/all_eye_crops.csv')
 
 
+APPARATUS_SCALE = {'camera_and_IR_mouse.pdf': 1.10,
+                   'pupilometry.pdf': 1.22}
+
+
 def _place_apparatus(pdf_path, boxes, tightbbox, figsize):
     """Draw the vector apparatus PDFs into the axes left empty for them.
 
@@ -99,7 +103,15 @@ def _place_apparatus(pdf_path, boxes, tightbbox, figsize):
         py0 = (tightbbox.y1 - y1) * 72
         py1 = (tightbbox.y1 - y0) * 72
         bw, bh = px1 - px0, py1 - py0
+        # Fitting inside the box leaves whichever dimension is not limiting
+        # empty, and the pupillometry drawing is much wider than its box is
+        # (aspect 1.37 against a taller slot), so a third of its height was
+        # blank. Each drawing gets a modest enlargement past the box; they sit
+        # in empty axes with no ticks or spines, so a little overflow costs
+        # nothing. The pupillometry one is allowed more because it is the one
+        # with the slack.
         sc = min(bw / r.width, bh / r.height)      # keep aspect, centre in box
+        sc *= APPARATUS_SCALE.get(name, 1.0)
         w, h = r.width * sc, r.height * sc
         cx, cy = (px0 + px1) / 2, (py0 + py1) / 2
         page.show_pdf_page(pymupdf.Rect(cx - w / 2, cy - h / 2,

@@ -224,7 +224,14 @@ FIGURES = [
      'against fast gamma change: the two are uncorrelated (rho = -0.08) and the quadrant count is '
      'what the marginals imply, so this is not a demonstrated redistribution. (I) The difference '
      'index per session. (J) The pooled difference profile, with the SEM across sessions, crossing '
-     'zero near 67 Hz in 25 of 26 sessions.'),
+     'zero near 67 Hz in 25 of 26 sessions. (K, L) Where in the theta cycle each frequency reaches '
+     'its amplitude peak, for each state, over 28 sessions. Each frequency row is normalised to '
+     'sum to one, so colour is where a frequency peaks rather than how much power it carries. '
+     '(M) The same information as preferred phase against frequency. The relationship is a '
+     'continuous gradient rather than a step between two bands: preferred phase runs from about '
+     '130 degrees at 20-30 Hz to about 41 degrees at 60-100 Hz, and the whole gradient sits '
+     'later in the cycle in the non-anchored state. The slow-minus-fast separation is itself '
+     'state-dependent, +34 degrees when anchored against +52 when not.'),
     ('Figure 8', 'fig8_model.pdf',
      'A two-loop account of the anchoring state (hypothesis)',
      'A proposed mechanism, placed with Ideas and speculation rather than with the Results. '

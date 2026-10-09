@@ -272,14 +272,15 @@ print(f'  crossover median {np.median(CX):.1f} Hz in {len(CX)}/{NS} sessions')
 # bbox_inches='tight', an aspect of only 1.2:1, so it sat squat on a portrait
 # page with the six population panels squeezed three-to-a-row. Four rows with the
 # population panels two-to-a-row fills the page and roughly doubles their width.
-fig = plt.figure(figsize=(7.0, 10.0))
+fig = plt.figure(figsize=(7.0, 11.3))
 # left/right/top/bottom are pinned near the page edges because the save uses
 # bbox_inches='tight', which discards the figure margins -- so the OUTER gridspec
 # proportions, not figsize, decide the final aspect. With matplotlib's default
 # margins (gridspec spanning ~78% of width and ~77% of height) a nominal 7x10
 # figure trimmed to 6.6x8.4 in, an aspect of 1.28:1, which is why the first
 # attempt at "portrait" barely changed anything.
-OUTER = fig.add_gridspec(4, 1, height_ratios=[2.45, 1.0, 1.0, 1.0], hspace=.46,
+OUTER = fig.add_gridspec(5, 1, height_ratios=[2.45, 1.0, 1.0, 1.0, 1.05],
+                         hspace=.46,
                          left=.10, right=.97, top=.965, bottom=.045)
 
 
@@ -395,24 +396,61 @@ axp.spines['right'].set_color(PAC_C['slow_gamma'])
 GP = OUTER[1].subgridspec(1, 2, wspace=.42, width_ratios=[1.25, 1.0])
 GQ = OUTER[2].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.15])
 GT = OUTER[3].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.0])
+GC_ = OUTER[4].subgridspec(1, 3, wspace=.72, width_ratios=[1.0, 1.0, 1.05])
 
-ax = fig.add_subplot(GP[0])
+# E is split in two because the state effect and the spectrum's own shape live
+# on different scales, and one axis cannot show both. The raw whitened spectrum
+# spans about 1.7 units -- the theta peak, the 1/f tail, the mains line -- while
+# the state difference is about 0.1, so on the top axis the two states are
+# necessarily superimposed. That is worth showing: it is what excludes a gain
+# change, a referencing difference or a missing peak. The lower axis plots the
+# same two states after session normalisation, which removes the shape and
+# leaves the deviations, and there the same 0.1 is a third of the axis. Both
+# panels are the two STATES, not their difference, so neither duplicates J.
+GE2 = GP[0].subgridspec(2, 1, height_ratios=[.46, 1.0], hspace=.14)
+
+axs = fig.add_subplot(GE2[0])
 for st, col, lab in (('non', NONANCH_COLOR, 'non-anchored'),
                      ('anch', ANCH_COLOR, 'anchored')):
     g = R.groupby('freq')[st].agg(['mean', 'sem'])
+    axs.fill_between(g.index, g['mean'] - g['sem'], g['mean'] + g['sem'],
+                     color=col, alpha=.30, linewidth=0)
+    axs.plot(g.index, g['mean'], color=col, lw=1.1, label=lab)
+axs.set_xscale('log'); axs.set_xlim(1.9, 260)
+axs.tick_params(labelbottom=False, labelsize=6.5)
+# both labels kept short: the lower axis is the taller of the two, so its
+# centred label runs the full height of the pair and collided with this one
+axs.set_ylabel('spectrum', fontsize=6.8, labelpad=2)
+axs.set_title(f'the two states, as spectra and as deviations\n'
+              f'({NS} switching sessions)', fontsize=8)
+# the whitened spectrum falls away above ~100 Hz, so the top right of this
+# short axis is the only reliably empty corner in it
+axs.legend(fontsize=5.6, frameon=False, loc='upper right', ncol=1,
+           handlelength=1.1, handletextpad=.4, borderaxespad=.2,
+           labelspacing=.25)
+axs.text(.015, .05, 'same shape — no gain change', transform=axs.transAxes,
+         fontsize=5.6, color='0.45', ha='left', va='bottom')
+tidy(axs); lp(axs, 'E', x=-.17)
+
+ax = fig.add_subplot(GE2[1], sharex=axs)
+for st, col, lab in (('non', NONANCH_COLOR, 'non-anchored'),
+                     ('anch', ANCH_COLOR, 'anchored')):
+    g = W.groupby('freq')[st].agg(['mean', 'sem'])
     ax.fill_between(g.index, g['mean'] - g['sem'], g['mean'] + g['sem'],
                     color=col, alpha=.30, linewidth=0)
-    ax.plot(g.index, g['mean'], color=col, lw=1.2, label=lab)
+    ax.plot(g.index, g['mean'], color=col, lw=1.2)
+ax.axhline(0, color='0.6', lw=.7, ls=':', zorder=0)
 ax.axvspan(6, 10, color='0.88', alpha=.6, linewidth=0, zorder=0)
 ax.axvspan(30, 48, color='0.88', alpha=.6, linewidth=0, zorder=0)
+ax.axvspan(60, 100, color='0.88', alpha=.6, linewidth=0, zorder=0)
 ax.set_xscale('log'); ax.set_xticks([2, 8, 20, 50, 100, 200])
 ax.set_xticklabels(['2', '8', '20', '50', '100', '200'], fontsize=6.5)
 ax.xaxis.set_minor_formatter(plt.NullFormatter())
 ax.set_xlabel('frequency (Hz)', fontsize=7.5)
-ax.set_ylabel('session-normalised\nlog (power $\\times$ freq)', fontsize=7.5)
-ax.set_title(f'the two states, as spectra\n({NS} switching sessions)', fontsize=8)
-ax.legend(fontsize=6, frameon=False, loc='lower left')
-tidy(ax); lp(ax, 'E', x=-.17)
+ax.set_ylabel('deviation (z)', fontsize=7.5, labelpad=2)
+ax.text(.985, .06, 'the bands F quantifies', transform=ax.transAxes,
+        fontsize=5.8, color='0.45', ha='right')
+tidy(ax)
 
 ax = fig.add_subplot(GP[1])
 for j, (nm, lo, hi) in enumerate(PBANDS):
@@ -508,6 +546,65 @@ ax.set_ylabel('anchored $-$ non (z)', fontsize=7.5)
 ax.set_title(f'crossover at a median\n{np.median(CX):.0f} Hz, in {len(CX)}/{NS} '
              'sessions', fontsize=8)
 tidy(ax); lp(ax, 'J', x=-.17)
+
+# ── K-M: where in the theta cycle each frequency peaks ───────────────────────
+# The band analysis above fixes two bands in advance and asks how strongly each
+# is nested. This asks WHERE, as a continuous function of frequency, and the
+# answer is not a step between two bands: preferred phase runs smoothly from
+# ~130 deg at 20-30 Hz down to ~41 deg at 60-100 Hz. The whole gradient sits
+# later in the cycle in the non-anchored state. Each frequency row is
+# normalised to sum to one, so colour is WHERE a frequency peaks, not how much
+# power it carries -- otherwise 1/f would dominate every row.
+_cz = np.load(f'{ROOT}/data/lfp/theta_phase_comodulogram.npz')
+_CA, _CN, _cf = _cz['anch'], _cz['non'], _cz['freqs']
+_np_ = int(_cz['n_phase'])
+_cent = np.linspace(-np.pi, np.pi, _np_ + 1)[:-1] + np.pi / _np_
+_deg = np.degrees(_cent)
+
+
+def _pref(M):
+    # reported on [0, 360) rather than [-180, 180): every value here lies
+    # between about +40 and +180 deg, so the standard branch cut falls right
+    # through the data and made the 20 Hz point jump the full height of the axis
+    v = (M * np.exp(1j * _cent)[None, :]).sum(1)
+    return np.degrees(np.angle(v)) % 360.0
+
+
+_vmin, _vmax = 0.86, 1.14
+for _k, (_M, _tag) in enumerate(((_CA, 'anchored'), (_CN, 'non-anchored'))):
+    ax = fig.add_subplot(GC_[_k])
+    _im = ax.pcolormesh(_deg, _cf, _M.mean(0) * _np_, cmap='magma',
+                        vmin=_vmin, vmax=_vmax, shading='nearest', rasterized=True)
+    ax.set_xticks([-180, -90, 0, 90, 180])
+    ax.set_xlabel('theta phase (deg)', fontsize=7.5)
+    if _k == 0:
+        ax.set_ylabel('frequency (Hz)', fontsize=7.5)
+    else:
+        ax.tick_params(labelleft=False)
+    ax.set_title(_tag, fontsize=8,
+                 color=ANCH_COLOR if _k == 0 else NONANCH_COLOR)
+    ax.tick_params(labelsize=6.5)
+    lp(ax, 'KL'[_k], x=-.17)
+_cb = fig.colorbar(_im, ax=ax, fraction=.042, pad=.03)
+_cb.ax.set_title('amp.\n(rel.)', fontsize=5.5, pad=3, linespacing=1.1)
+_cb.ax.tick_params(labelsize=5.5); _cb.outline.set_visible(False)
+
+ax = fig.add_subplot(GC_[2])
+for _M, _c, _lab in ((_CA, ANCH_COLOR, 'anchored'),
+                     (_CN, NONANCH_COLOR, 'non-anchored')):
+    _per = np.array([_pref(_M[i]) for i in range(_M.shape[0])])
+    _mu = np.degrees(np.angle(np.mean(np.exp(1j * np.radians(_per)), 0))) % 360.
+    _se = np.degrees(np.std(np.radians(_per), 0) / np.sqrt(len(_per)))
+    ax.fill_between(_cf, _mu - _se, _mu + _se, color=_c, alpha=.28, lw=0)
+    ax.plot(_cf, _mu, color=_c, lw=1.4, label=_lab)
+ax.axvspan(30, 48, color='0.88', alpha=.6, lw=0, zorder=0)
+ax.axvspan(60, 100, color='0.88', alpha=.6, lw=0, zorder=0)
+ax.set_xlabel('frequency (Hz)', fontsize=7.5)
+ax.set_ylabel('preferred theta\nphase (deg)', fontsize=7.5)
+ax.set_title('a gradient, not two bands', fontsize=8)
+ax.legend(fontsize=5.8, frameon=False, loc='lower left')
+ax.tick_params(labelsize=6.5)
+tidy(ax); lp(ax, 'M', x=-.22)
 
 fig.savefig(OUT, bbox_inches='tight', dpi=220)
 print(f'\nwrote {OUT}')
