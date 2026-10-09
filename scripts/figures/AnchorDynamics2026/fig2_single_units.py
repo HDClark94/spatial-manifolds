@@ -192,8 +192,15 @@ EXAMPLES = [(25, 24), (28, 23)]
 # to come from pc1_by_region.csv. Without it panel C has no reference, and the
 # reference is not near zero: a cell anchored on most trials correlates with a
 # population that is also anchored on most trials whatever the coordination.
+# `excess` comes from the file that DEFINES it, and is not recomputed here.
+# It is |r| - mean|shifted r|. The obvious-looking r - r_null is a different
+# quantity -- a signed observation against an absolute null -- and the ~28% of
+# cells with negative r then score a large negative excess that drags their
+# class mean below zero. build_per_cell_pc1.py says so explicitly; this figure
+# recomputed it anyway until 2026-10-09, which is why panel D used to disagree
+# with panel E about whether non-grid cells beat chance.
 NUL = pd.read_csv(f'{PS}/pc1_by_region.csv')[
-    ['mouse', 'day', 'cluster_id', 'r_null']]
+    ['mouse', 'day', 'cluster_id', 'r_null', 'r_null_abs', 'excess']]
 U = pd.read_csv(f'{PS}/unit_table.csv').merge(
     NUL, on=['mouse', 'day', 'cluster_id'], how='left')
 M = U[U.in_population & U.r.notna()].copy()
@@ -482,7 +489,6 @@ def lmm_vs0(df, dv):
 
 
 Mb = M[M.identity.isin(ORDER)].copy()
-Mb['excess'] = Mb.r - Mb.r_null          # agreement above this cell's own chance
 
 # C: how the per-cell null is built. One real cell, worked through.
 # Replaces the raw-r boxplot, which showed the same data as D without the
@@ -557,7 +563,6 @@ def null_demo(spec, mo, dy):
 
 
 Mb = M[M.identity.isin(ORDER)].copy()
-Mb['excess'] = Mb.r - Mb.r_null          # agreement above this cell's own chance
 null_demo(g3[0], *EXAMPLES[0])
 
 # D: the same thing as excess over chance, with the test against chance
@@ -575,18 +580,36 @@ for i_, k in enumerate(ORDER):
     ax.annotate(star, (i_, .97), xycoords=('data', 'axes fraction'), ha='center',
                 va='top', fontsize=7, color='0.15')
     pm = Mb[Mb.identity == k].groupby('mouse').excess.mean().dropna()
-    ax.annotate(f'{v.mean():+.3f}\n{int((pm > 0).sum())}/{len(pm)} mice',
+    # every class is above zero now, so all four carry an n/N and the word
+    # 'mice' no longer fits between the columns; it goes in the axis label
+    ax.annotate(f'{v.mean():+.3f}\n{int((pm > 0).sum())}/{len(pm)}',
                 (i_, .02), xycoords=('data', 'axes fraction'), ha='center',
-                fontsize=5.6, color='0.3', linespacing=1.2)
+                va='bottom', fontsize=5.6, color='0.3', linespacing=1.2)
+# open a clear band under the whiskers for the per-class numbers, which are
+# placed in axes fractions and so follow the new limit
+_y0, _y1 = ax.get_ylim()
+ax.set_ylim(_y0 - .26 * (_y1 - _y0), _y1)
 ax.set_xticks(range(4)); ax.set_xticklabels(SHORT, fontsize=6.5)
-ax.set_xlabel('')
-ax.set_ylabel('Excess over chance\n(r − own null)', fontsize=8)
+ax.set_xlabel('mice above zero, below each box', fontsize=6, labelpad=1)
+ax.set_ylabel('Excess over chance\n(|r| − own null)', fontsize=8)
 _lp(ax, 'D')
-ax.set_title('only grid and interneurons\nexceed it', fontsize=7.5, loc='left')
+ax.set_title('every class exceeds chance;\ngrid and interneurons by most',
+             fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 print('  excess over chance, LMM vs 0: ' +
       '  '.join(f'{SHORT[i_]} {Mb[Mb.identity==k].excess.mean():+.3f} '
                 f'(p={P0[k]:.2g})' for i_, k in enumerate(ORDER)))
+for i_, k in enumerate(ORDER):
+    _g = Mb[Mb.identity == k]
+    print(f'    {SHORT[i_]}: |r| {_g.r.abs().mean():.3f} vs chance '
+          f'{_g.r_null_abs.mean():.3f}, '
+          f'{int((_g.groupby("mouse").excess.mean() > 0).sum())}/'
+          f'{_g.mouse.nunique()} mice')
+_pairs = [(a, b) for i_, a in enumerate(ORDER) for b in ORDER[i_ + 1:]]
+_pv = holm([lmm_contrast(Mb, 'excess', a, b)[0] for a, b in _pairs])
+print('  pairwise (Holm): ' + '  '.join(
+    f'{SHORT[ORDER.index(a)]}-{SHORT[ORDER.index(b)]} {q:.2g}'
+    for (a, b), q in zip(_pairs, _pv)))
 
 # E: how many cells individually beat their own null, per mouse
 ax = fig.add_subplot(g3[3])

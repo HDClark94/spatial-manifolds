@@ -25,7 +25,7 @@ in the title, and for the reworded versions.**
 
 **Lead with the identity result, hedge on mechanism.**
 
-5. Grid cells and putative interneurons, but not spatial coding in general, follow a population anchoring state
+5. Grid cells and putative interneurons follow a population anchoring state most strongly
 6. Cell identity, not synaptic partnership, determines which entorhinal neurons share an anchoring state
 
 **Lead with the behavioural consequence.**
@@ -87,12 +87,12 @@ state. The state predicts performance — the hit rate is higher on anchored
 trials, and markedly so on uncued trials, where the animal must path-integrate
 (ADI = +0.094, *p* = 0.012).
 
-**2 — The state is entered by particular cell types, not by spatial coding in general.** *(Figure 2)*
+**2 — The state is entered by every cell type, but most strongly by grid cells and interneurons.** *(Figure 2)*
 Chance here is near +0.15, not zero, because a cell anchored on most trials
 correlates with a population that is also anchored on most trials. Against each
-cell's own circular-shift null, only grid cells (+0.119) and putative
-interneurons (+0.080) exceed chance; non-grid spatial cells sit exactly on their
-null and non-spatial cells below it. Grid cells and interneurons also agree with
+cell's own circular-shift null, every class exceeds chance, grid cells (+0.185)
+and putative interneurons (+0.131) by about twice as much as non-grid spatial
+(+0.081) and non-spatial cells (+0.056). Grid cells and interneurons also agree with
 *each other* (+0.109) at nearly their within-group level, so they form a
 coordinated subnetwork rather than two populations independently tracking one
 signal. Cell identity is taken from the **open field**, never from the session
@@ -186,7 +186,7 @@ Spatial firing in the medial entorhinal cortex (MEC) is not fixed to the externa
 
 Anchoring is a property of the population rather than of single cells. Trial-by-trial labels are correlated across simultaneously recorded cells, and the first principal component of the cell × trial label matrix exceeds a circular-shift null preserving each cell's anchored fraction by roughly twofold. Blocks of tens of trials share a state, and the population crosses between states over about three trials.
 
-The state is not entered by spatial coding in general, but by particular cell types. Because a cell anchored on most trials correlates with a population that is also anchored on most trials, chance lies near +0.15 rather than zero; measured against each cell's own null, only grid cells (+0.119, *p* = 0.002) and putative interneurons (+0.080, *p* = 0.0003) exceed it, while non-grid spatial cells sit exactly on their null (−0.000) and non-spatial cells below it (−0.024). Grid cells and interneurons agree with each other (+0.109) at nearly their within-group level, forming a coordinated subnetwork that is also visible in spike timing, where interneuron→grid is the strongest monosynaptic pathway. The coordination is nonetheless not synaptic: connected pairs share the state no more than unconnected pairs matched for identity and distance.
+The state is entered by every cell type, but unequally. Because a cell anchored on most trials correlates with a population that is also anchored on most trials, chance lies near +0.15 rather than zero; measured against each cell's own null, grid cells exceed it by +0.185 (*p* = 1 × 10⁻¹¹) and putative interneurons by +0.131 (*p* = 3 × 10⁻¹⁶), against +0.081 for non-grid spatial cells and +0.056 for non-spatial ones. Grid cells and interneurons agree with each other (+0.109) at nearly their within-group level, forming a coordinated subnetwork that is also visible in spike timing, where interneuron→grid is the strongest monosynaptic pathway. The coordination is nonetheless not synaptic: connected pairs share the state no more than unconnected pairs matched for identity and distance.
 
 Transitions coincide with a change in attentional engagement, pupil radius falling on entry to the anchored state and rising on exit (−0.41 and +0.49 z, *p* < 10⁻⁶). Performance improves monotonically as the pupil narrows (hit rate 0.83 to 0.39 across pupil deciles, *p* < 10⁻²⁷⁰, unchanged by controlling running speed), so the constricted-pupil anchored state is a focused one rather than a drowsy one.
 
@@ -250,7 +250,7 @@ Our results demonstrate that the MEC does not function as a single coherent netw
 | § | Claim | Figure | Argument step | Status |
 |---|---|---|---|---|
 | 1 | Recordings span the ML extent of MEC in OF + VR; a population anchoring state exists, beats a circular-shift null ~2×, and predicts performance on uncued trials (ADI = +0.094, *p* = 0.012) | Fig 1 | 1 | Built; **cell counts pending** classification v2 |
-| 2 | Against each cell's own null, only grid cells (+0.119) and putative interneurons (+0.080) follow the state; they also follow each other (+0.109), so they form a coordinated subnetwork | Fig 2 | 2 | Built |
+| 2 | Against each cell's own null, every class follows the state, grid cells (+0.185) and putative interneurons (+0.131) about twice as strongly as non-grid spatial (+0.081); they also follow each other (+0.109), so they form a coordinated subnetwork | Fig 2 | 2 | Built |
 | 3 | That subnetwork is medial, within the superficial grid population: ML predicts identity (ρ = −0.078, *p* = 0.025) and following (ρ = −0.109, *p* = 0.034) within session on 27 multi-shank sessions; DV, AP and depth predict neither; layer predicts identity (*p* = 0.002) but not following within session (ρ = +0.028, *p* = 0.154) | Fig 3 | 3 | Built; identity-vs-following not separable at this *n* |
 | 4 | Monosynaptic connections confirm the pairing (`int → grid` strongest, 3.93%, 5.1×, *p* = 0.0005) — **but connected pairs share the state no more than matched unconnected pairs**, so the wiring does not carry it | Fig 4 | 4 | Built; informative nulls except grid–grid (underpowered) |
 | 5 | Pupil radius tracks the state, falling on entry to anchored (−0.41 z) and rising on exit (+0.49 z), *p* < 10⁻⁶; and performance falls monotonically with pupil size across the whole range (0.826 → 0.391 by decile), so the constricted-pupil anchored state is the **focused, better-performing** one rather than a drowsy one | Fig 5 | 5 | Built |
@@ -277,18 +277,20 @@ We recorded from 4-shank Neuropixels 2.0 probes, targeted to maximally sample th
 
 The population anchoring state is an average over cells, so it does not by itself say which cells enter it. **Cell identity is taken entirely from the open field**, never from the virtual-reality session being analysed: grid, non-grid spatial and non-spatial classes come from open-field rate maps, and the speed score used below from open-field running. This is deliberate. Firing on the linear track changes with engagement, motivation and task demand — which is the phenomenon under study — so classifying cells on the same session would let those dynamics define the categories and then rediscover them. Identity assigned in a different environment, on a different day's behaviour, cannot be shaped by the anchoring state it is used to explain. Across 6,455 medial entorhinal cells (61 sessions, 8 mice) each cell's label sequence was correlated with the population axis, recomputed leave-one-out, and compared against its own circular-shift null. **The null is not near zero** — a cell anchored on most trials correlates with a population that is also anchored on most trials — and it is what the comparison must be made against:
 
-| identity | mean *r* | chance | excess | *p* vs chance | mice above chance |
+| identity | mean \|*r*\| | chance | excess | *p* vs chance | mice above chance |
 |---|---|---|---|---|---|
-| grid | 0.276 | 0.157 | **+0.119** | **0.002** | 6/7 |
-| putative interneuron | 0.228 | 0.149 | **+0.080** | **0.0003** | **7/7** |
-| non-grid spatial | 0.147 | 0.147 | −0.000 | 0.33 | 5/8 |
-| non-spatial | 0.118 | 0.141 | −0.024 | 0.59 | 3/8 |
+| grid | 0.342 | 0.157 | **+0.185** | **1 × 10⁻¹¹** | **7/7** |
+| putative interneuron | 0.280 | 0.149 | **+0.131** | **3 × 10⁻¹⁶** | **7/7** |
+| non-grid spatial | 0.228 | 0.147 | **+0.081** | **6 × 10⁻²²** | **8/8** |
+| non-spatial | 0.197 | 0.141 | **+0.056** | **4 × 10⁻¹⁶** | **7/7** |
+
+The excess is \|*r*\| − mean \|shifted *r*\|, both absolute. Mixing the two — a signed observation against an absolute null — is not a chance correction: the ~28% of cells whose *r* is negative then score a large negative excess, and a class mean can be pushed to zero by cells that are strongly, significantly related to the axis. An earlier version of Figure 2D did exactly this, which is why it reported non-grid spatial cells at chance while Figure 2E, built on the permutation *p*, put 24% of them past their own null. Corrected 2026-10-09; the ordering of the classes was unaffected, the categorical claim was not. This is the same error recorded for Figure 6 on 2026-10-02 (see the CORRECTION in Results §6), fixed there and missed here. The conclusion does not depend on which repair is used: scoring the signed correlation against zero, as that correction settled on, gives grid +0.276, interneuron +0.229, non-grid spatial +0.147 and non-spatial +0.118, every class above chance in the same order.
 
 *p* is a mixed model of the excess against zero with random intercepts for mouse and for session within mouse; cell-level rank tests give values four to eight orders of magnitude smaller and are not reported.
 
-Only grid cells and putative interneurons exceed chance; non-grid spatial cells sit exactly on their null and non-spatial cells below it. Grid cells and interneurons are statistically indistinguishable from one another (mixed model with mouse and session random effects, *p* = 0.84) and both exceed the two other classes (*p* ≤ 8 × 10⁻⁷). The state is therefore tracked by grid cells together with local inhibition, rather than by spatial coding in general.
+Every class exceeds chance, and they differ in degree. Grid cells and interneurons are statistically indistinguishable from one another (mixed model with mouse and session random effects, *p* = 0.54) and both exceed the two other classes (*p* ≤ 8 × 10⁻⁶, Holm-corrected), while non-grid spatial cells in turn exceed non-spatial ones (*p* = 2 × 10⁻⁶). The state is therefore tracked most strongly by grid cells together with local inhibition, at roughly twice the level of spatial cells without grid structure — a graded preference, not an exclusive one.
 
-The two measures are reconcilable: 19–24% of non-grid and non-spatial cells individually beat the 5% false-positive rate, so those classes contain genuine followers, but their group average sits at chance — a minority of followers inside a majority at the null.
+The per-cell measure agrees: 43% of grid cells and 37% of interneurons individually beat their own null, against 24% of non-grid spatial and 19% of non-spatial cells, every class far above the 5% false-positive rate.
 
 **Grid cells and interneurons follow each other, not merely the same thing.** That both exceed chance does not establish that they are coordinated: two populations could track a common signal independently. Correlating every pair of cells within session and averaging by identity pair — as excess over an independent circular-shift null, so a pair that is simply anchored most of the time scores nothing for it — gives a 4 × 4 matrix in which grid–interneuron agreement reaches **+0.109** (29 sessions, *p* = 1.4 × 10⁻⁶) against **+0.058** for the other off-diagonal pairs, and is indistinguishable from either within-group value (grid–grid +0.115, interneuron–interneuron +0.115). Grid cells and putative interneurons therefore form a coordinated subnetwork with respect to the anchoring state rather than two populations independently reflecting it. Aligned to a population state transition, all four identities switch together over roughly three trials, and identity does not predict switch timing (*p* = 0.15).
 
@@ -1207,7 +1209,7 @@ The structure is unaffected. Across 9,464 cells the mean correlation with the po
 
 **Anatomical axes.** `coord_SCs_x` is the mediolateral coordinate (stored negative; magnitude 2610–3774 µm, and the axis on which the 3400 µm medial/lateral boundary is defined), `coord_SCs_y` is dorsoventral and `coord_SCs_z` is anterior-posterior. Positions were z-scored within mouse before modelling, since animals differ in probe placement and raw coordinates would let between-animal placement appear as a within-animal gradient. Each axis was tested alone and with cell identity added, since identity is itself anatomically non-uniform.
 
-**Hierarchical statistics.** Cells are nested in sessions in mice, so comparisons over cells treat correlated observations as independent. All identity and anatomy comparisons in this figure are linear mixed models with random intercepts for mouse and for session within mouse, with pairwise contrasts Holm-corrected. The cell-level rank tests were four to eight orders of magnitude smaller, and one conclusion changes: grid cells and putative interneurons differ at *p* = 0.045 over cells and *p* = 0.84 once the hierarchy is modelled.
+**Hierarchical statistics.** Cells are nested in sessions in mice, so comparisons over cells treat correlated observations as independent. All identity and anatomy comparisons in this figure are linear mixed models with random intercepts for mouse and for session within mouse, with pairwise contrasts Holm-corrected. The cell-level rank tests were four to eight orders of magnitude smaller, and one conclusion changes: grid cells and putative interneurons differ over cells but not once the hierarchy is modelled (*p* = 0.54).
 
 ### Putative monosynaptic connections
 

@@ -127,16 +127,22 @@ FIGURES = [
      'crosses between states over about three trials. Anchored trials are more often successful, '
      'and markedly so on uncued trials (Anchoring Dependence Index +0.094, p = 0.012).'),
     ('Figure 2', 'fig2_single_units.pdf',
-     'Grid cells and putative interneurons, but not spatial coding in general, follow the state',
+     'Grid cells and putative interneurons follow the population state most strongly',
      '(A, B) Two example sessions, each as the full MEC anchoring raster with PC1 of the cell x '
      'trial label matrix and example single cells of each identity, including cells locked into '
      'one mode. (C) The null for one cell: its labels circularly shifted 200 times against the '
      'population axis, with the observed value marked. Chance lies near +0.15, not at zero, '
      'because a cell anchored on most trials correlates with a population that is also anchored on '
-     'most trials. (D) Agreement with the population axis by identity, as excess over each cell\'s '
-     'own null: only grid cells (+0.119, p = 0.002) and putative interneurons (+0.080, p = 0.0003) '
-     'exceed chance; non-grid spatial cells sit on their null and non-spatial cells below it. (E) '
-     'The fraction of cells individually beating their own null, per mouse. (F) The same question '
+     'most trials. (D) Agreement with the population axis by identity, as excess of |r| over each '
+     'cell\'s own null. Every class exceeds chance, and they differ in degree: grid cells +0.185 '
+     '(p = 1 x 10^-11, 7 of 7 mice) and putative interneurons +0.131 (p = 3 x 10^-16, 7 of 7), '
+     'against non-grid spatial +0.081 (p = 6 x 10^-22, 8 of 8) and non-spatial +0.056 '
+     '(p = 4 x 10^-16, 7 of 7). Grid and interneuron do not differ from one another (p = 0.54) '
+     'and both exceed the other two (p <= 8 x 10^-6, Holm-corrected), while non-grid spatial '
+     'exceeds non-spatial (p = 2 x 10^-6). (E) The fraction of cells individually beating their '
+     'own null, per mouse, which orders the classes the same way -- 43% of grid cells and 37% of '
+     'interneurons against 24% and 19% -- all far above the 5% false-positive line. (F) The same '
+     'question '
      'in time: all four identities switch together over roughly three trials around a population '
      'transition, and identity does not predict switch timing (p = 0.15). (G) Agreement between '
      'identities as a 4 x 4 matrix over its own null; grid-interneuron reaches +0.109, '
