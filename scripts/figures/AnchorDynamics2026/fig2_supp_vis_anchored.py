@@ -210,6 +210,46 @@ def build_cache():
     return rows
 
 
+EX_CACHE = f'{PS}/vis_anchored_mec_examples.npz'
+
+
+def example_maps(mo, dy, ids):
+    """Trial x position maps for named cells, built exactly as the cache is.
+
+    The cached rows hold only the locked-anchored target cells, and the
+    entorhinal examples are the opposite kind -- cells that DO switch -- so
+    they are built here and kept in their own small npz.
+    """
+    key = f'M{mo}D{dy}'
+    store = dict(np.load(EX_CACHE, allow_pickle=True)) if os.path.exists(
+        EX_CACHE) else {}
+    want = [int(c) for c in ids]
+    if key in store:
+        got = store[key].item()
+        if all(c in got for c in want):
+            return {c: got[c] for c in want}
+    bp, cp = vr_paths(int(mo), int(dy))
+    beh = nap.load_file(bp); clusters = nap.load_file(cp)
+    trials_all = beh['trials'].as_dataframe()
+    _, orig = clip_trials(trials_all, clusters)
+    keep = np.isin(trials_all.number.values.astype(int), orig)
+    have = [c for c in want if c in set(int(x) for x in clusters.index)]
+    tn, trav = beh['trial_number'], beh['travel']
+    dt = trav - (float(np.asarray(tn.values)[0]) - 1) * TL
+    moving = beh['S'].threshold(3.0, method='above').time_support
+    n_all = len(trials_all)
+    tc = nap.compute_1d_tuning_curves(clusters[have], dt, nb_bins=n_all * NBIN,
+                                      minmax=[0, n_all * TL], ep=moving)
+    out = {}
+    for c in have:
+        M = np.asarray(tc[c]).reshape(n_all, NBIN)[keep]
+        out[c] = np.array([smooth_nanaware(r, sigma=SIGMA)
+                           for r in M]).astype(np.float32)
+    store[key] = np.array(out, dtype=object)
+    np.savez_compressed(EX_CACHE, **store)
+    return out
+
+
 def load_rows():
     if os.path.exists(CACHE):
         return list(np.load(CACHE, allow_pickle=True)['rows'])
@@ -242,7 +282,10 @@ def mec_state(mo, dy, prefix='ENTm'):
     # among the ones that do, so they are separated to the right of a gap as in
     # Figure 1: the varying cells in PC1 order, then the locked ones.
     varies = np.nanstd(L, axis=1) > 0
-    Lv = L[varies][np.argsort(load[varies])[::-1]]
+    _idv = np.array([ids[i] for i in rows])[varies]
+    _ord = np.argsort(load[varies])[::-1]
+    ids_var = _idv[_ord]            # cluster ids, left to right in the raster
+    Lv = L[varies][_ord]
     Ll = L[~varies]
     if len(Ll):
         Ll = Ll[np.argsort(np.nanmean(Ll, axis=1))[::-1]]
@@ -273,7 +316,7 @@ def mec_state(mo, dy, prefix='ENTm'):
                 changed = True
                 break
     tr = list(np.where(np.diff(st.astype(int)) != 0)[0] + 1)
-    return L, pc1, tr, n_var, n_lock, gap
+    return L, pc1, tr, n_var, n_lock, gap, ids_var
 
 
 if __name__ == '__main__':
@@ -352,15 +395,28 @@ if __name__ == '__main__':
                        key=consistency, reverse=True)[:3]
         if len(cells) < 3:
             print(f'  ! M{mo}D{dy} has only {len(cells)} cells'); continue
-        L, pc1, tr, n_var, n_lock, gap = mec_state(mo, dy)
-        LV, _, _, v_var, v_lock, v_gap = mec_state(mo, dy, 'VIS')
+        L, pc1, tr, n_var, n_lock, gap, mec_ids = mec_state(mo, dy)
+        LV, _, _, v_var, v_lock, v_gap, _ = mec_state(mo, dy, 'VIS')
         n_tr = cells[0]['maps'].shape[0]
+        # The entorhinal examples are the three cells at the LEFT EDGE of the
+        # raster beside them -- the largest PC1 loadings among the cells that
+        # vary -- so the examples and the population panel are the same object
+        # seen at two resolutions. They are the opposite selection to the
+        # visual cells, which are picked for never switching.
+        _mex = example_maps(mo, dy, mec_ids[:3])
+        mcells = [dict(cluster_id=c, maps=_mex[c],
+                       pop=np.asarray(load_session_labels(mo, dy)['frac_anch'],
+                                      float) > .5)
+                  for c in mec_ids[:3] if c in _mex]
         # only the lower block carries the colourbar: both use the same scaling
         # (each map normalised to its own peak) so one bar serves them
         _last = si == len(EX_SESSIONS) - 1
         # the slice holds a square aspect, so a wide column just pads it with
-        # whitespace; the rasters take the width instead
-        _wr = [.62, 1.35, .28, 1.05, .72, .72, .72] + ([.07] if _last else [])
+        # whitespace; the rasters take the width instead. Each population sits
+        # beside its own examples: raster, three cells, then the next
+        # structure.
+        _wr = ([.62, 1.20, .70, .70, .70, .26, .95, .70, .70, .70]
+               + ([.07] if _last else []))
         # Two rows sharing one trial axis. The mean-rate traces sit in the top
         # row above their own cells, and every raster -- both populations, PC1
         # and the three visual cells -- sits in the bottom row, so a trial is
@@ -385,7 +441,7 @@ if __name__ == '__main__':
         for gi, (_M, _nv, _nl, _gp, _rn) in enumerate(
                 ((L, n_var, n_lock, gap, 'MEC'),
                  (LV, v_var, v_lock, v_gap, 'VIS'))):
-            ax = fig.add_subplot(gg[1, 1 if gi == 0 else 3],
+            ax = fig.add_subplot(gg[1, 1 if gi == 0 else 6],
                                  **({} if _ax0 is None else {'sharey': _ax0}))
             if _ax0 is None:
                 _ax0 = ax
@@ -413,7 +469,7 @@ if __name__ == '__main__':
         ax = _ax0
 
         # PC1, on the same trial axis, between the two populations
-        axp = fig.add_subplot(gg[1, 2], sharey=ax)
+        axp = fig.add_subplot(gg[1, 5], sharey=ax)
         y_ = np.arange(len(pc1))
         axp.fill_betweenx(y_, 0, pc1, where=pc1 >= 0, color=ANCH_COLOR, lw=0,
                           interpolate=True)
@@ -428,38 +484,53 @@ if __name__ == '__main__':
             sp.set_visible(False)
 
         _im = None
-        for k, r in enumerate(cells):
-            # mean rate against position IN EACH STATE, above its own cell
-            axq = fig.add_subplot(gg[0, 4 + k])
-            st_ = median_filter(r['pop'].astype(float), size=9,
-                                mode='nearest') > .5
-            for m_, c_ in ((st_, ANCH_COLOR), (~st_, NONANCH_COLOR)):
-                if m_.sum() >= 5:
-                    axq.plot(x, np.nanmean(r['maps'][m_], 0), color=c_, lw=1.0)
-            axq.set_xlim(0, TL); axq.set_xticks([])
-            axq.tick_params(labelsize=5.5)
-            axq.set_title(f'cl {r["cluster_id"]}', fontsize=6, pad=2)
-            if k == 0:
-                axq.set_ylabel('Hz', fontsize=6)
-            axq.spines[['top', 'right']].set_visible(False)
+        for _gi, (_grp, _c0, _rn) in enumerate(((mcells, 2, 'MEC'),
+                                                (cells, 7, 'VIS'))):
+            for k, r in enumerate(_grp):
+                # mean rate against position IN EACH STATE, above its own cell
+                axq = fig.add_subplot(gg[0, _c0 + k])
+                st_ = median_filter(np.asarray(r['pop']).astype(float), size=9,
+                                    mode='nearest') > .5
+                _pk = 0.
+                for m_, c_ in ((st_, ANCH_COLOR), (~st_, NONANCH_COLOR)):
+                    if m_.sum() >= 5:
+                        _mu = np.nanmean(r['maps'][m_], 0)
+                        axq.plot(x, _mu, color=c_, lw=1.0)
+                        _pk = max(_pk, float(np.nanmax(_mu)))
+                axq.set_xlim(0, TL); axq.set_xticks([]); axq.set_yticks([])
+                # the columns are too narrow for a y axis: its tick labels
+                # render outside the axes and land on the neighbour's panel.
+                # The scale is given as the peak of the drawn means instead --
+                # NOT the peak of the trial-resolved map, which is several
+                # times larger and would flatten every trace.
+                axq.text(1.0, .98, f'{_pk:.0f} Hz', ha='right', va='top',
+                         fontsize=5.2, color='0.35', transform=axq.transAxes)
+                axq.set_ylim(0, max(_pk * 1.30, 1e-6))
+                axq.set_title(f'cl {r["cluster_id"]}', fontsize=6, pad=2,
+                              color=RCOL[_rn])
+                axq.spines[['top', 'right', 'left']].set_visible(False)
 
-            axc = fig.add_subplot(gg[1, 4 + k], sharey=ax)
-            _mx = np.nanmax(r['maps']) or 1.0
-            _im = axc.imshow(r['maps'] / _mx, aspect='auto', cmap=CMAP,
-                             vmin=0, vmax=1, interpolation='nearest',
-                             extent=[0, TL, r['maps'].shape[0] - .5, -.5])
-            for t_ in tr:
-                if t_ < r['maps'].shape[0]:
-                    axc.axhline(t_, color='w', lw=.8, ls='--', alpha=.85,
-                                zorder=4)
-            axc.set_xticks([0, 100, 200]); axc.tick_params(labelsize=6)
-            axc.tick_params(labelleft=False)
-            if k == 1:
-                axc.set_xlabel('Position (cm)', fontsize=7.5)
-            for sp in axc.spines.values():
-                sp.set_visible(False)
+                axc = fig.add_subplot(gg[1, _c0 + k], sharey=ax)
+                _mx = np.nanmax(r['maps']) or 1.0
+                _im = axc.imshow(r['maps'] / _mx, aspect='auto', cmap=CMAP,
+                                 vmin=0, vmax=1, interpolation='nearest',
+                                 extent=[0, TL, r['maps'].shape[0] - .5, -.5])
+                for t_ in tr:
+                    if t_ < r['maps'].shape[0]:
+                        axc.axhline(t_, color='w', lw=.8, ls='--', alpha=.85,
+                                    zorder=4)
+                # the maps are narrow now: only the middle one of each group
+                # carries tick labels, which is enough to read the axis off
+                axc.set_xticks([0, 100, 200])
+                axc.tick_params(labelsize=6, labelleft=False)
+                if k == 1:
+                    axc.set_xlabel('Position (cm)', fontsize=7.5)
+                else:
+                    axc.tick_params(labelbottom=False)
+                for sp in axc.spines.values():
+                    sp.set_visible(False)
         if _last:
-            axcb = fig.add_subplot(gg[1, 7])
+            axcb = fig.add_subplot(gg[1, 10])
             cb = fig.colorbar(_im, cax=axcb)
             cb.ax.set_title('rate\n(/peak)', fontsize=5.4, pad=3,
                             linespacing=1.1)
