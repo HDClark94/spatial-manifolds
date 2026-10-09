@@ -407,23 +407,32 @@ SUPPLEMENTS = [
      'counterexample, a session with clear transitions whose bands do not follow them, included '
      'because the effect is 16 of 26 sessions rather than all of them.'),
     ('Figure S11', 'fig7_supp_comodulogram.pdf',
-     'Where in the theta cycle each frequency peaks, and how it moves with the state',
+     'Where in the theta cycle each frequency peaks, and how little it moves with the state',
      'The band analysis in Figure 7 fixes two gamma bands in advance and asks how strongly each '
      'is nested in theta; the modulation index discards phase, so it cannot ask where in the '
      'cycle they peak. (A, B) The phase-frequency map for each state across 28 sessions. Each '
      'frequency row is normalised to sum to one, so colour is where a frequency peaks rather '
      'than how much power it carries; without that the 1/f background would dominate every row. '
+     'Both states\' preferred-phase ridges are drawn on both maps, solid for anchored and dashed '
+     'for non-anchored, because the two maps share 94% of their pixel variance and are not '
+     'tellable apart side by side; the ridges put the only thing that differs in one place. '
      'The mains band is marked: it does not drive these panels, and is if anything less '
      'modulated than its neighbours (0.0081 against 0.0102), which is what a line uncorrelated '
      'with theta does. (C) Their difference. The state effect is a phase shift rather than a '
      'gain change, so it appears as a dipole -- anchored higher on the earlier flank and lower '
      'on the later one -- strongest where the amplitude itself is, around 50-75 Hz. It is a '
-     'small difference on a noisy map. (D) The same information as preferred phase against '
-     'frequency. The relationship is a continuous gradient rather than a step between two bands: '
-     'preferred phase runs from about 130 degrees at 20-30 Hz to about 41 degrees at 60-100 Hz, '
-     'and the whole gradient sits about 20 degrees later in the cycle in the non-anchored state. '
-     'The slow-minus-fast separation is itself state-dependent, +34 degrees when anchored '
-     'against +52 when not, which a two-band test could not have shown.'),
+     'small difference on a noisy map, and the panel below reports what it amounts to. (D) The '
+     'same information as preferred phase against frequency. The relationship is a continuous '
+     'gradient rather than a step between two bands: preferred phase runs from about 130 degrees '
+     'at 20-30 Hz to about 41 degrees at 60-100 Hz, and that separation is present within each '
+     'state taken alone -- slow minus fast is +34 degrees when anchored (p = 5 x 10^-4, 24 of 28 '
+     'sessions) and +52 when not (p = 1 x 10^-5, 26 of 28), paired within session. The STATE, by '
+     'contrast, moves it very little and not reliably: within session the anchored state prefers '
+     'a phase 7 degrees earlier in the slow band (p = 0.33) and 3 degrees earlier in the fast '
+     'band (p = 0.16), and the separation itself is not state-dependent (-7 degrees, p = 0.27), '
+     'all Wilcoxon signed-rank over 28 sessions and marked n.s. on the panel. The gradient is '
+     'the result here; the state shift visible in the grand averages does not survive pairing by '
+     'session, which is the test that respects how these data were collected.'),
 ]
 
 REFS_FULL = [

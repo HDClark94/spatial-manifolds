@@ -11,10 +11,27 @@ function of frequency, for both anchoring states.
 
 WHAT IT SHOWS. The relationship is a GRADIENT, not a step between two bands:
 preferred phase runs smoothly from about 130 deg of theta at 20-30 Hz to about
-41 deg at 60-100 Hz. The whole gradient sits roughly 20 deg later in the cycle
-in the non-anchored state, and the slow-minus-fast separation is itself
-state-dependent -- +34 deg when anchored against +52 deg when not. None of that
-is visible to a two-band test.
+41 deg at 60-100 Hz. Paired within session, that separation holds in each state
+on its own -- +34 deg when anchored (p = 5e-4, 24/28 sessions) and +52 deg when
+not (p = 1e-5, 26/28). A two-band test cannot show it.
+
+THE STATE MOVES IT VERY LITTLE, AND NOT RELIABLY. An earlier version of this
+docstring claimed the gradient sits 'roughly 20 deg later in the cycle in the
+non-anchored state' and that the slow-minus-fast separation is 'itself
+state-dependent'. Both came from comparing two grand-average curves, which is
+not a test: they are two circular means over the SAME 28 sessions, and the gap
+between them is not the mean of the per-session gaps once phases wrap. Paired
+within session the anchored state prefers a phase 6.6 deg earlier in the slow
+band (p = 0.33) and 2.8 deg earlier in the fast band (p = 0.16), and the
+separation does not differ between states (-7.3 deg, p = 0.27). Panel D carries
+these as n.s.
+
+WHY A AND B LOOK IDENTICAL. They nearly are: the two maps share 94% of their
+pixel variance, the maps themselves deviate from uniform by only about 3%, and
+the state difference is about a quarter of that again. No eye differences two
+images at that ratio, which is what panel C is for -- and both states'
+preferred-phase ridges are now drawn on BOTH maps so the comparison does not
+depend on seeing it in the colour.
 
 EACH FREQUENCY ROW IS NORMALISED TO SUM TO ONE, so colour is where a frequency
 peaks and not how much power it carries. Without that the 1/f background would
@@ -38,6 +55,7 @@ import os
 
 import matplotlib
 import numpy as np
+from scipy.stats import wilcoxon
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -77,6 +95,20 @@ def pref(M):
     return np.degrees(np.angle((M * np.exp(1j * cent)[None, :]).sum(1))) % 360.
 
 
+def ridge(M):
+    """Preferred phase per frequency on the panels' own [-180, 180) axis.
+
+    Broken with NaN wherever consecutive frequencies jump more than half a
+    cycle, so a wrap at the branch cut does not draw a line straight across
+    the map.
+    """
+    p_ = (pref(M) + 180.) % 360. - 180.
+    out = p_.astype(float).copy()
+    brk = np.abs(np.diff(p_)) > 180.
+    out[1:][brk] = np.nan
+    return out
+
+
 mA, mN = A.mean(0) * NP, N.mean(0) * NP
 both = np.concatenate([mA, mN])
 vmin, vmax = np.percentile(both, 1), np.percentile(both, 99)
@@ -94,6 +126,19 @@ for k, (M, tag, col) in enumerate(((mA, 'anchored', ANCH_COLOR),
     ax = fig.add_subplot(gs[k])
     im = ax.pcolormesh(deg, f, M, cmap='magma', vmin=vmin, vmax=vmax,
                        shading='nearest', rasterized=True)
+    # BOTH ridges on BOTH maps. The two states share 94% of their pixel
+    # variance, so side by side they are indistinguishable by eye; drawing the
+    # other state's preferred phase on top of each map puts the difference --
+    # the only thing that differs -- in one place where it can be seen.
+    for _M2, _c2, _ls, _lab in ((mA, '#f2c3ec', '-', 'anchored'),
+                                (mN, '#9ff0e4', (0, (2.2, 1.4)),
+                                 'non-anchored')):
+        ax.plot(ridge(_M2), f, color=_c2, lw=1.1, ls=_ls, zorder=5,
+                label=_lab if k == 0 else None)
+    if k == 0:
+        ax.legend(fontsize=4.8, frameon=False, loc='upper left',
+                  labelcolor='w', handlelength=1.4, borderpad=.1,
+                  handletextpad=.4)
     ax.axhspan(48, 52, facecolor='none', edgecolor='w', lw=.5, ls=(0, (2, 2)))
     ax.text(178, 50, 'mains', fontsize=5.2, color='w', ha='right', va='center')
     ax.set_xticks([-180, -90, 0, 90, 180])
@@ -130,6 +175,50 @@ cbd = fig.colorbar(imd, ax=ax, fraction=.045, pad=.03)
 cbd.ax.set_ylabel('difference', fontsize=5.4, labelpad=2)
 cbd.ax.tick_params(labelsize=5.4); cbd.outline.set_visible(False)
 
+# ---- the paired test behind panel D -----------------------------------------
+# One preferred phase per session per band per state, then the WITHIN-SESSION
+# difference. The grand-average curves cannot be tested against each other --
+# they are two circular means over the same 28 sessions, and the gap between
+# them is not the mean of the per-session gaps once phases wrap.
+SLOW, FAST = (30., 48.), (60., 100.)
+
+
+def band_phase(M, lo, hi):
+    """Preferred theta phase per session, over one frequency band."""
+    m = (f >= lo) & (f <= hi)
+    r = M[:, m, :].mean(1)
+    return np.angle((r * np.exp(1j * cent)[None, :]).sum(1))
+
+
+def paired(a, b):
+    """Wrapped within-session difference, its circular mean, and a p value."""
+    d = np.degrees(np.angle(np.exp(1j * (a - b))))
+    return (float(np.degrees(np.angle(np.mean(np.exp(1j * np.radians(d)))))),
+            float(np.median(d)), float(wilcoxon(d).pvalue), d)
+
+
+def star(p):
+    return ('n.s.' if not np.isfinite(p) or p > .05 else
+            '*' if p > .01 else '**' if p > .001 else '***')
+
+
+STATS = {}
+for _nm, (_lo, _hi) in (('slow', SLOW), ('fast', FAST)):
+    _pa, _pn = band_phase(A, _lo, _hi), band_phase(N, _lo, _hi)
+    STATS[_nm] = paired(_pa, _pn)
+    print(f'  {_nm} {_lo:.0f}-{_hi:.0f} Hz, anchored - non-anchored: '
+          f'circular mean {STATS[_nm][0]:+.1f} deg, median {STATS[_nm][1]:+.1f}, '
+          f'p = {STATS[_nm][2]:.3g} ({star(STATS[_nm][2])}, n = {NS})')
+# the gradient itself, which is what the panel is for, IS present in each state
+for _tag, _M in (('anchored', A), ('non-anchored', N)):
+    _m, _md, _p, _ = paired(band_phase(_M, *SLOW), band_phase(_M, *FAST))
+    print(f'  slow-minus-fast separation, {_tag}: {_m:+.1f} deg '
+          f'(median {_md:+.1f}, p = {_p:.3g})')
+_m, _md, _p, _ = paired(band_phase(A, *SLOW) - band_phase(A, *FAST),
+                        band_phase(N, *SLOW) - band_phase(N, *FAST))
+print(f'  is that separation state-dependent? {_m:+.1f} deg, p = {_p:.3g} '
+      f'({star(_p)})')
+
 # ---- D: preferred phase against frequency -----------------------------------
 ax = fig.add_subplot(gs[3])
 for M, c, lab in ((A, ANCH_COLOR, 'anchored'), (N, NONANCH_COLOR, 'non-anchored')):
@@ -138,13 +227,22 @@ for M, c, lab in ((A, ANCH_COLOR, 'anchored'), (N, NONANCH_COLOR, 'non-anchored'
     se = np.degrees(np.std(np.radians(per), 0) / np.sqrt(len(per)))
     ax.fill_between(f, mu - se, mu + se, color=c, alpha=.28, lw=0)
     ax.plot(f, mu, color=c, lw=1.5, label=lab)
-ax.axvspan(30, 48, color='0.88', alpha=.6, lw=0, zorder=0)
-ax.axvspan(60, 100, color='0.88', alpha=.6, lw=0, zorder=0)
-ax.text(39, 196, 'slow', fontsize=6, color='0.45', ha='center')
-ax.text(80, 196, 'fast', fontsize=6, color='0.45', ha='center')
+ax.axvspan(*SLOW, color='0.88', alpha=.6, lw=0, zorder=0)
+ax.axvspan(*FAST, color='0.88', alpha=.6, lw=0, zorder=0)
+# the state comparison, tested within session, over the band it belongs to
+for _nm, (_lo, _hi) in (('slow', SLOW), ('fast', FAST)):
+    _mu, _mdn, _p, _ = STATS[_nm]
+    _x = (_lo + _hi) / 2
+    ax.text(_x, 199, _nm, fontsize=6, color='0.45', ha='center')
+    ax.text(_x, 186, star(_p), fontsize=6.6, color='0.3', ha='center',
+            va='center')
+    ax.text(_x, 174, f'{_mu:+.0f}\u00b0', fontsize=5.4, color='0.45',
+            ha='center', va='center')
 ax.set_xlabel('frequency (Hz)', fontsize=7.5)
 ax.set_ylabel('preferred theta phase (deg)', fontsize=7.5)
 ax.set_title('a gradient, not two bands', fontsize=8, color='0.25')
+ax.text(.5, -.30, 'anchored − non-anchored, paired by session',
+        transform=ax.transAxes, fontsize=5.8, color='0.45', ha='center')
 ax.set_ylim(0, 210)
 ax.legend(fontsize=6, frameon=False, loc='lower left')
 ax.tick_params(labelsize=6.5)
