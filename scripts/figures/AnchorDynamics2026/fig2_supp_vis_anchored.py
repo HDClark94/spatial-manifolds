@@ -165,12 +165,41 @@ if __name__ == '__main__':
     PV = np.array([profile(r) for r in V])
     PM = np.array([profile(r) for r in M_])
 
-    fig = plt.figure(figsize=(10, 6.2))
-    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 1.0], hspace=.60,
-                          wspace=.42, left=.07, right=.97, top=.90, bottom=.09)
+    # ---- the luminance proxy ------------------------------------------------
+    # Screen luminance was not recorded, but pupil size is a usable stand-in:
+    # the pupil constricts in bright light, so z(pupil radius) against track
+    # position is an INVERSE luminance profile. Pooled over 23 sessions it is
+    # most constricted at 106 cm -- inside the reward zone -- and most dilated
+    # near 22 cm, a swing of 2.2 z. The position-locked component is the part
+    # that plausibly reflects the scene; the state-related component is tonic
+    # across position (Figure 5I) and so does not produce this structure.
+    _pz = np.load(f'{ROOT}/data/eye_anchoring/eye_position_profiles_gated.npz')
+    _pup = np.nanmean(np.concatenate([_pz['anch'], _pz['non']]), axis=0)
+    _px = (np.arange(len(_pup)) + .5) * (TL / len(_pup))
+    _pup_i = np.interp(x, _px, _pup)          # onto the rate-map position axis
+
+    def _corr(a, b):
+        a = a - np.nanmean(a); b = b - np.nanmean(b)
+        d = np.sqrt(np.nansum(a ** 2) * np.nansum(b ** 2))
+        return np.nan if d == 0 else float(np.nansum(a * b) / d)
+
+    _rv = np.array([_corr(p_, _pup_i) for p_ in PV])
+    _rm = np.array([_corr(p_, _pup_i) for p_ in PM])
+
+    fig = plt.figure(figsize=(11.0, 6.6))
+    outer = fig.add_gridspec(2, 1, hspace=.62, left=.06, right=.975,
+                             top=.90, bottom=.09)
+    gtop = outer[0].subgridspec(1, 3, width_ratios=[1.25, 1.0, 1.0], wspace=.40)
+    # E carries a twin axis on its right and F a y-label on its left, both of
+    # which float outward by a fixed point padding, so this row needs more
+    # room between columns than the row above
+    gbot = outer[1].subgridspec(1, 4, width_ratios=[1.30, 1.0, .92, .78],
+                                wspace=.72)
+    gs = {(0, 0): gtop[0], (0, 1): gtop[1], (0, 2): gtop[2],
+          (1, 0): gbot[0], (1, 1): gbot[1], (1, 2): gbot[2], (1, 3): gbot[3]}
 
     # ---- A: example cells -------------------------------------------------
-    ga = gs[0, 0].subgridspec(1, 3, wspace=.18)
+    ga = gs[(0, 0)].subgridspec(1, 3, wspace=.18)
     # pick by how consistently each trial matches the cell's own mean, not by
     # peak height x trial count, which just favoured the longest sessions
     def consistency(r):
@@ -221,7 +250,7 @@ if __name__ == '__main__':
              fontsize=7.5, color='0.3')
 
     # ---- B: all cells, sorted by peak -------------------------------------
-    ax = fig.add_subplot(gs[0, 1]); _lp(ax, 'B', dx=-.19)
+    ax = fig.add_subplot(gs[(0, 1)]); _lp(ax, 'B', dx=-.19)
     o = np.argsort(np.argmax(PV, axis=1))
     ax.imshow(PV[o], aspect='auto', cmap='magma', interpolation='nearest',
               extent=[0, TL, len(PV) - .5, -.5])
@@ -234,7 +263,7 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7)
 
     # ---- C: peak positions ------------------------------------------------
-    ax = fig.add_subplot(gs[0, 2]); _lp(ax, 'C', dx=-.22)
+    ax = fig.add_subplot(gs[(0, 2)]); _lp(ax, 'C', dx=-.22)
     pk = x[np.argmax(PV, axis=1)]
     pkm = x[np.argmax(PM, axis=1)]
     bins = np.linspace(0, TL, 21)
@@ -253,8 +282,7 @@ if __name__ == '__main__':
     ax.legend(fontsize=6, frameon=False)
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-    # ---- D: cued vs uncued ------------------------------------------------
-    ax = fig.add_subplot(gs[1, 0]); _lp(ax, 'D', dx=-.19)
+    # ---- D: one cell, trials sorted by type, means above --------------------
     def cue_split(rs):
         a, b = [], []
         for r in rs:
@@ -266,36 +294,90 @@ if __name__ == '__main__':
         return np.array(a), np.array(b)
     CA, CB = cue_split(V)
     n = min(len(CA), len(CB))
-    for Y, c_, lab in ((CA, '#c04744', 'cued (beacon)'),
-                       (CB, '#2b6cb0', 'uncued')):
-        mu = Y.mean(0); se = Y.std(0) / np.sqrt(len(Y))
-        ax.fill_between(x, mu - se, mu + se, color=c_, alpha=.28, lw=0)
-        ax.plot(x, mu, color=c_, lw=1.4, label=lab)
-    ax.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
     rzm = (x >= RZ[0]) & (x <= RZ[1])
     w = wilcoxon(CA[:n][:, rzm].mean(1), CB[:n][:, rzm].mean(1))
+
+    # the clearest single cell: largest cued-minus-uncued difference in the zone
+    def _cue_gain(r):
+        a, b = r['cue'] == 'b', r['cue'] == 'nb'
+        if a.sum() < 5 or b.sum() < 5:
+            return -9
+        pa = np.nanmean(r['maps'][a], 0); pb = np.nanmean(r['maps'][b], 0)
+        sc = np.nanstd(np.nanmean(r['maps'], 0)) + 1e-12
+        return float((np.nanmean(pa[rzm]) - np.nanmean(pb[rzm])) / sc)
+    ex = max(V, key=_cue_gain)
+    gd = gs[(1, 0)].subgridspec(2, 1, height_ratios=[.52, 1.0], hspace=.12)
+    axm = fig.add_subplot(gd[0])
+    for tag, c_, lab in (('b', '#c04744', 'cued (beacon)'),
+                         ('nb', '#2b6cb0', 'uncued')):
+        m = ex['cue'] == tag
+        pr = np.nanmean(ex['maps'][m], 0)
+        axm.plot(x, pr, color=c_, lw=1.3, label=lab)
+    axm.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
+    axm.set_xlim(0, TL); axm.tick_params(labelbottom=False, labelsize=6.5)
+    axm.set_ylabel('rate (Hz)', fontsize=7)
+    axm.legend(fontsize=5.8, frameon=False, loc='upper right')
+    axm.set_title(f'M{ex["mouse"]}D{ex["day"]} cl {ex["cluster_id"]} — trials '
+                  f'sorted by type\npopulation: reward zone p = {w.pvalue:.2g} '
+                  f'({n} cells)', fontsize=7.4, loc='left')
+    axm.spines[['top', 'right']].set_visible(False)
+    _lp(axm, 'D', dx=-.17, dy=1.02)
+
+    ax = fig.add_subplot(gd[1], sharex=axm)
+    o_cue = np.argsort(ex['cue'] != 'b')       # cued block first
+    ax.imshow(ex['maps'][o_cue], aspect='auto', cmap='magma',
+              interpolation='nearest', extent=[0, TL, len(o_cue) - .5, -.5])
+    _nb = int((ex['cue'] == 'b').sum())
+    ax.axhline(_nb - .5, color='w', lw=1.2)
+    ax.text(TL * .985, _nb * .5, 'cued', color='w', fontsize=6, ha='right',
+            va='center', rotation=90)
+    ax.text(TL * .985, _nb + (len(o_cue) - _nb) * .5, 'uncued', color='w',
+            fontsize=6, ha='right', va='center', rotation=90)
+    for b in RZ:
+        ax.axvline(b, color='#7fd4a8', lw=.9, ls='--')
     ax.set_xlabel('Position (cm)', fontsize=8)
-    ax.set_ylabel('firing (z, within cell)', fontsize=8)
-    ax.set_title(f'does the beacon change them?\nin the reward zone: '
-                 f'p = {w.pvalue:.2g} ({n} cells)', fontsize=7.5, loc='left')
-    ax.legend(fontsize=6, frameon=False)
+    ax.set_ylabel('Trial', fontsize=8); ax.tick_params(labelsize=7)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+
+    # ---- E: the luminance proxy --------------------------------------------
+    ax = fig.add_subplot(gs[(1, 1)]); _lp(ax, 'E', dx=-.24)
+    axb = ax.twinx()
+    axb.plot(x, _pup_i, color='#b8860b', lw=1.4, zorder=3)
+    axb.set_ylabel('z(pupil) — dilated = darker', fontsize=6.8,
+                   color='#b8860b', labelpad=2)
+    axb.tick_params(labelsize=6.5, colors='#b8860b')
+    ax.plot(x, PV.mean(0), color='#8C6BB1', lw=1.5, zorder=4)
+    ax.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
+    ax.set_xlabel('Position (cm)', fontsize=8)
+    ax.set_ylabel('VIS firing (normalised)', fontsize=8, color='#8C6BB1')
+    _wv = wilcoxon(_rv[np.isfinite(_rv)])
+    ax.set_title(f'against the luminance proxy\n'
+                 f'VIS r = {np.nanmean(_rv):+.2f} (p = {_wv.pvalue:.1g})',
+                 fontsize=7.4, loc='left')
+    ax.tick_params(labelsize=7); ax.spines[['top']].set_visible(False)
+
+    # ---- F: per-cell correlations, VIS vs MEC ------------------------------
+    ax = fig.add_subplot(gs[(1, 2)]); _lp(ax, 'F', dx=-.30)
+    for i_, (v_, c_, lab) in enumerate(((_rv, '#8C6BB1', 'VIS'),
+                                        (_rm, '0.45', 'MEC'))):
+        v_ = v_[np.isfinite(v_)]
+        ax.scatter(np.full(len(v_), i_) + np.random.default_rng(0)
+                   .uniform(-.14, .14, len(v_)), v_, s=7, color=c_, lw=0,
+                   alpha=.7)
+        ax.plot([i_ - .25, i_ + .25], [np.median(v_)] * 2, color='k', lw=2)
+        ax.text(i_, .965, f'p = {wilcoxon(v_).pvalue:.1g}', ha='center',
+                va='top', fontsize=6.2, color='0.3',
+                transform=ax.get_xaxis_transform())
+    ax.axhline(0, color='0.6', lw=.8, ls=':')
+    ax.set_xticks([0, 1]); ax.set_xticklabels(['VIS', 'MEC'], fontsize=7.5)
+    ax.set_ylabel('corr. with pupil profile', fontsize=8, labelpad=1)
+    ax.set_title('positive = fires where it is darker', fontsize=7.4, loc='left',
+                 pad=10)
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-    # ---- E: MEC contrast ---------------------------------------------------
-    ax = fig.add_subplot(gs[1, 1]); _lp(ax, 'E', dx=-.19)
-    om = np.argsort(np.argmax(PM, axis=1))
-    ax.imshow(PM[om], aspect='auto', cmap='magma', interpolation='nearest',
-              extent=[0, TL, len(PM) - .5, -.5])
-    for b in RZ:
-        ax.axvline(b, color='#7fd4a8', lw=1.0, ls='--')
-    ax.set_xlabel('Position (cm)', fontsize=8)
-    ax.set_ylabel('MEC cell (sorted)', fontsize=8)
-    ax.set_title(f'MEC non-speed locked-anchored\n({len(PM)} cells), for contrast',
-                 fontsize=7.5, loc='left')
-    ax.tick_params(labelsize=7)
-
-    # ---- F: what the counts were ------------------------------------------
-    ax = fig.add_subplot(gs[1, 2]); _lp(ax, 'F', dx=-.22)
+    # ---- G: the counts by structure ----------------------------------------
+    ax = fig.add_subplot(gs[(1, 3)]); _lp(ax, 'G', dx=-.30)
     vis, mec = target_cells()
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
