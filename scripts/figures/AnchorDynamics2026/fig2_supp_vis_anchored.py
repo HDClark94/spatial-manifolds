@@ -421,8 +421,8 @@ if __name__ == '__main__':
     # only the row's vertical extent is taken from this: F and G are moved
     # under the C and D heatmaps after those exist, and H and I then fill
     # whatever is left to the right
-    grow = outer[3].subgridspec(1, 3, width_ratios=[1.25, 1.0, .55],
-                                wspace=.55)
+    grow = outer[3].subgridspec(1, 3, width_ratios=[1.1, 1.0, .95],
+                                wspace=.58)
 
     # ---- A, B: one session per row -----------------------------------------
     # Left to right: where the cells are, then the entorhinal population, its
@@ -706,83 +706,129 @@ if __name__ == '__main__':
         print(f'  {_nm} corr with pupil: mean {np.mean(_f):+.3f} '
               f'median {np.median(_f):+.3f} p = {wilcoxon(_f).pvalue:.3g}')
 
-    # ---- F: how much of the profile IS speed and luminance -------------------
-    # The panels that used to sit here plotted each cell's CORRELATION with the
-    # luminance proxy, cluster by cluster. They were dropped: the proxy is a
-    # fixed function of position, so that correlation is close to a restatement
-    # of where a cell fires -- every large cluster in both regions scored
-    # strongly, with the sign set by peak position -- and the cluster means
-    # beside them already appear inside C, D and E. What the figure needs is
-    # not what these cells correlate with but what is LEFT once the two
-    # confounds are taken out, which a correlation cannot say. Each cell's
-    # profile is regressed on both and the explained variance reported.
+    # ---- F, G: the two confounds, tested properly, and where the rest is ----
+    # THE CHANCE LEVEL IS THE WHOLE PROBLEM HERE, and two earlier versions of
+    # this panel got it wrong. Both the speed profile and the luminance proxy
+    # are smooth functions of position, and ANY smooth function of position
+    # resembles a smooth firing profile: against zero, or against a rough
+    # random regressor, both confounds look several times larger than they
+    # are. The null here is a phase-randomised surrogate -- the same power
+    # spectrum as the real regressor, so exactly as smooth, with its
+    # relationship to position destroyed -- and the test is a permutation over
+    # 500 such curves, because one curve is fitted to the whole population at
+    # once and the cells are therefore not independent under the null. That
+    # dependence is why the null has the spread it does.
+    #
+    # A variance-explained version of this panel was built first and dropped:
+    # cross-validated R2 does not clear this null for ANY regressor in any
+    # group (best p = 0.075), so the figure cannot say how MUCH either
+    # confound accounts for. The correlation statistic below can still say
+    # whether the relationship is there at all, because it asks whether the
+    # sign is consistent across cells rather than how much variance one curve
+    # soaks up.
     _SPD = speed_profile(sorted({(r['mouse'], r['day'])
                                  for r in V + M_ + MS}), len(x))
+    N_SUR = 500
 
     def _z(v):
         v = np.asarray(v, float)
         return (v - np.nanmean(v)) / (np.nanstd(v) + 1e-12)
 
-    def _r2(prof, cols):
-        q = np.asarray(prof, float) - np.nanmean(prof)
-        Xd = np.column_stack([np.ones(len(q))] + cols)
-        f = Xd @ (np.linalg.pinv(Xd) @ q)
-        return float(1 - np.sum((q - f) ** 2) / np.sum(q ** 2))
-
-    _zs, _zp = _z(_SPD), _z(_pup_i)
     _rng = np.random.default_rng(0)
-    _R = {}
-    for _nm, _rows in (('VIS', V), ('MEC', M_), ('MECSPD', MS)):
-        _a, _b, _c, _nl = [], [], [], []
-        for r in _rows:
-            pr = np.nanmean(r['maps'], 0)
-            if not np.isfinite(pr).all():
-                continue
-            _a.append(_r2(pr, [_zs])); _b.append(_r2(pr, [_zp]))
-            _c.append(_r2(pr, [_zs, _zp]))
-            # a smooth random regressor, so the panel carries the floor that
-            # two free parameters buy on a profile this smooth
-            _nl.append(_r2(pr, [_z(median_filter(
-                _rng.standard_normal(len(x)), size=9, mode='wrap'))]))
-        _R[_nm] = tuple(np.array(v) for v in (_a, _b, _c, _nl))
-        print(f'  {_nm}: R2 speed {np.median(_a):.3f}, pupil {np.median(_b):.3f}, '
-              f'both {np.median(_c):.3f}, chance {np.median(_nl):.3f} '
-              f'({(1 - np.median(_c)) * 100:.0f}% of the profile is neither)')
+
+    def _surrogate(v):
+        F_ = np.fft.rfft(np.asarray(v, float) - np.mean(v))
+        ph = _rng.uniform(0, 2 * np.pi, len(F_)); ph[0] = 0.
+        return _z(np.fft.irfft(np.abs(F_) * np.exp(1j * ph), n=len(v)))
+
+    _GL = [('VIS', V, 'VIS\nno speed', '#3f9b4f'),
+           ('MEC', M_, 'MEC\nno speed', '#7b4173'),
+           ('MECSPD', MS, 'MEC\nspeed-mod', '#c0723a')]
+    _PROF = {}
+    for _gn, _rows_, _, _ in _GL:
+        _PROF[_gn] = np.array([_z(np.nanmean(r['maps'], 0) -
+                                  np.nanmean(np.nanmean(r['maps'], 0)))
+                               for r in _rows_
+                               if np.isfinite(np.nanmean(r['maps'], 0)).all()])
+
+    def _medr(Pm, col):
+        return float(np.median(Pm @ _z(col) / Pm.shape[1]))
+
+    _REG = [('running speed', _SPD, '#4a7fb5'),
+            ('luminance (pupil)', _pup_i, '#b8860b')]
+    _ST = {}
+    for _rn_, _reg, _ in _REG:
+        for _gn, _, _, _ in _GL:
+            obs = _medr(_PROF[_gn], _reg)
+            nul = np.array([_medr(_PROF[_gn], _surrogate(_reg))
+                            for _ in range(N_SUR)])
+            pv = (np.sum(np.abs(nul) >= abs(obs)) + 1) / (N_SUR + 1)
+            _ST[(_rn_, _gn)] = (obs, np.percentile(np.abs(nul), 95), pv)
+            print(f'  {_rn_:18} {_gn:7} median r {obs:+.3f}, '
+                  f'surrogate |r| 95th pct {np.percentile(np.abs(nul), 95):.3f}, '
+                  f'p = {pv:.3f}')
 
     ax = fig.add_subplot(grow[0])
-    _lp(ax, 'F', dx=-.17)
-    _gl = ['VIS', 'MEC', 'MECSPD']
-    _gx = np.arange(len(_gl))
-    for _j, (_k, _c, _lab) in enumerate(((0, '#4a7fb5', 'running speed'),
-                                         (1, '#b8860b', 'pupil (luminance)'))):
-        v = [np.median(_R[g][_k]) for g in _gl]
-        lo = [np.percentile(_R[g][_k], 25) for g in _gl]
-        hi = [np.percentile(_R[g][_k], 75) for g in _gl]
-        ax.bar(_gx + (_j - .5) * .34, v, .32, color=_c, lw=0, label=_lab)
-        ax.errorbar(_gx + (_j - .5) * .34, v,
-                    yerr=[np.array(v) - lo, np.array(hi) - np.array(v)],
-                    fmt='none', ecolor='0.3', lw=.8, capsize=2)
-    for i_, g in enumerate(_gl):
-        both = np.median(_R[g][2])
-        ax.plot([i_ - .3, i_ + .3], [both, both], color='k', lw=1.4, zorder=5)
-        ax.text(i_, both + .02, f'{(1 - both) * 100:.0f}% left',
-                ha='center', va='bottom', fontsize=5.8, color='0.2')
-    # the floor two free parameters buy on a profile this smooth, named in the
-    # legend rather than annotated on the axes, where it landed on the bars
-    ax.axhline(np.median(np.r_[[np.median(_R[g][3]) for g in _gl]]),
-               color='0.55', lw=.9, ls=':', label='one random regressor')
-    ax.set_xticks(_gx)
-    ax.set_xticklabels(['VIS\nno speed', 'MEC\nno speed', 'MEC\nspeed-mod'],
-                       fontsize=6.8, linespacing=1.3)
-    ax.set_ylabel('variance of the profile\nexplained (R$^2$)', fontsize=8)
-    ax.set_ylim(0, .78)
-    ax.set_title('black bar = both together', fontsize=7.0, loc='left')
-    ax.legend(fontsize=5.6, frameon=False, loc='upper left')
+    _lp(ax, 'F', dx=-.24)
+    _gx = np.arange(len(_GL))
+    for _j, (_rn_, _reg, _c) in enumerate(_REG):
+        off = (_j - .5) * .36
+        for i_, (_gn, _, _, _) in enumerate(_GL):
+            obs, hi, pv = _ST[(_rn_, _gn)]
+            # the band a curve of the same smoothness reaches by chance
+            ax.add_patch(plt.Rectangle((i_ + off - .16, -hi), .32, 2 * hi,
+                                       facecolor='0.88', edgecolor='none',
+                                       zorder=1))
+            ax.bar(i_ + off, obs, .30, color=_c, lw=0, zorder=2,
+                   label=_rn_ if i_ == 0 else None)
+            ax.text(i_ + off, .50, ('*' if pv < .05 else 'n.s.'),
+                    ha='center', va='center', fontsize=6.2,
+                    color='0.15' if pv < .05 else '0.45')
+    ax.axhline(0, color='k', lw=.9)
+    ax.set_xticks(_gx); ax.set_xticklabels([g[2] for g in _GL], fontsize=6.8,
+                                           linespacing=1.3)
+    ax.set_ylim(-.42, .60)
+    ax.set_ylabel('median correlation of the\nposition profile', fontsize=7.5)
+    ax.set_title('grey = what a curve of the same\nsmoothness reaches by chance',
+                 fontsize=6.8, loc='left')
+    ax.legend(fontsize=5.8, frameon=False, loc='lower left')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-    # ---- G: the counts by structure -----------------------------------------
+    # ---- G: where these cells' position structure actually sits -------------
+    # Plotted on the raw profiles, not the residuals: since neither regressor
+    # clears its null, residualising changes this picture by a few points at
+    # most (black-box share 52 -> 50% in VIS) and a residual would imply a
+    # subtraction the panel above does not license.
+    BB = 30.0                    # black box at each end of the 200 cm track
     ax = fig.add_subplot(grow[1])
-    _lp(ax, 'G', dx=-.20)
+    _lp(ax, 'G', dx=-.26)
+    _bbs = {}
+    for _gn, _, _lab, _c in _GL:
+        v = (_PROF[_gn] ** 2).mean(0)
+        _bbs[_gn] = float(v[(x < BB) | (x > TL - BB)].sum() / v.sum())
+        ax.plot(x, v / v.mean(), lw=1.4, color=_c,
+                label=f"{_lab.replace(chr(10), ' ')}  {_bbs[_gn]:.0%}")
+    for _b in ((0, BB), (TL - BB, TL)):
+        ax.axvspan(*_b, color='0.84', alpha=.8, lw=0, zorder=0)
+    ax.axvspan(*RZ, color='#d8e4d0', alpha=.9, lw=0, zorder=0)
+    for _xx, _t in ((15, 'black\nbox'), (185, 'black\nbox'), (100, 'reward')):
+        ax.text(_xx, .08, _t, fontsize=5.2, color='0.3', ha='center',
+                linespacing=1.1)
+    print('  share of profile variance inside the black boxes (30% of track): '
+          + ', '.join(f'{g} {_bbs[g]:.0%}' for g, _, _, _ in _GL))
+    ax.set_xlim(0, TL); ax.set_xticks([0, 50, 100, 150, 200])
+    ax.set_xlabel('Position (cm)', fontsize=8)
+    ax.set_ylabel('variance of the position\nprofile (1 = track average)',
+                  fontsize=7.5)
+    ax.set_title('the structure sits at the track ends,\nnot at the reward zone',
+                 fontsize=6.8, loc='left')
+    ax.legend(fontsize=5.6, frameon=False, loc='upper center', ncol=1,
+              handlelength=1.2)
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+    # ---- H: the counts by structure -----------------------------------------
+    ax = fig.add_subplot(grow[2])
+    _lp(ax, 'H', dx=-.24)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
