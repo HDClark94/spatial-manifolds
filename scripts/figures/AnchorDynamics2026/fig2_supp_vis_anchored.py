@@ -104,16 +104,19 @@ def target_cells():
     d = u.merge(reg, on=['mouse', 'day', 'cluster_id'], how='left',
                 suffixes=('', '_r'))
     d['br'] = d.brain_region_r.fillna(d.brain_region).astype(str)
-    base = d[d.sess_switches & (d.label_sd == 0) & (d.cell_frac_anch == 1)
-             & (d.speed_p >= .05)]
+    lock = d[d.sess_switches & (d.label_sd == 0) & (d.cell_frac_anch == 1)]
+    base = lock[lock.speed_p >= .05]            # no open-field speed tuning
+    spd = lock[lock.speed_p < .05]              # speed-modulated
     return (base[base.br.str.startswith('VIS')].copy(),
-            base[base.br.str.startswith('ENTm')].copy())
+            base[base.br.str.startswith('ENTm')].copy(),
+            spd[spd.br.str.startswith('ENTm')].copy())
 
 
 def build_cache():
-    vis, mec = target_cells()
+    vis, mec, mec_spd = target_cells()
     tt = pd.read_csv(f'{PS}/trial_table.csv')
-    want = pd.concat([vis.assign(grp='VIS'), mec.assign(grp='MEC')])
+    want = pd.concat([vis.assign(grp='VIS'), mec.assign(grp='MEC'),
+                      mec_spd.assign(grp='MECSPD')])
     rows = []
     for (mo, dy), g in want.groupby(['mouse', 'day']):
         z = load_session_labels(int(mo), int(dy))
@@ -222,9 +225,10 @@ if __name__ == '__main__':
     rows = load_rows()
     V = [r for r in rows if r['grp'] == 'VIS']
     M_ = [r for r in rows if r['grp'] == 'MEC']
+    MS = [r for r in rows if r['grp'] == 'MECSPD']
     nb = V[0]['maps'].shape[1]
     x = (np.arange(nb) + .5) * (TL / nb)
-    print(f'{len(V)} VIS cells, {len(M_)} MEC cells')
+    print(f'{len(V)} VIS, {len(M_)} MEC non-speed, {len(MS)} MEC speed-modulated')
 
     def profile(r):
         p = np.nanmean(r['maps'], axis=0)
@@ -244,6 +248,7 @@ if __name__ == '__main__':
 
     PV = np.array([profile(r) for r in V])
     PM = np.array([profile(r) for r in M_])
+    PS_ = np.array([profile(r) for r in MS])
 
     # ---- the luminance proxy ------------------------------------------------
     # Screen luminance was not recorded, but the pupil constricts in brightness,
@@ -265,15 +270,16 @@ if __name__ == '__main__':
     _rv = np.array([_corr(p_, _pup_i) for p_ in PV])
     _rm = np.array([_corr(p_, _pup_i) for p_ in PM])
 
-    fig = plt.figure(figsize=(10.6, 9.4))
+    fig = plt.figure(figsize=(11.6, 9.4))
     outer = fig.add_gridspec(3, 1, height_ratios=[1.30, 1.20, 1.0], hspace=.60,
                              left=.065, right=.975, top=.97, bottom=.055)
     gex = outer[0].subgridspec(1, 2, wspace=.30)
     # E sits with C and D: it is the same peak-position information those two
     # heatmaps show, summarised, so it belongs beside them rather than opening
     # a row of its own
-    gclu = outer[1].subgridspec(1, 3, width_ratios=[1.0, 1.0, .52], wspace=.40)
-    gbot = outer[2].subgridspec(1, 3, width_ratios=[1.10, .88, .80], wspace=.60)
+    gclu = outer[1].subgridspec(1, 3, wspace=.42)
+    gbot = outer[2].subgridspec(1, 4, width_ratios=[.92, 1.05, .82, .78],
+                                wspace=.62)
 
     # ---- A, B: two sessions, each with its MEC state beside its VIS cells ----
     for si, (mo, dy) in enumerate(EX_SESSIONS):
@@ -385,7 +391,10 @@ if __name__ == '__main__':
     # cluster's mean gets its own axes on the right so a flat cluster reads as
     # flat instead of being stretched to fill a band.
     _cpal = ['#c0553a', '#d4a017', '#2f8f7a', '#2b4a7a', '#b5485c']
-    for _k, (_P, _nm) in enumerate(((PV, 'VIS'), (PM, 'MEC'))):
+    _sets = ((PV, 'VIS', 'visual cortex, no speed tuning'),
+             (PM, 'MEC', 'entorhinal, no speed tuning'),
+             (PS_, 'MECSPD', 'entorhinal, speed-modulated'))
+    for _k, (_P, _nm, _desc) in enumerate(_sets):
         gg = gclu[_k].subgridspec(1, 3, width_ratios=[.30, 1.0, .60],
                                   wspace=.10)
         # correlation distance: cells with the same field shape at different
@@ -427,7 +436,7 @@ if __name__ == '__main__':
         axd.set_ylabel('Cells', fontsize=8, labelpad=2)
         for sp in axd.spines.values():
             sp.set_visible(False)
-        _lp(axd, 'CD'[_k], dx=-.22, dy=1.0)
+        _lp(axd, 'CDE'[_k], dx=-.22, dy=1.0)
 
         axh = fig.add_subplot(gg[1])
         axh.imshow(_P[order], aspect='auto', cmap=CMAP, origin='upper',
@@ -442,8 +451,11 @@ if __name__ == '__main__':
                                                               fontsize=6.5)
         axh.set_xlabel('Position (cm)', fontsize=8)
         axh.tick_params(labelsize=7)
-        # short: the full phrase ran into the 'cluster means' title beside it
-        axh.set_title(f'{_nm}: {n_} cells', fontsize=7.5, loc='left')
+        # each panel says exactly which cells it contains: all three are
+        # locked anchored in switching sessions and differ only in region and
+        # in whether they are speed-modulated
+        axh.set_title(f'{_desc}\n{n_} cells, locked anchored',
+                      fontsize=7.2, loc='left')
 
         # one axes per cluster, stacked, each with its own mean +/- SEM
         edges = np.r_[0, bounds, n_]
@@ -476,7 +488,7 @@ if __name__ == '__main__':
     # Cumulative rather than binned: the KS statistic beneath the panel is a
     # distance between these curves and the diagonal, so the plot and the test
     # are then the same object, and no bin width has to be chosen.
-    ax = fig.add_subplot(gclu[2]); _lp(ax, 'E', dx=-.34)
+    ax = fig.add_subplot(gbot[0]); _lp(ax, 'F', dx=-.34)
     pk = x[np.argmax(PV, axis=1)]; pkm = x[np.argmax(PM, axis=1)]
     for v_, c_, lab in ((pk, '#8C6BB1', f'VIS ({len(pk)})'),
                         (pkm, '0.35', f'MEC ({len(pkm)})')):
@@ -514,7 +526,7 @@ if __name__ == '__main__':
 
 
     # ---- F: the luminance proxy ---------------------------------------------
-    ax = fig.add_subplot(gbot[0]); _lp(ax, 'F', dx=-.22)
+    ax = fig.add_subplot(gbot[1]); _lp(ax, 'G', dx=-.22)
     axb = ax.twinx()
     axb.plot(x, _pup_i, color='#b8860b', lw=1.4, zorder=3)
     axb.set_ylabel('z(pupil) — dilated = darker', fontsize=6.8,
@@ -531,7 +543,7 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7); ax.spines[['top']].set_visible(False)
 
     # ---- G: per-cell correlations, as a boxplot -----------------------------
-    ax = fig.add_subplot(gbot[1]); _lp(ax, 'G', dx=-.30)
+    ax = fig.add_subplot(gbot[2]); _lp(ax, 'H', dx=-.30)
     _df = pd.DataFrame({'r': np.r_[_rv[np.isfinite(_rv)], _rm[np.isfinite(_rm)]],
                         'region': (['VIS'] * int(np.isfinite(_rv).sum())
                                    + ['MEC'] * int(np.isfinite(_rm).sum()))})
@@ -554,7 +566,7 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     # ---- H: the counts by structure -----------------------------------------
-    ax = fig.add_subplot(gbot[2]); _lp(ax, 'H', dx=-.32)
+    ax = fig.add_subplot(gbot[3]); _lp(ax, 'I', dx=-.32)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
