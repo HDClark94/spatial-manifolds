@@ -211,6 +211,40 @@ def build_cache():
 
 
 EX_CACHE = f'{PS}/vis_anchored_mec_examples.npz'
+SPD_CACHE = f'{PS}/speed_profile.npz'
+
+
+def speed_profile(sessions, nb):
+    """Mean running speed against track position, over the given sessions.
+
+    The track has a stereotyped speed profile -- the animals slow into the
+    reward zone and run fastest after it -- so position and speed are
+    confounded by construction here. This is the regressor that lets the
+    confound be measured instead of argued about.
+    """
+    if os.path.exists(SPD_CACHE):
+        z_ = np.load(SPD_CACHE)
+        if len(z_['profile']) == nb:
+            return z_['profile']
+    acc = []
+    for mo, dy in sessions:
+        bp, _ = vr_paths(int(mo), int(dy))
+        if not os.path.exists(bp):
+            continue
+        beh = nap.load_file(bp)
+        S_ = beh['S']; trav = beh['travel']
+        t_ = np.asarray(S_.index); v_ = np.asarray(S_.values)
+        pos = np.interp(t_, np.asarray(trav.index),
+                        np.asarray(trav.values)) % TL
+        ok = v_ >= 3.0
+        num, _ = np.histogram(pos[ok], bins=nb, range=(0, TL), weights=v_[ok])
+        den, _ = np.histogram(pos[ok], bins=nb, range=(0, TL))
+        with np.errstate(invalid='ignore'):
+            acc.append(num / np.where(den == 0, np.nan, den))
+    prof = np.nanmean(np.array(acc), axis=0)
+    np.savez_compressed(SPD_CACHE, profile=prof, n_sessions=len(acc))
+    print(f'  cached the speed profile over {len(acc)} sessions')
+    return prof
 
 
 def example_maps(mo, dy, ids):
@@ -372,7 +406,12 @@ if __name__ == '__main__':
     # probe map and a second population raster, and the two examples are read
     # one after the other rather than against each other anyway.
     fig = plt.figure(figsize=(11.6, 10.4))
-    outer = fig.add_gridspec(4, 1, height_ratios=[1.16, 1.16, 1.14, .94],
+    # Five rows. F and G are pinned to the x-extent of the C and D heatmaps,
+    # which leaves only about 2.4 in of their row free -- not enough for two
+    # more panels -- so the census and the variance-explained panel take a row
+    # of their own. Dropping the mean-rate strip from A and B paid for it:
+    # the example rasters are no shorter than before.
+    outer = fig.add_gridspec(5, 1, height_ratios=[.92, .92, 1.10, .95, .85],
                              hspace=.62, left=.065, right=.975, top=.965,
                              bottom=.050)
     # E sits with C and D: it is the same peak-position information those two
@@ -382,7 +421,9 @@ if __name__ == '__main__':
     # only the row's vertical extent is taken from this: F and G are moved
     # under the C and D heatmaps after those exist, and H and I then fill
     # whatever is left to the right
-    gbot = outer[3].subgridspec(1, 4)
+    gbot = outer[3].subgridspec(1, 2)
+    grow = outer[4].subgridspec(1, 3, width_ratios=[1.25, 1.0, .55],
+                                wspace=.55)
 
     # ---- A, B: one session per row -----------------------------------------
     # Left to right: where the cells are, then the entorhinal population, its
@@ -424,17 +465,21 @@ if __name__ == '__main__':
         # row above their own cells, and every raster -- both populations, PC1
         # and the three visual cells -- sits in the bottom row, so a trial is
         # at the same height in all of them.
-        gg = outer[si].subgridspec(2, len(_wr), height_ratios=[.26, 1.0],
-                                   width_ratios=_wr, hspace=.10, wspace=.16)
+        # One row. The mean-rate traces that used to sit above the maps are
+        # gone: the maps show the same thing -- a field present in one state
+        # and not the other, or present in both -- against the transition
+        # lines, and the strip cost a quarter of the row's height to repeat
+        # it. Peak rate moves into each map's title.
+        gg = outer[si].subgridspec(1, len(_wr), width_ratios=_wr, wspace=.16)
 
         # the probe map, spanning both rows
-        axs = fig.add_subplot(gg[:, 0])
+        axs = fig.add_subplot(gg[0])
         draw_slice(axs, mo, dy)
         axs.set_title(f'M{mo} D{dy}', fontsize=8, pad=4, loc='left')
         # the slice keeps a square aspect, so its axes box floats inside the
         # gridspec cell and an axes-fraction offset puts the letter somewhere
         # different in each row; anchor it to the cell instead
-        _cb = gg[:, 0].get_position(fig)
+        _cb = gg[0].get_position(fig)
         fig.text(_cb.x0 - .012, _cb.y1, 'AB'[si], fontsize=10, weight='bold',
                  va='bottom', ha='left')
 
@@ -444,7 +489,7 @@ if __name__ == '__main__':
         for gi, (_M, _nv, _nl, _gp, _rn) in enumerate(
                 ((L, n_var, n_lock, gap, 'MEC'),
                  (LV, v_var, v_lock, v_gap, 'VIS'))):
-            ax = fig.add_subplot(gg[1, 1 if gi == 0 else 6],
+            ax = fig.add_subplot(gg[1 if gi == 0 else 6],
                                  **({} if _ax0 is None else {'sharey': _ax0}))
             if _ax0 is None:
                 _ax0 = ax
@@ -472,7 +517,7 @@ if __name__ == '__main__':
         ax = _ax0
 
         # PC1, on the same trial axis, between the two populations
-        axp = fig.add_subplot(gg[1, 2], sharey=ax)
+        axp = fig.add_subplot(gg[2], sharey=ax)
         y_ = np.arange(len(pc1))
         axp.fill_betweenx(y_, 0, pc1, where=pc1 >= 0, color=ANCH_COLOR, lw=0,
                           interpolate=True)
@@ -490,30 +535,17 @@ if __name__ == '__main__':
         for _gi, (_grp, _c0, _rn) in enumerate(((mcells, 3, 'MEC'),
                                                 (cells, 7, 'VIS'))):
             for k, r in enumerate(_grp):
-                # mean rate against position IN EACH STATE, above its own cell
-                axq = fig.add_subplot(gg[0, _c0 + k])
+                # peak of the per-state means, which is what the removed
+                # trace strip was read for
                 st_ = median_filter(np.asarray(r['pop']).astype(float), size=9,
                                     mode='nearest') > .5
                 _pk = 0.
-                for m_, c_ in ((st_, ANCH_COLOR), (~st_, NONANCH_COLOR)):
+                for m_ in (st_, ~st_):
                     if m_.sum() >= 5:
-                        _mu = np.nanmean(r['maps'][m_], 0)
-                        axq.plot(x, _mu, color=c_, lw=1.0)
-                        _pk = max(_pk, float(np.nanmax(_mu)))
-                axq.set_xlim(0, TL); axq.set_xticks([]); axq.set_yticks([])
-                # the columns are too narrow for a y axis: its tick labels
-                # render outside the axes and land on the neighbour's panel.
-                # The scale is given as the peak of the drawn means instead --
-                # NOT the peak of the trial-resolved map, which is several
-                # times larger and would flatten every trace.
-                axq.text(1.0, .98, f'{_pk:.0f} Hz', ha='right', va='top',
-                         fontsize=5.2, color='0.35', transform=axq.transAxes)
-                axq.set_ylim(0, max(_pk * 1.30, 1e-6))
-                axq.set_title(f'cl {r["cluster_id"]}', fontsize=6, pad=2,
-                              color=RCOL[_rn])
-                axq.spines[['top', 'right', 'left']].set_visible(False)
+                        _pk = max(_pk, float(np.nanmax(
+                            np.nanmean(r['maps'][m_], 0))))
 
-                axc = fig.add_subplot(gg[1, _c0 + k], sharey=ax)
+                axc = fig.add_subplot(gg[_c0 + k], sharey=ax)
                 _mx = np.nanmax(r['maps']) or 1.0
                 _im = axc.imshow(r['maps'] / _mx, aspect='auto', cmap=CMAP,
                                  vmin=0, vmax=1, interpolation='nearest',
@@ -524,6 +556,8 @@ if __name__ == '__main__':
                                     zorder=4)
                 # the maps are narrow now: only the middle one of each group
                 # carries tick labels, which is enough to read the axis off
+                axc.set_title(f'cl {r["cluster_id"]}  {_pk:.0f} Hz',
+                              fontsize=6, pad=2, color=RCOL[_rn])
                 axc.set_xticks([0, 100, 200])
                 axc.tick_params(labelsize=6, labelleft=False)
                 if k == 1:
@@ -533,7 +567,7 @@ if __name__ == '__main__':
                 for sp in axc.spines.values():
                     sp.set_visible(False)
         if _last:
-            axcb = fig.add_subplot(gg[1, 10])
+            axcb = fig.add_subplot(gg[10])
             cb = fig.colorbar(_im, cax=axcb)
             cb.ax.set_title('rate\n(/peak)', fontsize=5.4, pad=3,
                             linespacing=1.1)
@@ -757,12 +791,79 @@ if __name__ == '__main__':
         if _j:
             _hbox = axq.get_position()      # H starts right of G's boxes
 
-    # ---- H: the counts by structure -----------------------------------------
-    ax = fig.add_subplot(gbot[3])
-    _p = ax.get_position()
-    _hx0 = _hbox.x1 + .085
-    ax.set_position([_hx0, _p.y0, .975 - _hx0, _p.height])
-    _lp(ax, 'H', dx=-.20)
+    # ---- H: how much of the profile IS speed and luminance -------------------
+    # F and G ask what these cells correlate WITH. The question the figure is
+    # for is what is left once the two obvious confounds are taken out, and a
+    # correlation cannot answer it: position and speed are confounded by the
+    # task, and the luminance proxy is itself a function of position. So each
+    # cell's profile is regressed on both and the explained variance reported.
+    _SPD = speed_profile(sorted({(r['mouse'], r['day'])
+                                 for r in V + M_ + MS}), len(x))
+
+    def _z(v):
+        v = np.asarray(v, float)
+        return (v - np.nanmean(v)) / (np.nanstd(v) + 1e-12)
+
+    def _r2(prof, cols):
+        q = np.asarray(prof, float) - np.nanmean(prof)
+        Xd = np.column_stack([np.ones(len(q))] + cols)
+        f = Xd @ (np.linalg.pinv(Xd) @ q)
+        return float(1 - np.sum((q - f) ** 2) / np.sum(q ** 2))
+
+    _zs, _zp = _z(_SPD), _z(_pup_i)
+    _rng = np.random.default_rng(0)
+    _R = {}
+    for _nm, _rows in (('VIS', V), ('MEC', M_), ('MECSPD', MS)):
+        _a, _b, _c, _nl = [], [], [], []
+        for r in _rows:
+            pr = np.nanmean(r['maps'], 0)
+            if not np.isfinite(pr).all():
+                continue
+            _a.append(_r2(pr, [_zs])); _b.append(_r2(pr, [_zp]))
+            _c.append(_r2(pr, [_zs, _zp]))
+            # a smooth random regressor, so the panel carries the floor that
+            # two free parameters buy on a profile this smooth
+            _nl.append(_r2(pr, [_z(median_filter(
+                _rng.standard_normal(len(x)), size=9, mode='wrap'))]))
+        _R[_nm] = tuple(np.array(v) for v in (_a, _b, _c, _nl))
+        print(f'  {_nm}: R2 speed {np.median(_a):.3f}, pupil {np.median(_b):.3f}, '
+              f'both {np.median(_c):.3f}, chance {np.median(_nl):.3f} '
+              f'({(1 - np.median(_c)) * 100:.0f}% of the profile is neither)')
+
+    ax = fig.add_subplot(grow[0])
+    _lp(ax, 'H', dx=-.17)
+    _gl = ['VIS', 'MEC', 'MECSPD']
+    _gx = np.arange(len(_gl))
+    for _j, (_k, _c, _lab) in enumerate(((0, '#4a7fb5', 'running speed'),
+                                         (1, '#b8860b', 'pupil (luminance)'))):
+        v = [np.median(_R[g][_k]) for g in _gl]
+        lo = [np.percentile(_R[g][_k], 25) for g in _gl]
+        hi = [np.percentile(_R[g][_k], 75) for g in _gl]
+        ax.bar(_gx + (_j - .5) * .34, v, .32, color=_c, lw=0, label=_lab)
+        ax.errorbar(_gx + (_j - .5) * .34, v,
+                    yerr=[np.array(v) - lo, np.array(hi) - np.array(v)],
+                    fmt='none', ecolor='0.3', lw=.8, capsize=2)
+    for i_, g in enumerate(_gl):
+        both = np.median(_R[g][2])
+        ax.plot([i_ - .3, i_ + .3], [both, both], color='k', lw=1.4, zorder=5)
+        ax.text(i_, both + .02, f'{(1 - both) * 100:.0f}% left',
+                ha='center', va='bottom', fontsize=5.8, color='0.2')
+    # the floor two free parameters buy on a profile this smooth, named in the
+    # legend rather than annotated on the axes, where it landed on the bars
+    ax.axhline(np.median(np.r_[[np.median(_R[g][3]) for g in _gl]]),
+               color='0.55', lw=.9, ls=':', label='one random regressor')
+    ax.set_xticks(_gx)
+    ax.set_xticklabels(['VIS\nno speed', 'MEC\nno speed', 'MEC\nspeed-mod'],
+                       fontsize=6.8, linespacing=1.3)
+    ax.set_ylabel('variance of the profile\nexplained (R$^2$)', fontsize=8)
+    ax.set_ylim(0, .78)
+    ax.set_title('black bar = both together', fontsize=7.0, loc='left')
+    ax.legend(fontsize=5.6, frameon=False, loc='upper left')
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+    # ---- I: the counts by structure -----------------------------------------
+    ax = fig.add_subplot(grow[1])
+    _lp(ax, 'I', dx=-.20)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
