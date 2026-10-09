@@ -265,14 +265,15 @@ if __name__ == '__main__':
     _rv = np.array([_corr(p_, _pup_i) for p_ in PV])
     _rm = np.array([_corr(p_, _pup_i) for p_ in PM])
 
-    fig = plt.figure(figsize=(10.6, 11.4))
-    outer = fig.add_gridspec(4, 1, height_ratios=[1.35, 1.15, 1.0, 1.0],
-                             hspace=.60, left=.065, right=.975, top=.97,
-                             bottom=.045)
+    fig = plt.figure(figsize=(10.6, 9.4))
+    outer = fig.add_gridspec(3, 1, height_ratios=[1.30, 1.20, 1.0], hspace=.60,
+                             left=.065, right=.975, top=.97, bottom=.055)
     gex = outer[0].subgridspec(1, 2, wspace=.30)
-    gclu = outer[1].subgridspec(1, 2, wspace=.34)
-    gmid = outer[2].subgridspec(1, 3, width_ratios=[.90, 1.25, 1.05], wspace=.52)
-    gbot = outer[3].subgridspec(1, 2, width_ratios=[1.0, .85], wspace=.42)
+    # E sits with C and D: it is the same peak-position information those two
+    # heatmaps show, summarised, so it belongs beside them rather than opening
+    # a row of its own
+    gclu = outer[1].subgridspec(1, 3, width_ratios=[1.0, 1.0, .52], wspace=.40)
+    gbot = outer[2].subgridspec(1, 3, width_ratios=[1.10, .88, .80], wspace=.60)
 
     # ---- A, B: two sessions, each with its MEC state beside its VIS cells ----
     for si, (mo, dy) in enumerate(EX_SESSIONS):
@@ -441,8 +442,8 @@ if __name__ == '__main__':
                                                               fontsize=6.5)
         axh.set_xlabel('Position (cm)', fontsize=8)
         axh.tick_params(labelsize=7)
-        axh.set_title(f'{_nm}: {n_} cells, clustered on profile shape',
-                      fontsize=7.5, loc='left')
+        # short: the full phrase ran into the 'cluster means' title beside it
+        axh.set_title(f'{_nm}: {n_} cells', fontsize=7.5, loc='left')
 
         # one axes per cluster, stacked, each with its own mean +/- SEM
         edges = np.r_[0, bounds, n_]
@@ -475,7 +476,7 @@ if __name__ == '__main__':
     # Cumulative rather than binned: the KS statistic beneath the panel is a
     # distance between these curves and the diagonal, so the plot and the test
     # are then the same object, and no bin width has to be chosen.
-    ax = fig.add_subplot(gmid[0]); _lp(ax, 'E', dx=-.30)
+    ax = fig.add_subplot(gclu[2]); _lp(ax, 'E', dx=-.34)
     pk = x[np.argmax(PV, axis=1)]; pkm = x[np.argmax(PM, axis=1)]
     for v_, c_, lab in ((pk, '#8C6BB1', f'VIS ({len(pk)})'),
                         (pkm, '0.35', f'MEC ({len(pkm)})')):
@@ -493,63 +494,27 @@ if __name__ == '__main__':
     ax.legend(fontsize=6, frameon=False, loc='upper left')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-    # ---- E: one cell, trials sorted by type, means above ---------------------
+    # The cued/uncued example panel was removed; the population statistic it
+    # carried is still computed here and quoted in the caption, since it is one
+    # of the two tests of what these cells follow.
     def cue_split(rs):
         a, b = [], []
         for r in rs:
             for tag, acc in (('b', a), ('nb', b)):
                 m = r['cue'] == tag
                 if m.sum() >= 5:
-                    p = np.nanmean(r['maps'][m], axis=0)
-                    acc.append((p - np.nanmean(p)) / (np.nanstd(p) + 1e-12))
+                    pr = np.nanmean(r['maps'][m], axis=0)
+                    acc.append((pr - np.nanmean(pr)) / (np.nanstd(pr) + 1e-12))
         return np.array(a), np.array(b)
     CA, CB = cue_split(V)
     n = min(len(CA), len(CB))
     rzm = (x >= RZ[0]) & (x <= RZ[1])
     w = wilcoxon(CA[:n][:, rzm].mean(1), CB[:n][:, rzm].mean(1))
+    print(f'  cued vs uncued in the reward zone: p = {w.pvalue:.3g} ({n} cells)')
 
-    def _cue_gain(r):
-        a, b = r['cue'] == 'b', r['cue'] == 'nb'
-        if a.sum() < 5 or b.sum() < 5:
-            return -9
-        pa = np.nanmean(r['maps'][a], 0); pb = np.nanmean(r['maps'][b], 0)
-        sc = np.nanstd(np.nanmean(r['maps'], 0)) + 1e-12
-        return float((np.nanmean(pa[rzm]) - np.nanmean(pb[rzm])) / sc)
-    ex = max(V, key=_cue_gain)
-    gd = gmid[1].subgridspec(2, 1, height_ratios=[.50, 1.0], hspace=.12)
-    axm = fig.add_subplot(gd[0])
-    for tag, c_, lab in (('b', '#c04744', 'cued (beacon)'),
-                         ('nb', '#2b6cb0', 'uncued')):
-        axm.plot(x, np.nanmean(ex['maps'][ex['cue'] == tag], 0), color=c_,
-                 lw=1.3, label=lab)
-    axm.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
-    axm.set_xlim(0, TL); axm.tick_params(labelbottom=False, labelsize=6.5)
-    axm.set_ylabel('rate (Hz)', fontsize=7)
-    axm.legend(fontsize=5.8, frameon=False, loc='upper right')
-    axm.set_title(f'M{ex["mouse"]}D{ex["day"]} cl {ex["cluster_id"]} — trials '
-                  f'sorted by type\npopulation: reward zone p = {w.pvalue:.2g} '
-                  f'({n} cells)', fontsize=7.4, loc='left')
-    axm.spines[['top', 'right']].set_visible(False)
-    _lp(axm, 'F', dx=-.17, dy=1.02)
-    ax = fig.add_subplot(gd[1], sharex=axm)
-    o_cue = np.argsort(ex['cue'] != 'b')
-    ax.imshow(ex['maps'][o_cue], aspect='auto', cmap=CMAP,
-              interpolation='nearest', extent=[0, TL, len(o_cue) - .5, -.5])
-    _nb = int((ex['cue'] == 'b').sum())
-    ax.axhline(_nb - .5, color='w', lw=1.2)
-    ax.text(TL * .985, _nb * .5, 'cued', color='w', fontsize=6, ha='right',
-            va='center', rotation=90)
-    ax.text(TL * .985, _nb + (len(o_cue) - _nb) * .5, 'uncued', color='w',
-            fontsize=6, ha='right', va='center', rotation=90)
-    for b in RZ:
-        ax.axvline(b, color='w', lw=.9, ls='--')
-    ax.set_xlabel('Position (cm)', fontsize=8)
-    ax.set_ylabel('Trial', fontsize=8); ax.tick_params(labelsize=7)
-    for sp in ax.spines.values():
-        sp.set_visible(False)
 
     # ---- F: the luminance proxy ---------------------------------------------
-    ax = fig.add_subplot(gmid[2]); _lp(ax, 'G', dx=-.26)
+    ax = fig.add_subplot(gbot[0]); _lp(ax, 'F', dx=-.22)
     axb = ax.twinx()
     axb.plot(x, _pup_i, color='#b8860b', lw=1.4, zorder=3)
     axb.set_ylabel('z(pupil) — dilated = darker', fontsize=6.8,
@@ -566,7 +531,7 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7); ax.spines[['top']].set_visible(False)
 
     # ---- G: per-cell correlations, as a boxplot -----------------------------
-    ax = fig.add_subplot(gbot[0]); _lp(ax, 'H', dx=-.22)
+    ax = fig.add_subplot(gbot[1]); _lp(ax, 'G', dx=-.30)
     _df = pd.DataFrame({'r': np.r_[_rv[np.isfinite(_rv)], _rm[np.isfinite(_rm)]],
                         'region': (['VIS'] * int(np.isfinite(_rv).sum())
                                    + ['MEC'] * int(np.isfinite(_rm).sum()))})
@@ -589,7 +554,7 @@ if __name__ == '__main__':
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     # ---- H: the counts by structure -----------------------------------------
-    ax = fig.add_subplot(gbot[1]); _lp(ax, 'I', dx=-.26)
+    ax = fig.add_subplot(gbot[2]); _lp(ax, 'H', dx=-.32)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
