@@ -797,35 +797,44 @@ if __name__ == '__main__':
             nul = np.array([_medr(_PROF[_gn], _surrogate(_reg))
                             for _ in range(N_SUR)])
             pv = (np.sum(np.abs(nul) >= abs(obs)) + 1) / (N_SUR + 1)
-            _ST[(_rn_, _gn)] = (obs, np.percentile(np.abs(nul), 95), pv)
+            _ST[(_rn_, _gn)] = (obs, np.percentile(nul, [2.5, 50, 97.5]), pv)
             print(f'  {_rn_:18} {_gn:7} median r {obs:+.3f}, '
                   f'surrogate |r| 95th pct {np.percentile(np.abs(nul), 95):.3f}, '
                   f'p = {pv:.3f}')
 
     ax = fig.add_subplot(grow[0])
     _lp(ax, 'E', dx=-.24)
+    # The null is drawn as what it is -- the spread of 500 random curves --
+    # rather than as a band behind a bar, which reads as an error bar on the
+    # bar and means the opposite of what it is.
     _gx = np.arange(len(_GL))
     for _j, (_rn_, _reg, _c) in enumerate(_REG):
-        off = (_j - .5) * .36
+        off = (_j - .5) * .40
         for i_, (_gn, _, _, _) in enumerate(_GL):
-            obs, hi, pv = _ST[(_rn_, _gn)]
-            # the band a curve of the same smoothness reaches by chance
-            ax.add_patch(plt.Rectangle((i_ + off - .16, -hi), .32, 2 * hi,
-                                       facecolor='0.88', edgecolor='none',
+            obs, (lo, mid, hi), pv = _ST[(_rn_, _gn)]
+            xx = i_ + off
+            ax.add_patch(plt.Rectangle((xx - .13, lo), .26, hi - lo,
+                                       facecolor='0.86', edgecolor='none',
                                        zorder=1))
-            ax.bar(i_ + off, obs, .30, color=_c, lw=0, zorder=2,
-                   label=_rn_ if i_ == 0 else None)
-            ax.text(i_ + off, .50, ('*' if pv < .05 else 'n.s.'),
-                    ha='center', va='center', fontsize=6.2,
-                    color='0.15' if pv < .05 else '0.45')
-    ax.axhline(0, color='k', lw=.9)
+            ax.plot([xx - .13, xx + .13], [mid, mid], color='0.55', lw=.8,
+                    zorder=2)
+            ax.plot([xx, xx], [mid, obs], color=_c, lw=1.0, zorder=3)
+            ax.plot(xx, obs, 'o', ms=5.2, color=_c, zorder=4,
+                    label=_rn_ if i_ == 0 else None)
+            if pv < .05:
+                ax.text(xx, obs + .035, '*', ha='center', va='bottom',
+                        fontsize=8, color='0.15')
+    ax.axhline(0, color='0.75', lw=.7, ls=':')
     ax.set_xticks(_gx); ax.set_xticklabels([g[2] for g in _GL], fontsize=6.0,
                                            linespacing=1.3)
-    ax.set_ylim(-.42, .62)
-    ax.set_ylabel('median correlation of the\nposition profile', fontsize=7.5)
-    ax.set_title('grey = what a curve of the same\nsmoothness reaches by chance',
+    ax.set_xlim(-.6, len(_GL) - .4)
+    ax.set_ylim(-.26, .46)
+    ax.set_ylabel('how well the firing matches\nthe curve (median r)',
+                  fontsize=7.5)
+    ax.set_title('dot = these cells.  grey = 500 random\ncurves of the same smoothness',
                  fontsize=6.8, loc='left')
-    ax.legend(fontsize=5.8, frameon=False, loc='lower left')
+    ax.legend(fontsize=5.8, frameon=False, loc='lower left',
+              handlelength=.8, handletextpad=.4)
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     # ---- F: where these cells' position structure actually sits -------------
