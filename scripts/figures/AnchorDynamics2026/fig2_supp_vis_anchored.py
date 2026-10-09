@@ -472,7 +472,7 @@ if __name__ == '__main__':
             memb = _P[np.array(order)[a_:b_]]
             mu = memb.mean(0); se = memb.std(0) / np.sqrt(len(memb))
             c_ = cmap_[ordered[a_]]
-            _cm.append((mu, se, c_, b_ - a_))
+            _cm.append((mu, se, c_, np.array(order)[a_:b_]))
             axc2 = fig.add_subplot(gp[ci])
             axc2.fill_between(x, mu - se, mu + se, color=c_, alpha=.30, lw=0)
             axc2.plot(x, mu, color=c_, lw=1.2)
@@ -531,7 +531,13 @@ if __name__ == '__main__':
     # came from. The cumulative peak-position panel that used to open this row
     # is gone -- these show the same positional structure with the cluster
     # identities kept, which the pooled distribution threw away.
+    #
+    # The per-cell correlations used to be one panel pooling each region. They
+    # are split by cluster and set beside the curves they belong to instead,
+    # so the question the row asks -- WHICH cells follow the luminance proxy --
+    # is answered against the shapes rather than against a region label.
     _PUP_C = '0.15'          # not a palette colour: the pupil is the reference
+    _BOXW, _BOXPAD = .058, .072   # clear of the twin's rotated label
     for _j, (_nm, _ttl, _r) in enumerate(
             (('VIS', 'visual cortex, no speed tuning', _rv),
              ('MEC', 'entorhinal, no speed tuning', _rm))):
@@ -549,7 +555,7 @@ if __name__ == '__main__':
         axb.tick_params(labelsize=6.2, colors=_PUP_C)
         axb.spines['right'].set_color(_PUP_C)
         axb.spines[['top', 'left']].set_visible(False)
-        for mu, se, c_, _nc in _cmeans[_nm]:
+        for mu, se, c_, _ix in _cmeans[_nm]:
             ax.fill_between(x, mu - se, mu + se, color=c_, alpha=.25,
                             linewidth=0, edgecolor='none')
             ax.plot(x, mu, color=c_, lw=1.3)
@@ -563,38 +569,47 @@ if __name__ == '__main__':
         ax.tick_params(labelsize=7); ax.spines[['top']].set_visible(False)
         _lp(ax, 'FG'[_j], dx=-.30)
 
-    # H and I take the width left to the right of G
-    _PAD = .075
-    _rx0 = _hpos['MEC'].x1 + _PAD
-    _rw = (.975 - _rx0 - _PAD) / 2
-
-    # ---- H: per-cell correlations, as a boxplot -----------------------------
-    ax = fig.add_subplot(gbot[2])
-    _p = ax.get_position(); ax.set_position([_rx0, _p.y0, _rw, _p.height])
-    _lp(ax, 'H', dx=-.26)
-    _df = pd.DataFrame({'r': np.r_[_rv[np.isfinite(_rv)], _rm[np.isfinite(_rm)]],
-                        'region': (['VIS'] * int(np.isfinite(_rv).sum())
-                                   + ['MEC'] * int(np.isfinite(_rm).sum()))})
-    sns.boxplot(data=_df, x='region', y='r', hue='region', legend=False,
-                palette={'VIS': '#8C6BB1', 'MEC': '0.65'}, width=.6,
-                fliersize=0, linewidth=.9, ax=ax)
-    ax.axhline(0, color='0.6', lw=.8, ls=':')
-    for i_, reg_ in enumerate(['VIS', 'MEC']):
-        v_ = _df.r[_df.region == reg_]
-        ax.text(i_, 1.015, f'p = {wilcoxon(v_).pvalue:.1g}', ha='center',
-                va='bottom', fontsize=6.2, color='0.3',
-                transform=ax.get_xaxis_transform())
-    ax.set_xlabel(''); ax.set_ylabel('corr. with pupil profile', fontsize=8,
-                                     labelpad=1)
-    ax.set_title('positive = fires where it is darker', fontsize=7.4,
-                 loc='left', pad=16)
-    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+        # one box per cluster, in the cluster's own colour, immediately right
+        # of the curves
+        axq = fig.add_axes([_hp.x1 + _BOXPAD, _p.y0, _BOXW, _p.height])
+        _rows, _pal = [], {}
+        for _ci, (_mu, _se, _c, _ix) in enumerate(_cmeans[_nm]):
+            _v = _r[_ix]; _v = _v[np.isfinite(_v)]
+            _lab = str(_ci + 1)
+            _pal[_lab] = _c
+            _rows += [{'cluster': _lab, 'r': float(q)} for q in _v]
+        _dq = pd.DataFrame(_rows)
+        sns.boxplot(data=_dq, x='cluster', y='r', hue='cluster', legend=False,
+                    palette=_pal, width=.72, fliersize=0, linewidth=.8, ax=axq)
+        axq.axhline(0, color='0.6', lw=.8, ls=':')
+        # a one-cell cluster has no spread to test, so only clusters with
+        # enough cells get a p-value
+        for _ci, (_mu, _se, _c, _ix) in enumerate(_cmeans[_nm]):
+            _v = _r[_ix]; _v = _v[np.isfinite(_v)]
+            _t = (f'{wilcoxon(_v).pvalue:.2g}' if len(_v) >= 6 else
+                  f'n={len(_v)}')
+            print(f'  {_nm} cluster {_ci + 1}: n={len(_v)} '
+                  f'median r = {np.median(_v):+.2f}')
+            axq.text(_ci, 1.01, _t, ha='center', va='bottom', fontsize=5.4,
+                     color='0.3', rotation=90,
+                     transform=axq.get_xaxis_transform())
+        axq.set_ylim(-1.05, 1.05)
+        axq.set_xlabel('cluster', fontsize=7.5, labelpad=1)
+        # the sign goes in the label rather than a title: the p-values sit
+        # above the boxes and a title there would land on top of them
+        axq.set_ylabel('corr. with pupil  (+ = darker)', fontsize=7.0,
+                       labelpad=1)
+        axq.tick_params(labelsize=6.5)
+        axq.spines[['top', 'right']].set_visible(False)
+        if _j:
+            _hbox = axq.get_position()      # H starts right of G's boxes
 
     # ---- H: the counts by structure -----------------------------------------
     ax = fig.add_subplot(gbot[3])
     _p = ax.get_position()
-    ax.set_position([_rx0 + _rw + _PAD, _p.y0, _rw, _p.height])
-    _lp(ax, 'I', dx=-.28)
+    _hx0 = _hbox.x1 + .085
+    ax.set_position([_hx0, _p.y0, .975 - _hx0, _p.height])
+    _lp(ax, 'H', dx=-.20)
     u = pd.read_csv(f'{PS}/unit_table.csv')
     reg = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id',
                                                   'brain_region']]
@@ -618,7 +633,7 @@ if __name__ == '__main__':
     ax.set_xticks(xx); ax.set_xticklabels(labs, fontsize=7.5)
     ax.set_ylabel('cells with no open-field\nspeed tuning', fontsize=8)
     ax.set_title('only VIS locks anchored', fontsize=7.5, loc='left')
-    ax.legend(fontsize=5.8, frameon=False, loc='upper right')
+    ax.legend(fontsize=5.8, frameon=False, loc='upper left')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
     plt.savefig(OUT, dpi=200, bbox_inches='tight')
