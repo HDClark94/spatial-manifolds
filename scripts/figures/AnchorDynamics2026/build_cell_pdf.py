@@ -444,6 +444,39 @@ SUPPLEMENTS = [
      '3 degrees, all p >= 0.06. Taken with D, neither the frequency axis nor the depth axis of '
      'theta-gamma organisation is reorganised by the state, which is a constraint on what the '
      'state can be doing to this circuit rather than a failure to measure it.'),
+    ('Figure S11', 'fig7_supp_gamma_locking.pdf',
+     'Spike coupling to gamma, by cell identity and by anchoring state',
+     'Figure 8 has fast-spiking interneurons generating the gamma that nests in theta, and '
+     'Figure 2 has interneurons among the cells that follow the anchoring state; the two meet '
+     'only if the interneurons here are coupled to the gamma in this field potential. Pairwise '
+     'phase consistency is used throughout rather than the mean resultant length, because '
+     'interneurons fire about five times more than principal cells (F) and the resultant '
+     'length rises as spike count falls, so an MRL comparison between them would largely '
+     'compare firing rates. (A) The control the rest of the figure rests on. A fast-spiking '
+     'cell\'s waveform leaks into the local field at exactly these frequencies, so a cell '
+     'scored against its own channel is partly correlating with itself: own-channel coupling '
+     'runs two to four times the value 120 um away, and falls to near zero at 1.2 mm. The fall '
+     'with distance is what distinguishes a local field from a waveform, and every other panel '
+     'uses the nearest channel group at least 120 um from the cell -- nearest rather than '
+     'furthest, because gamma is local and the far end of the entorhinal span would '
+     'manufacture a null as surely as the own channel manufactures a result. (B) Coupling by '
+     'identity and band, bars the median over sessions with the interquartile range. '
+     'Interneurons are not the most coupled class in either band -- grid cells are, by about '
+     'twofold -- and interneurons do not differ from the principal classes (per session, '
+     'p = 0.60 slow and p = 0.92 fast). (C) Where in the fast-gamma cycle each identity fires, '
+     'as a mean vector whose length is the consistency across cells. All four are consistent '
+     '(R = 0.47 to 0.59) and interneurons sit later than the rest. (D) That lag per session. '
+     'In 60-100 Hz gamma interneurons follow the principal cells by a median 45 degrees '
+     '(p = 1 x 10^-4, later in 25 of 31 sessions), which is the direction pyramidal-interneuron '
+     'gamma predicts. There is no lag in 30-48 Hz (p = 0.77), where interneurons have no '
+     'consistent preferred phase across cells at all (R = 0.05, against 0.22 to 0.28 for the '
+     'principal classes). (E) The state comparison, which is null: four tests, two bands by '
+     'two cell classes, give Holm-corrected p >= 0.17. The smallest is principal cells coupling '
+     'slightly less to fast gamma when anchored, the same direction as the theta-fast-gamma '
+     'uncoupling in Figure 7G, and it does not survive correction. The interneuron-gamma link '
+     'the model assumes is therefore partly supported -- the phase relationship is there in '
+     'fast gamma -- while the privileged coupling it needs is not, and nothing here ties that '
+     'coupling to the anchoring state.'),
 ]
 
 REFS_FULL = [
