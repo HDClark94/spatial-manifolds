@@ -52,8 +52,11 @@ import pynapple as nap
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 from spatial_manifolds.mlencoding import poisson_pseudoR2
 
-_ST = open('/private/tmp/claude-501/-Users-harryclark-Documents-spatial-manifolds/'
-           '35f3d8d1-3ead-4d48-8089-491c15b000b7/scratchpad/speed_tuning.py').read()
+# the helper lives beside this file; it used to be exec'd out of a session
+# scratchpad, which stops existing when that session ends
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_ST = open(_os.path.join(_HERE, 'speed_tuning.py')).read()
 exec(_ST[:_ST.index(chr(10) + 'if __name__')])          # helpers only
 
 PARAMS = {'objective': 'count:poisson', 'eval_metric': 'logloss', 'seed': 2925,

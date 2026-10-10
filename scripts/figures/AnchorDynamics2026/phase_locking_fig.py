@@ -17,8 +17,11 @@ from scipy.stats import wilcoxon
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 from spatial_manifolds.anchoring import ANCH_COLOR, NONANCH_COLOR
 
-s = open('/private/tmp/claude-501/-Users-harryclark-Documents-spatial-manifolds/'
-         '35f3d8d1-3ead-4d48-8089-491c15b000b7/scratchpad/phase_locking.py').read()
+# the helper lives beside this file; it used to be exec'd out of a session
+# scratchpad, which stops existing when that session ends
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+s = open(_os.path.join(_HERE, 'phase_locking.py')).read()
 exec(s[:s.index(chr(10) + 'if __name__')])
 
 plt.rcParams['font.family'] = 'Arial'

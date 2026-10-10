@@ -40,8 +40,11 @@ sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/scripts/figure
                    'AnchorDynamics2026')
 from lfp_batch import LFP_ROOT, FS, mec_groups                      # noqa
 
-s = open('/private/tmp/claude-501/-Users-harryclark-Documents-spatial-manifolds/'
-         '35f3d8d1-3ead-4d48-8089-491c15b000b7/scratchpad/speed_deltapr2.py').read()
+# the helper lives beside this file; it used to be exec'd out of a session
+# scratchpad, which stops existing when that session ends
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+s = open(_os.path.join(_HERE, 'speed_deltapr2.py')).read()
 exec(s[:s.index(chr(10) + 'if __name__')])
 
 DEC = 4                      # 1000 -> 250 Hz

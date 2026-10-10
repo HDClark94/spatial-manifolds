@@ -9,8 +9,11 @@ not about how much the population fires.
 import sys, warnings; warnings.filterwarnings('ignore')
 import numpy as np, pandas as pd
 from scipy.stats import wilcoxon
-exec(open('/private/tmp/claude-501/-Users-harryclark-Documents-spatial-manifolds/'
-          '35f3d8d1-3ead-4d48-8089-491c15b000b7/scratchpad/speed_tuning.py')
+# the helper lives beside this file; it used to be exec'd out of a session
+# scratchpad, which stops existing when that session ends
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+exec(open(_os.path.join(_HERE, 'speed_tuning.py'))
      .read().split('if __name__')[0])
 T = pd.read_csv(f'{OUT}/theta_frequency.csv')
 rows = []

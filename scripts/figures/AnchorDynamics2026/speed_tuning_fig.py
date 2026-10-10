@@ -20,9 +20,11 @@ from scipy.stats import wilcoxon
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 from spatial_manifolds.anchoring import ANCH_COLOR, NONANCH_COLOR
 
-exec(open('/private/tmp/claude-501/-Users-harryclark-Documents-spatial-manifolds/'
-          '35f3d8d1-3ead-4d48-8089-491c15b000b7/scratchpad/speed_tuning.py')
-     .read().split('if __name__')[0])
+# the analysis lives beside this file; an earlier version exec'd it out of a
+# session scratchpad, which stopped existing when that session ended
+import os as _os
+exec(open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                        'speed_tuning.py')).read().split('if __name__')[0])
 
 plt.rcParams['font.family'] = 'Arial'
 FIG = '/Users/harryclark/Documents/spatial-manifolds/scripts/figures/AnchorDynamics2026'
@@ -47,7 +49,7 @@ st = T[(T.mouse == MO) & (T.day == DY)]
 R, speed, anch, ids = binned(MO, DY, dict(zip(st.trial.astype(int), st.anch.astype(bool))))
 rate = R[:, list(ids).index(CL)]
 
-fig, axes = plt.subplots(2, 3, figsize=(9.8, 6.0))
+fig, axes = plt.subplots(2, 3, figsize=(9.8, 6.3))
 ax = axes[0, 0]
 edges = np.arange(np.floor(np.quantile(speed, .02)), np.quantile(speed, .98), 5.)
 ctr = edges[:-1] + 2.5
@@ -132,7 +134,16 @@ pairpanel(axes[1, 2], sl['a'].values, sl['n'].values,
 for a in axes.ravel():
     a.spines[['top', 'right']].set_visible(False)
     a.tick_params(labelsize=7.5)
-plt.tight_layout()
-out = f'{FIG}/fig6_speed_tuning_by_state.pdf'
+# named for the figure it supports; the old fig6_ name dates from when
+# the field-potential figure was Figure 6
+out = f'{FIG}/fig7_supp_speed_tuning.pdf'
+# panel letters and a headline, so the figure can stand in the supplement
+for _i, _ax in enumerate(axes.ravel()):
+    _ax.text(-.22, 1.02, 'ABCDEF'[_i], transform=_ax.transAxes, fontsize=10,
+             weight='bold', va='bottom', ha='left')
+fig.suptitle('Speed coding does not change between the anchoring states; the '
+             'amount of unexpected speed does',
+             fontsize=10, x=.045, ha='left', y=.985)
+fig.subplots_adjust(top=.90, hspace=.46, wspace=.34)
 plt.savefig(out, dpi=200, bbox_inches='tight')
 print('saved', out)

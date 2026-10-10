@@ -40,8 +40,11 @@ import xgboost as xgb
 from sklearn.model_selection import KFold
 from scipy.stats import wilcoxon
 
-s = open('/private/tmp/claude-501/-Users-harryclark-Documents-spatial-manifolds/'
-         '35f3d8d1-3ead-4d48-8089-491c15b000b7/scratchpad/speed_deltapr2.py').read()
+# the helper lives beside this file; it used to be exec'd out of a session
+# scratchpad, which stops existing when that session ends
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+s = open(_os.path.join(_HERE, 'speed_deltapr2.py')).read()
 exec(s[:s.index(chr(10) + 'if __name__')])
 
 SMALL = {'max_depth': 3, 'learning_rate': 0.05, 'subsample': 0.6, 'seed': 2925}

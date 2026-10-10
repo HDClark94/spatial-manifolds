@@ -500,7 +500,27 @@ SUPPLEMENTS = [
      'uncoupling in Figure 7G, and it does not survive correction. The interneuron-gamma link '
      'the model assumes is therefore partly supported -- the phase relationship is there in '
      'fast gamma -- while the privileged coupling it needs is not, and nothing here ties that '
-     'coupling to the anchoring state.'),
+     'coupling to the anchoring state.'),,
+    ('Figure S12', 'fig7_supp_speed_tuning.pdf',
+     'Speed coding does not change between the anchoring states',
+     'Theta loses much of its entrainment to running speed in the anchored state, and the '
+     'account in Figure 8 turns on whether the cells lose it too. They do not. (A) One '
+     'speed-tuned cell\'s tuning curve in each state, mean and SEM per speed bin. (B) Session '
+     'medians of GAIN -- slope divided by mean rate -- for speed cells, paired within session: '
+     'p = 0.59 across 27 sessions. Gain rather than raw slope is used because a cell that simply '
+     'fires less when anchored has a smaller slope with its tuning shape untouched, and the '
+     'question is whether speed SENSITIVITY changes rather than whether rate does. (C) Every '
+     'speed cell, anchored gain against non-anchored: 1,973 cells scattered about the identity '
+     'line, 45% below it. (D) Population speed decoding, with bins matched for count and for '
+     'speed distribution. If anything speed decodes slightly BETTER when anchored (p = 0.011), '
+     'which is the opposite of a flattened speed code. (E) What does change, and it is '
+     'behavioural: there is substantially less UNEXPECTED speed when anchored -- the standard '
+     'deviation of speed after position is partialled out falls from 17.1 to 13.6 cm/s '
+     '(p = 4 x 10^-6) -- because anchored running is more stereotyped. (F) Sensitivity to that '
+     'unexpected speed, in Hz per cm/s, which does not change (p = 0.62). Taken together, the '
+     'velocity signal reaching these cells is intact in both states and the cells read it just '
+     'as well; what weakens is theta\'s entrainment to it, which is why Figure 8 places the '
+     'switch on the drive arriving at the circuit rather than on the circuit\'s own coding.')
 ]
 
 REFS_FULL = [
