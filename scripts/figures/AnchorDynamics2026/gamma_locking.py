@@ -25,6 +25,37 @@ Bands are Figure 7's: slow gamma 30-48 Hz and 60-100 Hz, which the CA1
 literature would call mid gamma. Trials are speed-matched between states as
 everywhere else, and running samples only.
 
+WHAT IT FOUND, over 4,308 entorhinal cells in 32 sessions.
+
+There IS spike-field coupling to gamma here, and it is real rather than leak:
+PPC falls from the cell's own group to a group 120 um away and then to near
+zero at 1.2 mm, which is a local field, not a waveform.
+
+But it does not single out the fast-spiking cells. Interneurons are no more
+locked than principal cells in either band (per session, p = 0.60 slow and
+p = 0.92 fast), and GRID cells are the most locked of the four identities --
+about twice any other class in both bands. Firing rate does not explain this;
+PPC is uncorrelated with spike count within every class.
+
+The one result that does support the model: in 60-100 Hz gamma, interneurons
+fire 32 degrees LATER in the cycle than principal cells (p = 9.6e-5, later in
+25 of 31 sessions), which is the direction PING predicts, with the pyramidal
+population leading and the fast-spiking cells following. There is no such lag
+in 30-48 Hz gamma (p = 0.77), and in that band the interneurons have no
+consistent preferred phase across cells at all (R = 0.05, against 0.22-0.28
+for the principal classes) while in fast gamma every class is consistent
+(R = 0.47-0.59).
+
+The coupling does not change with the anchoring state. Four comparisons --
+two bands by two cell classes -- give Holm-corrected p >= 0.17, the smallest
+being principal cells locking slightly less to fast gamma when anchored
+(0.0028 against 0.0042, raw p = 0.043), which is the same direction as the
+theta-fast-gamma uncoupling in Figure 7G but does not survive correction.
+
+So the interneuron-gamma link in the Figure 8 model is partly supported --
+the phase lag is there -- but the privileged coupling it assumes is not, and
+nothing here ties that coupling to the anchoring state.
+
 Writes data/lfp/gamma_locking.csv
 """
 import os
