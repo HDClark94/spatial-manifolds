@@ -94,9 +94,9 @@ def arrow(ax, p0, p1, color, rad=0., lw=1.3, inhib=False, ls='-', shrink=9):
         connectionstyle=f'arc3,rad={rad}'))
 
 
-fig = plt.figure(figsize=(9.5, 5.3))
-outer = fig.add_gridspec(2, 1, height_ratios=[1.02, 1.0], hspace=.46,
-                         left=.055, right=.985, top=.88, bottom=.085)
+fig = plt.figure(figsize=(9.5, 7.0))
+outer = fig.add_gridspec(3, 1, height_ratios=[1.02, 1.0, 1.02], hspace=.58,
+                         left=.055, right=.985, top=.93, bottom=.045)
 top = outer[0].subgridspec(1, 2, width_ratios=[1.34, 1.0], wspace=.20)
 bot = outer[1].subgridspec(1, 3, width_ratios=[.92, .92, 1.04], wspace=.52)
 
@@ -246,8 +246,40 @@ ax.text(.0, -.17, 'the field rotates while the spike\u2013field architecture\n'
                   'reorganisation of it',
         transform=ax.transAxes, fontsize=6.3, color='0.45', linespacing=1.35)
 
-fig.text(.055, .955, 'HYPOTHESIS', fontsize=8, weight='bold', color='#8a1c1c')
-fig.text(.163, .955, '— only A is a schematic; B, C, D and E are measured',
+# ── F: what it comes to, and what would break it ──────────────────────────
+ax = fig.add_subplot(outer[2]); ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+ax.axis('off')
+ax.add_patch(FancyBboxPatch((.004, -.12), .992, 1.10,
+                            boxstyle='round,pad=.012', fc='#faf8f4',
+                            ec='0.82', lw=.9, zorder=0))
+ax.text(.018, .90, 'The state changes what arrives at this circuit, not what '
+                   'the circuit does with it.', fontsize=8.2, weight='bold',
+        color='#2a2a2a', va='center')
+# lines are broken by hand and the blocks stacked: left to the renderer the
+# longest one sets the tight bounding box and the figure is published a third
+# wider than its panels need
+BLOCKS = [
+    (.74, 'Already consistent:',
+     'a decoder trained ON non-anchored trials does no better than one trained on anchored\n'
+     'trials and tested out of frame (31.9 against 30.4 cm, p = 0.04, 56 sessions) — there is no\n'
+     'second map to learn.'),
+    (.46, 'Prediction 1:',
+     'move the gate and the state follows; move the gamma circuit and it should not. A\n'
+     'cholinergic or attentional manipulation should shift the anchored fraction, while a local\n'
+     'manipulation that changes gamma power should move C and leave D alone.'),
+    (.18, 'Prediction 2:',
+     'landmarks should matter only while the gate is open. A first pass is consistent — the beacon\'s\n'
+     'effect on anchoring is +0.005 with the pupil constricted against −0.008 when dilated (interaction\n'
+     'p = 0.007, 57 sessions) — but neither simple effect is significant alone, so this needs a manipulation.'),
+]
+for yy, head, body in BLOCKS:
+    ax.text(.018, yy, head, fontsize=6.6, weight='bold', color='0.35',
+            va='top')
+    ax.text(.125, yy, body, fontsize=6.5, color='0.35', va='top',
+            linespacing=1.45)
+
+fig.text(.055, .972, 'HYPOTHESIS', fontsize=8, weight='bold', color='#8a1c1c')
+fig.text(.163, .972, '— only A is a schematic; B, C, D and E are measured',
          fontsize=8, color='0.45')
 
 plt.savefig(OUT, dpi=300, bbox_inches='tight')

@@ -326,7 +326,20 @@ FIGURES = [
      'band peaks (p = 0.33 and 0.16); the most gamma-coupled class is grid cells rather than '
      'fast-spiking cells; and connected pairs share the state no more than matched unconnected '
      'ones (Figure 4). The field rotates while the spike-field architecture holds still, which is '
-     'what a state imposed on this circuit looks like rather than a reorganisation of it.'),
+     'what a state imposed on this circuit looks like rather than a reorganisation of it. The '
+     'band beneath states what the account comes to and what would break it. One observation is '
+     'already consistent with it: a decoder trained ON non-anchored trials does no better than '
+     'one trained on anchored trials and tested out of frame (31.9 against 30.4 cm, p = 0.04, '
+     '56 sessions), so there is no second map to learn, as a missing correction predicts and a '
+     're-referenced map does not. Two predictions follow. Moving the gate should move the state '
+     'while moving the gamma circuit should not: a cholinergic or attentional manipulation '
+     'should shift the anchored fraction, whereas a local manipulation that changes gamma power '
+     'should move C and leave D alone. And landmarks should matter only while the gate is open. '
+     'A first pass at the second is consistent -- the beacon raises the anchored fraction by '
+     '0.005 when the pupil is constricted and lowers it by 0.008 when dilated, an interaction '
+     'of p = 0.007 across 57 sessions -- but neither simple effect reaches significance alone '
+     'and an observational split of engagement cannot settle a causal claim, so we report it as '
+     'a direction to test rather than as support.'),
 ]
 
 # Supplemental figures, in the order their main figure appears.
