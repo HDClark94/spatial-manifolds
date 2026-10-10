@@ -500,7 +500,7 @@ SUPPLEMENTS = [
      'uncoupling in Figure 7G, and it does not survive correction. The interneuron-gamma link '
      'the model assumes is therefore partly supported -- the phase relationship is there in '
      'fast gamma -- while the privileged coupling it needs is not, and nothing here ties that '
-     'coupling to the anchoring state.'),,
+     'coupling to the anchoring state.'),
     ('Figure S12', 'fig7_supp_speed_tuning.pdf',
      'Speed coding does not change between the anchoring states',
      'Theta loses much of its entrainment to running speed in the anchored state, and the '
@@ -520,7 +520,7 @@ SUPPLEMENTS = [
      'unexpected speed, in Hz per cm/s, which does not change (p = 0.62). Taken together, the '
      'velocity signal reaching these cells is intact in both states and the cells read it just '
      'as well; what weakens is theta\'s entrainment to it, which is why Figure 8 places the '
-     'switch on the drive arriving at the circuit rather than on the circuit\'s own coding.')
+     'switch on the drive arriving at the circuit rather than on the circuit\'s own coding.'),
 ]
 
 REFS_FULL = [
