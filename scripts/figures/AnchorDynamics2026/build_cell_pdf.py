@@ -280,15 +280,19 @@ FIGURES = [
      'spectrogram, 1.9-150 Hz rebinned into 56 log-spaced bands and smoothed along the trial axis '
      'only. (C) The three band traces. (D) Theta-gamma modulation index for both bands on twinned '
      'axes, fast on the left axis and slow on the right, which they need because slow-gamma MI is '
-     'roughly five times smaller. (E) The two states as spectra across 26 switching sessions. (F) '
-     'The panel that excludes a gain change: theta (-0.094) and mid gamma (-0.108) fall while slow '
-     'gamma rises (+0.105), so the difference reverses sign. (G) Theta-gamma coupling by band; '
-     'fast gamma uncouples (-15.9%, p = 5e-6) while slow gamma does not. (H) Per-session slow '
-     'against fast gamma change: the two are uncorrelated (rho = -0.08) and the quadrant count is '
-     'what the marginals imply, so this is not a demonstrated redistribution. (I) The difference '
-     'index per session. (J) The pooled difference profile, with the SEM across sessions, crossing '
-     'zero near 67 Hz in 25 of 26 sessions. Where in the theta cycle each frequency peaks, '
-     'and how that moves with the state, is shown in Figure S10.'),
+     'roughly five times smaller. (E) The two states as spectra across 26 switching sessions, as '
+     'the spectra themselves above and as the deviation between them below. The deviation '
+     'crosses zero at a median of 67 Hz, and does so in 25 of the 26 sessions, which is what '
+     'makes the next panel a change of sign rather than a change of gain. (F) The same '
+     'difference taken band by band: theta (-0.094) falls while slow gamma rises (+0.105), so '
+     'the difference reverses sign across the spectrum. Mid gamma and the high-frequency band '
+     'were dropped from this panel -- 60-100 Hz already has its own trace in C and D, and the '
+     'high-frequency band carries no state effect at this reference. (G) Theta-gamma coupling '
+     'by band; fast gamma uncouples (-15.9%, p = 5e-6) while slow gamma does not. (H) '
+     'Per-session slow against fast gamma change: the two are uncorrelated (rho = -0.08) and '
+     'the quadrant count is what the marginals imply, so this is not a demonstrated '
+     'redistribution. Where in the theta cycle each frequency peaks, and how that moves with '
+     'the state, is shown in Figure S10.'),
     ('Figure 8', 'fig8_model.pdf',
      'A two-loop account of the anchoring state (hypothesis)',
      'A proposed mechanism, placed with Ideas and speculation rather than with the Results. '
