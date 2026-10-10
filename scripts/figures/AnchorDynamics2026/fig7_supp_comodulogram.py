@@ -303,8 +303,19 @@ for _k, _s in enumerate(EXAMPLES):
     # ends of the entorhinal span than in the middle, so limits taken over the
     # whole map leave the laminar structure the panel is for washed out.
     lim = np.nanpercentile(np.abs(C[2:-2]), 97)
-    ax.pcolormesh(tt, y, C, cmap='RdBu_r', vmin=-lim, vmax=lim,
-                  shading='nearest', rasterized=True)
+    # Each panel is scaled to its own limit: the three sessions differ several
+    # fold in absolute amplitude, so one shared scale would leave two of them
+    # blank. The bar is therefore in units of each panel's own maximum and
+    # says sink from source, not how much.
+    _pc = ax.pcolormesh(tt, y, C / lim, cmap='jet', vmin=-1, vmax=1,
+                        shading='nearest', rasterized=True)
+    if _k == len(EXAMPLES) - 1:
+        # pad clears the layer labels down this panel's right-hand edge
+        _cb = fig.colorbar(_pc, ax=ax, fraction=.06, pad=.17,
+                           ticks=[-1, 0, 1])
+        _cb.ax.set_yticklabels(['source', '0', 'sink'], fontsize=5.4)
+        _cb.ax.set_ylabel('CSD, per panel maximum', fontsize=5.4, labelpad=2)
+        _cb.outline.set_visible(False)
     sc = DZ * 1.1 / max(np.abs(ta).max(), np.abs(tn).max())
     for _M, _c, _ls in ((tn, '#1d6b62', (0, (2.2, 1.4))), (ta, '#7d2f74', '-')):
         for i in range(len(y)):
