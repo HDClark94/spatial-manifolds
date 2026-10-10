@@ -494,7 +494,7 @@ def build(mo, dy):
                            color=cc, edgecolor='k', linewidth=.2, zorder=4)
             ax.set_xlim(MCX - ZOOM, MCX + ZOOM)
             ax.set_ylim(MCY + ZOOM * .78, MCY - ZOOM * .78)
-            ax.text(.5, -.13, f'{S["rad"][fi]:.1f}', transform=ax.transAxes,
+            ax.text(.5, -.20, f'{S["rad"][fi]:.1f}', transform=ax.transAxes,
                     fontsize=6.5, color='0.25', ha='center')
             ax.set_xticks([]); ax.set_yticks([])
             for sp in ax.spines.values():
