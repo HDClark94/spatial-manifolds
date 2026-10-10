@@ -328,7 +328,13 @@ GE = TOP[0].subgridspec(4, 2, height_ratios=[.42, 1.55, .95, .78],
 # generous hspace: E's lower axis carries tick labels and an x-axis label,
 # and F carries a two-line title, so the two run into each other at the
 # spacing the other rows use
-GEF = TOP[1].subgridspec(3, 1, height_ratios=[.46, 1.0, 1.02], hspace=1.15)
+# E's two axes share one frequency axis and belong together, so they are
+# nested and set nearly touching; the wide gap goes between E and F, where an
+# x label and a panel title have to fit. One flat 3-row grid with a single
+# hspace could not do both, and spent a third of the column on white space
+# between the spectrum and the deviation beneath it.
+GEF = TOP[1].subgridspec(2, 1, height_ratios=[1.46, 1.02], hspace=.62)
+GE2 = GEF[0].subgridspec(2, 1, height_ratios=[.46, 1.0], hspace=.12)
 x = np.arange(len(nums))
 
 ax = fig.add_subplot(GE[0, 0])
@@ -376,8 +382,11 @@ for nm, lo, hi, c in BANDS:
 ax.axhline(0, color='0.6', lw=.7, ls=':')
 ax.set_xlim(-.5, len(x) - .5); ax.set_xticks([])
 ax.set_ylabel('band power (z)', fontsize=7)
-ax.legend(fontsize=5.6, frameon=False, ncol=3, loc='lower left',
-          handlelength=1.1, columnspacing=1.1)
+# above the axes at the right: inside, the three entries sat on the traces in
+# whichever block happened to be low at that point
+ax.legend(fontsize=5.6, frameon=False, ncol=3, loc='lower right',
+          bbox_to_anchor=(1.0, 1.01), handlelength=1.1, columnspacing=1.1,
+          borderpad=0, handletextpad=.45)
 tidy(ax); lp(ax, 'C', x=-.20)
 
 ax = fig.add_subplot(GE[3, 0]); shade(ax)
@@ -417,7 +426,7 @@ GQ = OUTER[1].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.15])
 # same two states after session normalisation, which removes the shape and
 # leaves the deviations, and there the same 0.1 is a third of the axis. Both
 # panels are the two STATES, not their difference, so neither duplicates J.
-axs = fig.add_subplot(GEF[0])
+axs = fig.add_subplot(GE2[0])
 for st, col, lab in (('non', NONANCH_COLOR, 'non-anchored'),
                      ('anch', ANCH_COLOR, 'anchored')):
     g = R.groupby('freq')[st].agg(['mean', 'sem'])
@@ -440,7 +449,7 @@ axs.text(.015, .05, 'same shape — no gain change', transform=axs.transAxes,
          fontsize=5.6, color='0.45', ha='left', va='bottom')
 tidy(axs); lp(axs, 'E', x=-.17)
 
-ax = fig.add_subplot(GEF[1], sharex=axs)
+ax = fig.add_subplot(GE2[1], sharex=axs)
 for st, col, lab in (('non', NONANCH_COLOR, 'non-anchored'),
                      ('anch', ANCH_COLOR, 'anchored')):
     g = W.groupby('freq')[st].agg(['mean', 'sem'])
@@ -460,7 +469,7 @@ ax.text(.985, .06, 'the bands F quantifies', transform=ax.transAxes,
         fontsize=5.8, color='0.45', ha='right')
 tidy(ax)
 
-ax = fig.add_subplot(GEF[2])
+ax = fig.add_subplot(GEF[1])
 for j, (nm, lo, hi) in enumerate(PBANDS):
     g = pband(lo, hi).dropna()
     p = wilcoxon(g).pvalue
