@@ -327,7 +327,10 @@ FIGURES = [
      'by session, and the scatter about the line is wide. And the balance is per Hz: the fast '
      'band is 40 Hz wide against slow\'s 18, and weighting each band by its width moves the sum '
      'to -0.36 (p = 0.12), so what is supported is that power moves from fast to slow, not that '
-     'the total is conserved. Where in the theta cycle each frequency peaks, and how that moves with '
+     'the total is conserved. Beside the scatter the three contrasts are drawn directly, one '
+     'point per session with the mean and its SEM: the difference sits clear of zero while the '
+     'sum and the broadband change straddle it. Where in the theta cycle each frequency peaks, '
+     'and how that moves with '
      'the state, is shown in Figure S10.'),
     ('Figure 8', 'fig8_model.pdf',
      'Proposed engagement gate for position estimation in the entorhinal cortex',
@@ -354,7 +357,8 @@ FIGURES = [
      '(measured, Figure 7): slow gamma rises (+0.105) while fast gamma (-0.108), theta (-0.094) '
      'and theta-fast coupling (-0.159) fall. The difference between states reverses sign across '
      'the spectrum rather than scaling it, crossing zero at a median of 67 Hz and doing so in 25 '
-     'of the 26 switching sessions, so the spectrum rotates. THE TEN PANELS ARE SIMULATED, not '
+     'of the 26 switching sessions, so the spectrum rotates. At the left, the same '
+     'frequency-specific result is drawn as a mechanism: theta-nested gamma in the two states, with each band placed at its MEASURED preferred theta phase -- about 95 degrees of theta for slow gamma and 42 degrees for fast, with 0 degrees the theta peak (Figure S10, 28 sessions). The phases are drawn the SAME in both states because that is what the data say: paired within session the anchored state prefers a phase 6.6 degrees earlier in the slow band (p = 0.33) and 2.8 degrees earlier in the fast band (p = 0.16), neither reliable, and the laminar theta phase gradient is the same in both (every layer p >= 0.06). What differs is how much each band carries and, for fast gamma, how tightly its burst is confined to that phase: theta-fast coupling weakens by 15.9% when anchored (p = 5e-6) while theta-slow coupling does not (p = 0.71), drawn as a smaller and less tightly confined fast burst. The traces are a schematic built from those measured numbers, not averaged data. THE TEN PANELS ARE SIMULATED, not '
      'data: three periodic one-dimensional grid cells of different spacing, the position decoded '
      'from a continuous attractor fed by them, and the stops made on uncued traversals, over ten '
      'traversals of the 200 cm track, with trials on the vertical axis and track position on the '

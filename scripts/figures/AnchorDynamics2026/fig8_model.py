@@ -274,39 +274,73 @@ ax.text(.752, .485, 'The difference REVERSES SIGN across the spectrum rather\n'
                     '25 of 26 sessions. The spectrum rotates.',
         fontsize=5.5, ha='left', va='top', color='0.5', linespacing=1.45)
 
-# ── the left-hand reading of the two settings ─────────────────────────────
-ax.text(.025, .556, 'GATE OPEN  —  ANCHORED', fontsize=7.2, weight='bold',
-        color=ANCH, va='top')
-ax.text(.025, .530, 'The landmark drive reaches the estimate, which is '
-                    're-referenced to\nthe task frame on every traversal. Grid '
-                    'fields recur at the same\nplaces lap after lap, the '
-                    'attractor\u2019s decoded position stays on the\ntrack, and '
-                    'the animal stops where the reward is.',
-        fontsize=6.5, color='0.35', va='top', linespacing=1.5)
+# ── the frequency-specific signature of the same switch ──────────────────
+# Replaces a prose reading of the two gate settings. The theta phases here are
+# MEASURED (Figure S10, 28 sessions): slow gamma 30-48 Hz peaks at about 95 deg
+# of theta and fast gamma 60-100 Hz at about 42 deg, with 0 deg the theta peak
+# (the phase comes from the angle of the 6-10 Hz Hilbert). They are drawn at
+# the SAME phase in both states because that is what the data say -- paired
+# within session the anchored state prefers a phase 6.6 deg earlier in the slow
+# band (p = 0.33) and 2.8 deg earlier in the fast band (p = 0.16), neither
+# reliable. What differs between the two panels is amplitude and, for fast
+# gamma, how tightly the burst is confined to its phase.
+PH_SLOW, PH_FAST = 95., 42.      # deg of theta, measured
+ax.text(.025, .576, 'and the frequency-specific signature of the same switch',
+        fontsize=7.2, weight='bold', color='0.25', va='top')
+ax.text(.025, .553, 'theta-nested gamma in entorhinal cortex, drawn at the '
+                    'measured phases (Figures 7, S10)',
+        fontsize=6.0, color='0.5', va='top')
 
-ax.text(.025, .404, 'GATE SHUT  —  NON-ANCHORED', fontsize=7.2, weight='bold',
-        color=NONANCH, va='top')
-ax.text(.025, .378, 'Only self-motion arrives. Nothing re-references the '
-                    'estimate to the\ntrack, so each traversal starts from '
-                    'wherever the attractor\nhappens to be: the grid phase is '
-                    'drawn afresh lap by lap and the\ndecoded position '
-                    'integrates away within the lap.',
-        fontsize=6.5, color='0.35', va='top', linespacing=1.5)
-ax.text(.025, .252, 'The correction is MISSING rather than displaced. '
-                    'Non-anchored\ntrials show no coherent field at any offset '
-                    'once the unrelated-cell\nfloor is applied, and '
-                    'neighbouring non-anchored traversals do not\nalign with '
-                    'one another \u2014 so this is neither a drifting map nor a\n'
-                    're-referenced one, which is why the phase is drawn afresh '
-                    'below\nrather than progressively shifted.',
-        fontsize=6.2, color='0.5', va='top', linespacing=1.5)
+_p = np.linspace(-180., 540., 1400)
+_rows = [(.408, True, 'ANCHORED — gate open', ANCH, .90, 1.05, .78, 3.6),
+         (.286, False, 'NON-ANCHORED — gate shut', NONANCH, 1.0, .75, 1.12, 6.2)]
+for _y, _anch, _lab, _c, _at, _as_, _af, _kf in _rows:
+    a = fig.add_axes([.062, _y, .300, .100])
+    for sp in ('top', 'right', 'left'):
+        a.spines[sp].set_visible(False)
+    a.set_yticks([])
+    for _ph, _col in ((PH_SLOW, SLOW), (PH_FAST, FAST)):
+        for _k in (0, 360):
+            a.axvline(_ph + _k, color=_col, lw=.6, ls=(0, (2.0, 1.8)),
+                      alpha=.55, zorder=0)
+    # theta, then the two gamma bands beneath it, phase-aligned
+    a.plot(_p, 3.4 + _at * np.cos(np.radians(_p)), color=THETA, lw=1.3)
+    _es = np.exp(4.4 * (np.cos(np.radians(_p - PH_SLOW)) - 1.))
+    a.plot(_p, 1.3 + _as_ * _es * np.sin(np.radians(_p) * 5.),
+           color=SLOW, lw=.75)
+    _ef = np.exp(_kf * (np.cos(np.radians(_p - PH_FAST)) - 1.))
+    a.plot(_p, -.7 + _af * _ef * np.sin(np.radians(_p) * 10.),
+           color=FAST, lw=.75)
+    a.set_xlim(-180, 540); a.set_ylim(-2.4, 6.1)
+    a.set_xticks([-180, 0, 180, 360, 540])
+    a.text(.012, .97, _lab, transform=a.transAxes, fontsize=5.8,
+           weight='bold', color=_c, va='top')
+    if _anch:
+        a.set_xticklabels([])
+        # stacked in the corner rather than on the dashed lines: at 42 and 95
+        # deg the two labels sit 53 deg apart and overlap at this width
+        a.text(.995, .99, f'fast \u03b3  {PH_FAST:.0f}\u00b0', transform=a.transAxes,
+               fontsize=5.2, color=FAST, ha='right', va='top')
+        a.text(.995, .84, f'slow \u03b3  {PH_SLOW:.0f}\u00b0', transform=a.transAxes,
+               fontsize=5.2, color=SLOW, ha='right', va='top')
+    else:
+        a.set_xlabel('theta phase (deg, 0 = peak)', fontsize=6.2, labelpad=1)
+    a.tick_params(labelsize=5.6, length=2, pad=1.5)
 
-ax.text(.025, .128, 'It is the anchored trials on which the animal localises '
-                    'the reward zone\ncorrectly, and most strongly when it '
-                    'must do so by path integration\n(Figure 1) \u2014 which is '
-                    'what puts behaviour downstream of the gate\nrather than '
-                    'beside it.',
-        fontsize=6.2, color='0.5', va='top', linespacing=1.5)
+ax.text(.025, .238, 'The gate changes how much each band carries, not when in '
+                    'the cycle it\narrives. Slow gamma rises and fast gamma '
+                    'falls with theta, and theta\u2013fast\ncoupling weakens by '
+                    '15.9% (p = 5e-6) while theta\u2013slow coupling does not\n'
+                    '(p = 0.71) \u2014 drawn above as a smaller, less tightly '
+                    'confined fast burst.',
+        fontsize=6.3, color='0.35', va='top', linespacing=1.5)
+ax.text(.025, .142, 'The preferred phases themselves do not move: paired '
+                    'within session the\nanchored state is 6.6\u00b0 earlier in '
+                    'the slow band (p = 0.33) and 2.8\u00b0 in the\nfast '
+                    '(p = 0.16), and the laminar theta phase gradient is '
+                    'identical (every\nlayer p \u2265 0.06). The circuit\'s own '
+                    'timing is untouched.',
+        fontsize=6.1, color='0.5', va='top', linespacing=1.5)
 
 # ── the simulated code: 2 states x (3 rate maps + 1 decoded position) ────
 COLS = [(.418, .088), (.518, .088), (.618, .088), (.718, .104),

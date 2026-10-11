@@ -452,7 +452,10 @@ axp.spines['right'].set_color(PAC_C['slow_gamma'])
 
 # ---- E-J: the population, two panels per row ---------------------------------
 # Reading order stays E F / G H / I J, so A-J still runs left-to-right then down.
-GQ = OUTER[1].subgridspec(1, 2, wspace=.42, width_ratios=[1.0, 1.15])
+GQ = OUTER[1].subgridspec(1, 2, wspace=.42, width_ratios=[.88, 1.62])
+# H is two axes under one label: the geometry on the left, and the two
+# derived contrasts it is a claim about drawn explicitly on the right.
+GH = GQ[1].subgridspec(1, 2, wspace=.46, width_ratios=[1.0, .80])
 
 # E is split in two because the state effect and the spectrum's own shape live
 # on different scales, and one axis cannot show both. The raw whitened spectrum
@@ -550,7 +553,7 @@ ax.text(.5, -.34, '* contains mains', transform=ax.transAxes, fontsize=5,
         color='0.5', ha='center')
 tidy(ax); lp(ax, 'G', x=-.17)
 
-ax = fig.add_subplot(GQ[1])
+ax = fig.add_subplot(GH[0])
 # What this panel used to ask -- are the two changes CORRELATED across
 # sessions? -- cannot answer the question it was named after, and with n = 26
 # its null had a 95% CI of roughly -0.33 to +0.44 behind it. The quadrant
@@ -578,14 +581,40 @@ ax.set_ylabel('fast gamma change (z)', fontsize=7.5)
 ax.set_title('power moves from fast to slow,\nwith no net change', fontsize=8)
 ax.text(.045, .76, 'equal and\nopposite', transform=ax.transAxes,
         fontsize=5.4, color='0.5', ha='left', va='top', linespacing=1.25)
-ax.text(.985, .975,
-        f'slow $-$ fast  {TR["shift"].mean():+.3f}  p = {P_SHIFT:.0e}'
-        .replace('e-0', 'e-') + '\n'
-        f'slow $+$ fast  {TR["sum"].mean():+.3f}  p = {P_SUM:.2f}\n'
-        f'2\u2013200 Hz     {TR["broad"].mean():+.3f}  p = {P_BROAD:.2f}',
-        transform=ax.transAxes, fontsize=5.0, color='0.25', va='top',
-        ha='right', linespacing=1.55, family='DejaVu Sans Mono')
-tidy(ax); lp(ax, 'H', x=-.17)
+tidy(ax); lp(ax, 'H', x=-.22)
+
+# ---- the same claim, drawn as the two contrasts it rests on -----------------
+# The numbers used to sit in the corner of the scatter, which left the reader
+# to take the central result on trust. Each session contributes one point to
+# each column, so the spread that the scatter shows along and across the line
+# is here as the spread of the quantities actually tested.
+ax = fig.add_subplot(GH[1])
+_jr = np.random.default_rng(7)
+COLS_H = [('slow\n$-$ fast', TR['shift'], P_SHIFT, GRID_C),
+          ('slow\n$+$ fast', TR['sum'], P_SUM, '0.55'),
+          ('2\u2013200\nHz', TR['broad'], P_BROAD, '0.55')]
+ax.axhline(0, color='0.4', lw=.9, zorder=1)
+for j, (nm, v, pv, col) in enumerate(COLS_H):
+    ax.scatter(j + _jr.uniform(-.17, .17, len(v)), v, s=7, color=col,
+               alpha=.55, lw=0, zorder=2)
+    se = v.std() / np.sqrt(len(v))
+    ax.plot([j - .30, j + .30], [v.mean()] * 2, color='0.12', lw=1.6,
+            zorder=4, solid_capstyle='butt')
+    ax.plot([j, j], [v.mean() - se, v.mean() + se], color='0.12', lw=1.6,
+            zorder=4)
+    ax.annotate(f'{pv:.0e}'.replace('e-0', 'e-') if pv < .001 else f'{pv:.2f}',
+                (j, .995), xycoords=('data', 'axes fraction'), ha='center',
+                va='top', fontsize=5.6,
+                color=GRID_C if pv < .05 else '0.5')
+ax.set_xticks(range(3))
+ax.set_xticklabels([c[0] for c in COLS_H], fontsize=5.9,
+                   linespacing=1.25)
+ax.set_xlim(-.6, 2.6)
+ax.set_ylim(top=max(v.max() for _, v, _, _ in COLS_H) * 1.42)
+ax.set_ylabel('z, anchored $-$ non', fontsize=7.5)
+ax.set_title('the difference is reliable;\nthe sum and the broadband are not',
+             fontsize=8)
+tidy(ax)
 
 # Panels I and J were removed. I ranked the per-session slow-minus-fast
 # shift, which the population panel already carries, and J plotted the
