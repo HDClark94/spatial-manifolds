@@ -238,7 +238,7 @@ FIGURES = [
      'Then the entorhinal anchoring raster, the session PC1, and the visual raster. Both '
      'rasters are built the same way -- cells that vary in PC1-loading order, then the cells '
      'whose label never changes to the right of a gap -- and both are cut by the same dashed '
-     'lines, which are the trials on which PC1 changes sign, so the comparison is '
+     'lines, which are the trials on which PC1 changes sign for at least three trials, so the comparison is '
      'between two descriptions of the same trials rather than between two separately defined '
      'states. The entorhinal population reorganises at those lines; the visual locked block, 78 '
      'of 150 cells in A, does not. Each raster is followed by three of its own cells on the '
@@ -298,7 +298,7 @@ FIGURES = [
     ('Figure 7', 'fig7_theta_gamma.pdf',
      'A frequency-specific change in the entorhinal field potential',
      '(A-D) One session trial by trial, with both states shaded behind every panel and dashed '
-     'lines where PC1 changes sign. (A) The population axis with running speed overlaid. (B) The '
+     'lines where PC1 changes sign for at least three trials. (A) The population axis. (B) The '
      'spectrogram, 1.9-150 Hz rebinned into 56 log-spaced bands and smoothed along the trial axis '
      'only. (C) The three band traces. (D) Theta-gamma modulation index for both bands on twinned '
      'axes, fast on the left axis and slow on the right, which they need because slow-gamma MI is '

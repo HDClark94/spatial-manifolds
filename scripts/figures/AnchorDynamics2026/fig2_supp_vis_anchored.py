@@ -61,7 +61,9 @@ from scipy.ndimage import median_filter
 from scipy.spatial.distance import pdist
 from scipy.stats import kstest, wilcoxon
 from spatial_manifolds.anchoring import (ANCH_COLOR, NONANCH_COLOR,
-                                         load_session_labels, smooth_nanaware)
+                                         load_session_labels,
+                                         major_transitions,
+                                         smooth_nanaware)
 
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['pdf.fonttype'] = 42
@@ -331,14 +333,10 @@ def mec_state(mo, dy, prefix='ENTm'):
     L = np.vstack([Lv, np.full((gap, L.shape[1]), np.nan), Ll]) if len(Ll) else Lv
     n_var, n_lock = len(Lv), len(Ll)
     pc1 = np.nan_to_num(np.asarray(z['pc1'], float))
-    # MAJOR TRANSITIONS ARE SIGN CHANGES OF PC1, and nothing else. PC1 is the
-    # state variable the figure plots, so the trial on which it crosses zero
-    # is the trial on which the population changes state -- no threshold, no
-    # filter width and no minimum block length, all of which the previous rule
-    # needed and none of which the data choose for you. It does mean a session
-    # that hovers near zero shows many lines: M27 D23 gives 22 over 393 trials
-    # where the filtered rule gave 3.
-    tr = list(np.where(np.diff(np.sign(pc1)) != 0)[0] + 1)
+    # Transitions are sign changes of PC1, with epochs shorter than three
+    # trials absorbed; the rule lives in the anchoring module so that this
+    # figure, Figure 7 and the Figure 1 supplement cannot drift apart on it.
+    tr = major_transitions(pc1)
     return L, pc1, tr, n_var, n_lock, gap, ids_var
 
 

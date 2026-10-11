@@ -70,7 +70,8 @@ sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lfp_batch import FS, LFP_ROOT, clip_trials, mec_groups, nap, vr_paths
 from lfp_spectrum_pac import GAMMA, _bp, tort_mi
-from spatial_manifolds.anchoring import ANCH_COLOR, NONANCH_COLOR
+from spatial_manifolds.anchoring import (ANCH_COLOR, NONANCH_COLOR,
+                                         major_transitions)
 
 plt.rcParams['font.family'] = 'Arial'
 # mathtext must resolve to Arial, not the DejaVu/STIX default, or rho, times
@@ -155,7 +156,7 @@ anch = np.array([frac[u] for u in nums]) > .5
 # shading still follows the thresholded anchored fraction, since the panels
 # shade STATE and the lines mark where it turns over
 major = anch
-TRANS = np.where(np.diff(np.sign(pc)) != 0)[0] + 1
+TRANS = np.array(major_transitions(pc))
 
 Lx = np.log10(Ax + 1e-20)
 Zx = (Lx - Lx.mean(0)) / (Lx.std(0) + 1e-12)
