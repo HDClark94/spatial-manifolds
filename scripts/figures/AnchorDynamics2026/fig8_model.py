@@ -32,12 +32,22 @@ WHAT CHANGED, AND WHY.
   3. That version also had the pupil DILATED in the engaged state, which is
      backwards for this task -- see above and Figure 5.
 
-THE SIX SMALL PANELS ARE SIMULATED. Two periodic 1D grid cells and a
-position decoded from a continuous attractor fed by them, over ten traversals
-of the 200 cm track. Anchored: the landmark drive re-references the attractor
-at the start of each traversal, so fields recur at the same places and the
-decoded position stays on the track. Non-anchored: nothing re-references it,
-so the phase is re-drawn each traversal and the decode drifts within the lap.
+THE EIGHT SMALL PANELS ARE SIMULATED. Three periodic 1D grid cells of
+different spacing, and the position decoded from a continuous attractor fed by
+them, over ten traversals of the 200 cm track. The decode is drawn as the
+decoded position itself -- jet, wrapped onto the track -- rather than as an
+error, so the panel shows what the code says about where the animal is.
+Anchored: the landmark drive re-references the attractor at the start of each
+traversal, so fields recur at the same places and the decoded position runs
+0 to 200 cm identically on every lap. Non-anchored: nothing re-references it,
+so the phase is re-drawn each traversal and the decode starts from an
+arbitrary offset and integrates away within the lap.
+
+THE FIELD-POTENTIAL CHANGES ARE DRAWN ON THE SCHEMATIC, beside the estimate,
+because the frequency-specific part of the result is what says the change is a
+rotation of the input balance rather than a gain change: slow gamma rises,
+fast gamma, theta and theta-fast coupling fall, and the difference crosses
+zero at a median of 67 Hz in 25 of 26 sessions (Figure 7).
 The non-anchored panels are drawn with the phase RE-DRAWN rather than
 progressively displaced, because that is what the data show: non-anchored
 trials have no coherent field at any offset once the unrelated-cell floor is
@@ -71,6 +81,7 @@ GRID_C = '#c04744'
 INT_C = '#2b6cb0'
 ACH = '#b8860b'        # engagement / the gate
 ANCH, NONANCH = '#a8559e', '#3f9b8f'
+SLOW, FAST, THETA = '#2b6cb0', '#c04744', '#7b4173'   # bands, as in Figure 7
 CMAP = 'viridis'       # rate maps are viridis throughout the paper
 
 TRACK = 200.           # cm
@@ -92,22 +103,27 @@ def grid_map(lam, phase0, anchored, k=3.4):
     return np.clip(m, 0, None)
 
 
-def decode_err(anchored):
-    """Decoded minus true position for an attractor fed by those cells."""
-    x = np.linspace(0, TRACK, 120)
-    e = np.empty((NTRIAL, x.size))
+def decoded_position(anchored):
+    """Position decoded from an attractor fed by those cells, over ten laps.
+
+    Returned as the decoded position itself, in cm and wrapped onto the 200 cm
+    track, so the panel is a map of what the animal's code says about where it
+    is rather than of how wrong it is.
+    """
+    x = np.linspace(0, TRACK, 160)
+    p = np.empty((NTRIAL, x.size))
     for t in range(NTRIAL):
         if anchored:
             # re-referenced at the start of the lap and held there
-            w = 2.4 * rng.standard_normal(x.size).cumsum() / 9.
-            e[t] = np.clip(w - w.mean(), -9, 9)
+            w = 2.0 * rng.standard_normal(x.size).cumsum() / 9.
+            err = np.clip(w - w.mean(), -7, 7)
         else:
             # starts wherever the attractor happens to be and integrates away
-            e[t] = np.clip(rng.uniform(-30, 30)
-                           + rng.normal(0, 36) * (x / TRACK)
-                           + 2.8 * rng.standard_normal(x.size).cumsum() / 7.,
-                           -48, 48)
-    return x, e
+            err = (rng.uniform(-80, 80)
+                   + rng.normal(0, 48) * (x / TRACK)
+                   + 3.2 * rng.standard_normal(x.size).cumsum() / 7.)
+        p[t] = np.mod(x + err, TRACK)
+    return x, p
 
 
 def arrow(ax, p0, p1, color, rad=0., lw=1.3, ls='-', shrink=9, z=3, head=True,
@@ -195,6 +211,36 @@ ax.text(.588, .553, 'what the code looks like under each\nsetting of the gate '
                     '(simulated)', fontsize=5.9, ha='left', va='center',
         color='0.5', linespacing=1.35)
 
+# ── what the field potential does when the gate opens (measured) ─────────
+# The frequency-specific part of the story belongs in the schematic, because
+# it is what tells you the change is a rotation of the input balance rather
+# than a gain change: the difference between states reverses sign across the
+# spectrum instead of scaling it.
+ax.text(.752, .656, 'and what the field potential does when the gate opens\n'
+                    '(measured, Figure 7; anchored \u2212 non-anchored)',
+        fontsize=6.0, ha='left', va='top', color='0.3', linespacing=1.4)
+
+_fb = fig.add_axes([.840, .505, .096, .094])
+_val = [+0.105, -0.108, -0.094, -0.159]
+_lab = ['slow gamma 30\u201348 Hz', 'fast gamma 60\u2013100 Hz', 'theta 6\u201310 Hz',
+        'theta\u2013fast coupling']
+_y = np.arange(4)[::-1]
+_fb.barh(_y, _val, color=[SLOW, FAST, THETA, FAST], alpha=.85, height=.62,
+         lw=0)
+_fb.axvline(0, color='0.35', lw=.8, zorder=3)
+for _yy, _v in zip(_y, _val):
+    _fb.text(_v + (.010 if _v > 0 else -.010), _yy, f'{_v:+.3f}', fontsize=5.0,
+             va='center', ha='left' if _v > 0 else 'right', color='0.3')
+_fb.set_yticks(_y); _fb.set_yticklabels(_lab, fontsize=5.3)
+_fb.set_xlim(-.30, .22); _fb.set_xticks([-.2, 0, .2])
+_fb.tick_params(labelsize=5.2, length=2, pad=1.2)
+_fb.spines[['top', 'right']].set_visible(False)
+
+ax.text(.752, .485, 'The difference REVERSES SIGN across the spectrum rather\n'
+                    'than scaling it: it crosses zero at a median of 67 Hz, in\n'
+                    '25 of 26 sessions. The spectrum rotates.',
+        fontsize=5.5, ha='left', va='top', color='0.5', linespacing=1.45)
+
 # ── the left-hand reading of the two settings ─────────────────────────────
 ax.text(.025, .556, 'GATE OPEN  —  ANCHORED', fontsize=7.2, weight='bold',
         color=ANCH, va='top')
@@ -229,13 +275,12 @@ ax.text(.025, .128, 'It is the anchored trials on which the animal localises '
                     'beside it.',
         fontsize=6.2, color='0.5', va='top', linespacing=1.5)
 
-# ── the simulated code: 2 states x (2 rate maps + 1 decode) ───────────────
-COLS = [(.418, .146), (.588, .146), (.758, .172)]
-ROWS = [(.300, .150, True, 'ANCHORED', ANCH),
-        (.092, .150, False, 'NON-ANCHORED', NONANCH)]
-HEAD = ['simulated grid cell 1', 'simulated grid cell 2',
-        'position decoded from the attractor']
-CELLS = [(52., 14.), (74., 41.)]       # spacing, anchored phase
+# ── the simulated code: 2 states x (3 rate maps + 1 decoded position) ────
+COLS = [(.418, .100), (.534, .100), (.650, .100), (.772, .130)]
+ROWS = [(.285, .135, True, 'ANCHORED', ANCH),
+        (.090, .135, False, 'NON-ANCHORED', NONANCH)]
+HEAD = ['grid cell 1', 'grid cell 2', 'grid cell 3', 'decoded position']
+CELLS = [(44., 10.), (62., 30.), (86., 55.)]   # spacing cm, anchored phase
 
 for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
     ax.text(.386, ry + rh / 2, rlab, fontsize=6.6, weight='bold', color=rcol,
@@ -245,23 +290,23 @@ for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
         a.tick_params(labelsize=5.6, length=2, pad=1.5)
         for sp in ('top', 'right'):
             a.spines[sp].set_visible(False)
-        if ci < 2:
+        if ci < 3:
             lam, ph = CELLS[ci]
             m = grid_map(lam, ph, anch)
             a.imshow(m / m.max(), aspect='auto', cmap=CMAP, origin='upper',
                      extent=[0, TRACK, NTRIAL + .5, .5],
                      interpolation='nearest', vmin=0, vmax=1)
         else:
-            x, e = decode_err(anch)
-            for t in range(NTRIAL):
-                a.axhline(t + 1, color='0.88', lw=.4, zorder=0)
-                a.plot(x, (t + 1) - e[t] / 100., color=rcol, lw=.75, zorder=2)
-            a.set_ylim(NTRIAL + .62, .38)
-            if ri == 1:   # one scale, on the lower decode panel
-                a.plot([206, 206], [5.5, 4.5], color='0.4', lw=1.1,
-                       clip_on=False, solid_capstyle='butt')
-                a.text(212, 5.0, '100 cm\nerror', fontsize=5.3, color='0.45',
-                       va='center', ha='left', linespacing=1.3)
+            x, p = decoded_position(anch)
+            im = a.imshow(p, aspect='auto', cmap='jet', origin='upper',
+                          extent=[0, TRACK, NTRIAL + .5, .5],
+                          interpolation='nearest', vmin=0, vmax=TRACK)
+            if ri == 0:   # one colourbar; both rows share the scale
+                cb = fig.add_axes([cx + cw + .009, ry, .011, rh])
+                plt.colorbar(im, cax=cb, ticks=[0, 100, 200])
+                cb.tick_params(labelsize=5.4, length=2, pad=1.5)
+                cb.set_ylabel('decoded position (cm)', fontsize=5.6,
+                              labelpad=2)
         a.set_yticks([1, 5, 10])
         a.set_xlim(0, TRACK); a.set_xticks([0, 100, 200])
         if ri == 0:
@@ -269,7 +314,8 @@ for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
             a.set_xticklabels([])
         else:
             a.set_xlabel('position (cm)', fontsize=6.2, labelpad=1)
-        a.set_ylabel('trial', fontsize=6.2, labelpad=1)
+        if ci == 0:
+            a.set_ylabel('trial', fontsize=6.2, labelpad=1)
 
 fig.text(.025, .032, 'The state changes what arrives at this circuit, not what '
                      'the circuit does with it \u2014 and what arrives decides '
@@ -278,7 +324,7 @@ fig.text(.025, .032, 'The state changes what arrives at this circuit, not what '
 
 fig.text(.025, .995, 'HYPOTHESIS', fontsize=8, weight='bold', color='#8a1c1c',
          va='top')
-fig.text(.133, .995, '\u2014 the circuit is a schematic and the six panels below '
+fig.text(.133, .995, '\u2014 the circuit is a schematic and the eight panels below '
                      'it are simulated; every measured value names the figure '
                      'it comes from', fontsize=8, color='0.45', va='top')
 
