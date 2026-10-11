@@ -438,7 +438,8 @@ g3 = outer[2].subgridspec(1, 6, width_ratios=[1.12, .16, .98, .98, 1.02, .82],
 # H is a stacked-bar summary and does not need the width of a scatter, so it
 # is narrowed and the gap to I widened -- at the old uniform wspace the two
 # read as one block
-g4 = outer[3].subgridspec(1, 4, width_ratios=[.68, 1.05, 1.30, .95], wspace=.62)
+g4 = outer[3].subgridspec(1, 5, width_ratios=[.60, .92, 1.16, .86, 1.04],
+                          wspace=.62)
 SHORT = ['grid', 'NGS', 'NS', 'int']   # full names collide at this width
 
 def lmm_contrast(df, dv, a, b):
@@ -897,6 +898,57 @@ _lp(ax, 'K')
 ax.set_title(f'the lock-on bias is the speed cells\n'
              f'(interaction OR {_orr:.2f}, p = {_pf:.0e})',
              fontsize=7.5, loc='left')
+ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+# ── L: does theta modulation predict following, beyond cell type? ──────────
+# Theta index from the OPEN FIELD, like grid score and speed score, so the
+# measure cannot have been shaped by the task session it is used to explain.
+# The question is asked of the index as a CONTINUOUS variable: a median split
+# throws away most of the within-session variation and, on these data, most of
+# the effect with it (p = 0.33 pooled, and p >= 0.22 within every class).
+_TI = pd.read_csv(f'{PS}/of_theta_index.csv')
+_TI = _TI[_TI.of == 'OF1'][['mouse', 'day', 'cluster_id', 'theta_index']]
+_MT = M.merge(_TI, on=['mouse', 'day', 'cluster_id'], how='left')
+_MT = _MT[_MT.theta_index.notna() & _MT.excess.notna()].copy()
+_MT['lti'] = np.log10(_MT.theta_index.clip(lower=.05))
+_MT['sess'] = _MT.mouse.astype(str) + 'D' + _MT.day.astype(str)
+_b1 = smf.mixedlm('excess ~ lti', _MT, groups=_MT['mouse'],
+                  vc_formula={'sess': '0 + C(sess)'}).fit(reml=True,
+                                                          method='lbfgs')
+_b2 = smf.mixedlm('excess ~ lti + C(identity)', _MT, groups=_MT['mouse'],
+                  vc_formula={'sess': '0 + C(sess)'}).fit(reml=True,
+                                                          method='lbfgs')
+print(f'  theta index vs agreement: beta {_b1.params["lti"]:+.4f} '
+      f'(p={_b1.pvalues["lti"]:.2g}) alone, {_b2.params["lti"]:+.4f} '
+      f'(p={_b2.pvalues["lti"]:.2g}) with identity in the model')
+print('  median theta index by identity: '
+      + ', '.join(f'{k} {v:.1f}' for k, v in
+                  _MT.groupby('identity').theta_index.median().items()))
+ax = fig.add_subplot(g4[4])
+_edges = np.quantile(_MT.lti, np.linspace(0, 1, 7))
+for k in ORDER:
+    g = _MT[_MT.identity == k]
+    xs, ys, es = [], [], []
+    for lo, hi in zip(_edges[:-1], _edges[1:]):
+        m_ = (g.lti >= lo) & (g.lti <= hi)
+        if m_.sum() >= 12:
+            xs.append(10 ** g.lti[m_].median()); ys.append(g.excess[m_].mean())
+            es.append(g.excess[m_].std() / np.sqrt(m_.sum()))
+    if len(xs) >= 3:
+        ax.errorbar(xs, ys, yerr=es, color=ICOL[k], lw=1.3, marker='o', ms=3,
+                    capsize=0, label=SHORT[ORDER.index(k)])
+ax.set_xscale('log'); ax.set_xticks([1, 3, 10])
+ax.set_xticklabels(['1', '3', '10'], fontsize=7)
+ax.xaxis.set_minor_formatter(plt.NullFormatter())
+ax.set_xlabel('open-field theta index', fontsize=8)
+ax.set_ylabel('agreement above\nthe cell\'s own null', fontsize=8)
+ax.legend(fontsize=5.8, frameon=False, ncol=2, loc='upper left',
+          handlelength=1.0, columnspacing=.8)
+_lp(ax, 'L')
+ax.set_title('theta modulation adds a little,\n'
+             'mostly by separating the classes\n'
+             f'(beta {_b1.params["lti"]:+.3f}, {_b2.params["lti"]:+.3f} given identity)',
+             fontsize=6.8, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 print(f'  K: speed-modulated {_a[0]}on/{_a[1]}off, not {_b[0]}on/{_b[1]}off, '
       f'OR {_orr:.2f} p {_pf:.2g}')

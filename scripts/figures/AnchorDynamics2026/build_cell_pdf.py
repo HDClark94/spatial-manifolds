@@ -152,7 +152,19 @@ FIGURES = [
      'never vary are the speed-coding cells. Interneurons '
      'that lock on score +0.141 on the open-field speed measure against +0.065 for those that vary '
      '(p = 0.005), because a speed-tuned profile repeats on every trial and is therefore called '
-     'anchored on every trial.'),
+     'anchored on every trial. (L) Whether theta rhythmicity predicts following beyond cell '
+     'type. The theta index is scored in the open field, like the grid and speed measures, so '
+     'it cannot have been shaped by the session it is used to explain, and it is used '
+     'continuously rather than split at a threshold. It tracks identity strongly -- median 12.5 '
+     'in putative interneurons, 4.4 in grid cells, 2.9 and 2.1 in the two other classes -- and '
+     'pooled across cells the more theta-rhythmic ones do follow the axis more (beta = +0.019 '
+     'per log10 unit, p = 3 x 10^-4). Most of that is identity: with identity in the model the '
+     'coefficient falls to +0.013 (p = 0.011), and within each class the lines here are close '
+     'to flat. Theta modulation therefore adds something beyond cell type, but little, and the '
+     'between-class separation is what the pooled effect mostly measures. A median split, the '
+     'form in which the question is usually asked, finds nothing at all (p = 0.33 pooled, '
+     'p >= 0.22 within every class), because it discards the within-session variation that '
+     'carries the effect.'),
     ('Figure 3', 'fig3_anatomy.pdf',
      'The responsive subnetwork is medial, within the superficial grid population',
      'Anatomical organisation of identity and of following. (A) Open-field rate maps from four '
