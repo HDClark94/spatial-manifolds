@@ -90,7 +90,10 @@ GRID_C = '#c04744'
 INT_C = '#2b6cb0'
 ACH = '#b8860b'        # engagement / the gate
 ANCH, NONANCH = '#a8559e', '#3f9b8f'
-SLOW, FAST, THETA = '#2b6cb0', '#c04744', '#7b4173'   # bands, as in Figure 7
+# Bands. Figure 7 draws slow gamma in the interneuron blue and fast gamma in
+# the grid-cell red; here those two colours are already spoken for by the two
+# populations inside the estimate, so the bands take green and orange.
+SLOW, FAST, THETA = '#2f7d32', '#e8701a', '#7b4173'
 CMAP = 'viridis'       # rate maps are viridis throughout the paper
 
 TRACK = 200.           # cm
@@ -181,26 +184,16 @@ ax = fig.add_axes([0, 0, 1, 1]); ax.set_axis_off()
 ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 
 # ── the circuit, drawn once ───────────────────────────────────────────────
-ENG = (.205, .876, .370, .076)
 GATE = (.270, .742, .085, .070)
 LAND = (.025, .742, .175, .070)
 SELF = (.025, .620, .175, .070)
 EST = (.460, .598, .272, .228)
 BEH = (.795, .668, .180, .085)
 
-box(ax, ENG, '', '#fdf6e3', ACH, ec=ACH, lw=1.0)
-ax.text(.390, .932, 'engagement — attentional focus  (septal / cholinergic)',
-        fontsize=6.8, ha='center', va='center', color=ACH)
-ax.text(.390, .908, 'indexed by a CONSTRICTED pupil, not a dilated one',
-        fontsize=6.2, ha='center', va='center', color=ACH)
-
 box(ax, LAND, 'landmarks\n(the task frame)', '#fbf0ef', LAND_C)
 box(ax, SELF, 'self-motion\n(speed, head direction)', '#eef3fa', SELF_C)
-box(ax, GATE, 'GATE', '#fdf6e3', ACH, fs=7.0, ec=ACH, lw=1.3)
+box(ax, GATE, 'engagement\ngate', '#fdf6e3', ACH, fs=6.6, ec=ACH, lw=1.3)
 
-# engagement sets the gate
-arrow(ax, (.312, .864), (.312, .816), ACH, lw=1.2, ls=(0, (2.4, 1.6)),
-      shrink=1, z=2)
 # the two drives
 arrow(ax, (.202, .777), (.267, .777), LAND_C, lw=1.6, shrink=1, head=False)
 arrow(ax, (.358, .772), (.457, .755), LAND_C, lw=1.6, shrink=1)
@@ -245,17 +238,17 @@ ax.text(.590, .553, 'simulated', fontsize=5.9, ha='left', va='center',
 # confined to its phase, which is the 15.9% loss of theta-fast coupling.
 PH_SLOW, PH_FAST = 95., 42.
 _p = np.linspace(-180., 540., 1400)
-OFF_T, OFF_S, OFF_F = 4.2, 1.4, -1.8
+OFF_T, OFF_S, OFF_F = 4.6, 1.5, -2.2
 
-COLS = [(.082, .276), (.400, .085), (.498, .085), (.596, .085),
-        (.694, .100), (.845, .100)]
-ROWS = [(.318, .165, True, 'ANCHORED', ANCH),
-        (.103, .165, False, 'NON-ANCHORED', NONANCH)]
+COLS = [(.082, .330), (.460, .062), (.536, .062), (.612, .062),
+        (.692, .076), (.838, .095)]
+ROWS = [(.322, .138, True, 'ANCHORED', ANCH),
+        (.112, .138, False, 'NON-ANCHORED', NONANCH)]
 HEAD = ['theta-nested gamma', 'grid cell 1', 'grid cell 2', 'grid cell 3',
         'decoded position (cm)', 'stops, uncued']
 CELLS = [(44., 10.), (62., 30.), (86., 55.)]   # spacing cm, anchored phase
 # theta, slow, fast amplitude and the fast burst's concentration, per state
-LFP = {True: (.95, 1.30, .72, 3.0), False: (1.05, .75, 1.35, 7.5)}
+LFP = {True: (.95, 1.55, .55, 2.6), False: (1.05, .55, 1.55, 8.0)}
 
 for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
     ax.text(.014, ry + rh / 2, rlab, fontsize=7.4, weight='bold', color=rcol,
@@ -274,13 +267,15 @@ for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
                                alpha=.6, zorder=0)
             a_.plot(_p, OFF_T + _at * np.cos(np.radians(_p)), color=THETA,
                     lw=1.4)
-            a_.plot(_p, OFF_S + _as * np.exp(3.4 * (np.cos(np.radians(
-                _p - PH_SLOW)) - 1.)) * np.sin(np.radians(_p) * 5.),
-                color=SLOW, lw=.8)
-            a_.plot(_p, OFF_F + _af * np.exp(_kf * (np.cos(np.radians(
-                _p - PH_FAST)) - 1.)) * np.sin(np.radians(_p) * 10.),
-                color=FAST, lw=.8)
-            a_.set_xlim(-180, 540); a_.set_ylim(-3.7, 5.9)
+            for _off, _amp, _ph, _k, _n, _col in (
+                    (OFF_S, _as, PH_SLOW, 3.4, 5., SLOW),
+                    (OFF_F, _af, PH_FAST, _kf, 10., FAST)):
+                _e = _amp * np.exp(_k * (np.cos(np.radians(_p - _ph)) - 1.))
+                a_.fill_between(_p, _off - _e, _off + _e, color=_col,
+                                alpha=.22, linewidth=0, edgecolor='none')
+                a_.plot(_p, _off + _e * np.sin(np.radians(_p) * _n),
+                        color=_col, lw=.8)
+            a_.set_xlim(-180, 540); a_.set_ylim(-4.2, 6.4)
             a_.set_xticks([-180, 0, 180, 360, 540])
             a_.set_yticks([OFF_T, OFF_S, OFF_F])
             a_.set_yticklabels(['theta', 'slow \u03b3', 'fast \u03b3'],
@@ -290,7 +285,7 @@ for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
             a_.tick_params(axis='y', length=0)
             if ri == 0:   # the measured phases, marked once
                 for _ph, _col in ((PH_FAST, FAST), (PH_SLOW, SLOW)):
-                    a_.text(_ph + 360, 5.8, f'{_ph:.0f}\u00b0', fontsize=5.4,
+                    a_.text(_ph + 360, 6.3, f'{_ph:.0f}\u00b0', fontsize=5.4,
                             color=_col, ha='center', va='top')
             else:
                 a_.set_xlabel('theta phase (deg, 0 = peak)', fontsize=6.4,
@@ -336,14 +331,6 @@ for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
         else:
             a_.set_yticklabels([])
 
-fig.text(.025, .032, 'The state changes what arrives at this circuit, not what '
-                     'the circuit does with it \u2014 and what arrives decides '
-                     'whether the code is on the track.', fontsize=8.2,
-         weight='bold', color='#2a2a2a', va='center')
-
-# the figure is laid out in explicit figure fractions, so a tight bbox
-# would be set by the full-canvas overlay axes rather than by the content;
-# crop to the top of the engagement box instead
-plt.savefig(OUT, dpi=300, bbox_inches=Bbox.from_extents(0, 0, 9.5, 5.80))
+plt.savefig(OUT, dpi=300, bbox_inches=Bbox.from_extents(0, .28, 9.5, 5.08))
 plt.close(fig)
 print(f'wrote {OUT}')
