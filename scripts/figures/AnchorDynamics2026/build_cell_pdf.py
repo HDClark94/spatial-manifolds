@@ -87,26 +87,35 @@ AFFIL = ['^1Centre for Discovery Brain Sciences, University of Edinburgh, Edinbu
 JOURNAL = 'Cell'
 CELL_BLUE = (0.00, 0.42, 0.71)
 GREY = (0.58, 0.58, 0.58)
+# "Grid cells and fast-spiking interneurons express it" read as exclusive,
+# which Figure 2D no longer supports: every class exceeds its own null and
+# those two lead by about a factor of two.
 IN_BRIEF = (
     'Clark et al. show that the anchoring of entorhinal spatial firing to a '
-    'task reference frame is a population state rather than a property of single '
-    'cells. Grid cells and fast-spiking interneurons express it, but their '
-    'synaptic connections do not carry it, and the same state is present in every '
-    'structure recorded. The state tracks attentional engagement and predicts '
-    'success when the animal must navigate by path integration.')
+    'task reference frame is a property of the population rather than of single '
+    'cells. Every cell class follows this state, grid cells and fast-spiking '
+    'interneurons most strongly, yet synaptically connected pairs share it no '
+    'more than matched unconnected pairs, and the same state is present in every '
+    'structure recorded. It tracks attentional engagement, indexed by pupil '
+    'constriction, and predicts success when the reward zone must be found by '
+    'path integration.')
 CITATION = [
     'Clark et al., 2026, manuscript draft',
     'Style mock-up compiled from MANUSCRIPT.md - not a published article',
 ]
 
+# Cell allows four bullets of at most 85 characters. The previous list ran to
+# five, two of them over the limit, and one -- "grid cells and fast-spiking
+# interneurons follow it; spatial coding in general does not" -- stated the
+# claim the signed-null correction retired. Dropped to make room: the
+# connectivity null and the cerebellum. Both are in the In brief and the
+# abstract; neither fits in 85 characters without losing its qualifier, and a
+# highlight that drops the qualifier on a null is worse than no highlight.
 HIGHLIGHTS = [
-    'Anchoring of entorhinal firing to a task reference frame is a population state',
-    'Every cell class follows it, but grid cells and fast-spiking interneurons do so '
-    'about twice as strongly',
-    'Synaptically connected pairs share the state no more than matched unconnected pairs',
-    'The same state is present in every structure recorded, including cerebellum',
-    'Pupil constriction tracks it, and performance improves monotonically as the '
-    'pupil narrows',
+    'Anchoring of entorhinal firing to the task frame is a population state',
+    'Grid cells and fast-spiking interneurons follow it most strongly',
+    'Anchored trials are better performed, most when the reward zone is uncued',
+    'Pupil constriction tracks the state, identifying it as focused engagement',
 ]
 
 # Figure order, source file, and the caption shown beneath it.
