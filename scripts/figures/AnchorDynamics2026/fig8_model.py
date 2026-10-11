@@ -1,19 +1,21 @@
-"""Figure 8: the anchoring state drawn as two routes through the same circuit.
+"""Figure 8: one circuit, one gate, and what each setting of the gate produces.
 
 THIS FIGURE IS SPECULATIVE AND IS LABELLED AS SUCH ON THE PAGE. It belongs to
-the Ideas and speculation section, not to Results. Both panels are schematics;
-the numbers annotated on them are measured, and each carries the figure it
-comes from.
+the Ideas and speculation section, not to Results. The circuit is a schematic
+and the six small panels under it are SIMULATED, drawn from the account rather
+than measured from the data; every measured number on the page names the figure
+it comes from.
 
-WHAT THE FIGURE SAYS. One circuit, two routes. A self-motion drive is always
-present. A landmark drive -- the task frame -- reaches the entorhinal position
-estimate only while an engagement gate is open, and the pupil indexes that
-gate. Anchored is the open-gate route: the estimate is corrected to the task
-frame on every traversal. Non-anchored is the shut-gate route: no correction
-arrives, and the correction is MISSING rather than displaced, because
-non-anchored trials show no coherent field at any offset and neighbouring
-non-anchored traversals do not align with one another. The circuit is the same
-in both; what differs is which of its inputs is being heeded.
+WHAT THE FIGURE SAYS. There is one circuit, not two. Two sources feed the
+entorhinal position estimate -- a self-motion drive that is always present, and
+a landmark drive carrying the task frame that passes through a gate. The gate
+is what the anchoring state IS: open, the estimate is corrected to the task
+frame on every traversal; shut, it is not. Engagement sets the gate, and in
+this task engagement goes with a CONSTRICTED pupil, not a dilated one (Figure
+5: pupil falls 0.41 z on entry to the anchored state and rises 0.49 z on exit,
+and hit rate falls monotonically from 0.83 to 0.39 across pupil deciles, so the
+constricted state is the focused one). The position estimate then drives
+behaviour -- where the animal slows and stops.
 
 WHAT CHANGED, AND WHY.
   1. An early version put the switch INSIDE the entorhinal circuit: two loops,
@@ -24,13 +26,23 @@ WHAT CHANGED, AND WHY.
      (every layer p >= 0.06), the theta phase at which each band peaks
      (p = 0.33, 0.16) -- and the cells that would have to reconfigure do not.
      So the switch sits on the input, not in the circuit.
-  2. This version drops the four evidence panels that used to accompany the
-     schematic (the theta-speed hinge, the field-potential changes, the
-     per-class readout, and the list of tested nulls) and the prediction band
-     beneath them. All of that is measured elsewhere -- Figures 2, 7, S10 and
-     S11 -- and the predictions belong in the text. What is left is the claim
-     itself: the two routes, side by side, built from the same five boxes so
-     that the only difference a reader has to find is which arrow carries.
+  2. A later version drew the two states as two separate circuits, side by
+     side. That said the opposite of what is meant: the circuit is ONE circuit
+     and only the gate moves. It is now drawn once.
+  3. That version also had the pupil DILATED in the engaged state, which is
+     backwards for this task -- see above and Figure 5.
+
+THE SIX SMALL PANELS ARE SIMULATED. Two periodic 1D grid cells and a
+position decoded from a continuous attractor fed by them, over ten traversals
+of the 200 cm track. Anchored: the landmark drive re-references the attractor
+at the start of each traversal, so fields recur at the same places and the
+decoded position stays on the track. Non-anchored: nothing re-references it,
+so the phase is re-drawn each traversal and the decode drifts within the lap.
+The non-anchored panels are drawn with the phase RE-DRAWN rather than
+progressively displaced, because that is what the data show: non-anchored
+trials have no coherent field at any offset once the unrelated-cell floor is
+applied, and neighbouring non-anchored traversals do not align with one
+another, so the correction is missing rather than moved.
 
 Writes fig8_model.pdf
 """
@@ -53,137 +65,223 @@ plt.rcParams['pdf.fonttype'] = 42
 FIG = os.path.dirname(os.path.abspath(__file__))
 OUT = f'{FIG}/fig8_model.pdf'
 
-SELF_C = '#2b6cb0'     # self-motion drive, as the interneuron blue of Figure 7
+SELF_C = '#2b6cb0'     # self-motion drive
 LAND_C = '#c04744'     # landmark drive
 GRID_C = '#c04744'
-ACH = '#b8860b'        # the gate
-OFF = '#b9b4ae'        # a route that is not carrying
+INT_C = '#2b6cb0'
+ACH = '#b8860b'        # engagement / the gate
 ANCH, NONANCH = '#a8559e', '#3f9b8f'
+CMAP = 'viridis'       # rate maps are viridis throughout the paper
 
-def arrow(ax, p0, p1, color, rad=0., lw=1.3, ls='-', shrink=9, z=3, head=True):
+TRACK = 200.           # cm
+NTRIAL = 10
+rng = np.random.default_rng(8)
+
+
+# ── the simulated code under each setting of the gate ─────────────────────
+def grid_map(lam, phase0, anchored, k=3.4):
+    """A periodic 1D grid cell over ten traversals, re-referenced or not."""
+    x = np.linspace(0, TRACK, 120)
+    m = np.empty((NTRIAL, x.size))
+    for t in range(NTRIAL):
+        # anchored: the landmark drive restores the same phase every lap.
+        # non-anchored: nothing does, so the phase is drawn afresh.
+        ph = phase0 if anchored else rng.uniform(0, lam)
+        r = np.exp(k * (np.cos(2 * np.pi * (x - ph) / lam) - 1.))
+        m[t] = r * (1. + .22 * rng.standard_normal(x.size))
+    return np.clip(m, 0, None)
+
+
+def decode_err(anchored):
+    """Decoded minus true position for an attractor fed by those cells."""
+    x = np.linspace(0, TRACK, 120)
+    e = np.empty((NTRIAL, x.size))
+    for t in range(NTRIAL):
+        if anchored:
+            # re-referenced at the start of the lap and held there
+            w = 2.4 * rng.standard_normal(x.size).cumsum() / 9.
+            e[t] = np.clip(w - w.mean(), -9, 9)
+        else:
+            # starts wherever the attractor happens to be and integrates away
+            e[t] = np.clip(rng.uniform(-30, 30)
+                           + rng.normal(0, 36) * (x / TRACK)
+                           + 2.8 * rng.standard_normal(x.size).cumsum() / 7.,
+                           -48, 48)
+    return x, e
+
+
+def arrow(ax, p0, p1, color, rad=0., lw=1.3, ls='-', shrink=9, z=3, head=True,
+          ms=8):
     ax.add_patch(FancyArrowPatch(
-        p0, p1, arrowstyle='-|>' if head else '-', mutation_scale=8, lw=lw,
+        p0, p1, arrowstyle='-|>' if head else '-', mutation_scale=ms, lw=lw,
         color=color, linestyle=ls, shrinkA=shrink, shrinkB=shrink, zorder=z,
         connectionstyle=f'arc3,rad={rad}'))
 
 
-def box(ax, x, y, w, h, s, fc, tc, fs=6.2, ec='0.75', lw=.9):
-    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle='round,pad=.018',
-                                fc=fc, ec=ec, lw=lw, zorder=1))
-    ax.text(x + w / 2, y + h / 2, s, fontsize=fs, ha='center', va='center',
-            color=tc, linespacing=1.3)
+def box(ax, rect, s, fc, tc, fs=6.4, ec='0.75', lw=.9, z=1, pad=.010):
+    x, y, w, h = rect
+    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle=f'round,pad={pad}',
+                                fc=fc, ec=ec, lw=lw, zorder=z))
+    if s:
+        ax.text(x + w / 2, y + h / 2, s, fontsize=fs, ha='center', va='center',
+                color=tc, linespacing=1.3, zorder=z + 1)
 
 
-# Both routes are built from the same five elements in the same places, so the
-# only thing a reader has to compare is whether the gated arrow carries.
-# Everything that differs between the states is collected in these two dicts.
-A_ROUTE = dict(
-    label='A', state='ANCHORED', hue=ANCH,
-    sub='engagement is high, the gate is open, and the estimate is corrected '
-        'to the task frame on every lap',
-    gate_fc='#fdf6e3', gate_ec=ACH, gate_tc=ACH,
-    eng='engagement HIGH — pupil dilated',
-    node='OPEN', node_fc='#fdf6e3', node_ec=ACH, node_tc=ACH,
-    land_c=LAND_C, land_fc='#fbf0ef', land_tc=LAND_C, land_ls='-',
-    land_lw=1.7, blocked=False, land_note='the gate is open:\nthis drive arrives',
-    self_note='theta\u2013speed slope 0.218',
-    est_note='corrected to the\ntask frame on\nevery traversal',
-    out_note='follow the state most\nstrongly (+0.185, +0.131;\nFigure 2)',
-)
-B_ROUTE = dict(
-    label='B', state='NON-ANCHORED', hue=NONANCH,
-    sub='engagement is low, the gate is shut, and no correction reaches the '
-        'estimate at all',
-    gate_fc='#f2f1ef', gate_ec='0.72', gate_tc='0.45',
-    eng='engagement LOW\u2003\u2014\u2003pupil constricted',
-    node='SHUT', node_fc='#f2f1ef', node_ec='0.62', node_tc='0.45',
-    land_c=OFF, land_fc='#f4f3f1', land_tc='0.55', land_ls=(0, (2.2, 1.8)),
-    land_lw=1.2, blocked=True, land_note='stopped at the gate: this\ndrive never arrives',
-    self_note='theta\u2013speed slope 0.374',
-    est_note='no correction, and\nnone survives at any\noffset: missing,\nnot moved',
-    out_note='the same cells, the same\ncoupling to either band\n(Holm p \u2265 0.17; S10, S11)',
-)
+fig = plt.figure(figsize=(9.5, 6.0))
+ax = fig.add_axes([0, 0, 1, 1]); ax.set_axis_off()
+ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 
-# geometry, shared by both routes (axes fraction). The gated route is drawn
-# ABOVE the ungated one so that the engagement box can drop straight onto the
-# gate without crossing the self-motion arrow.
-ENG = (.335, .858, .665, .118)
-LAND = (.000, .585, .300, .150)
-NODE = (.352, .638, .108, .082)
-SELF = (.000, .215, .300, .150)
-EST = (.512, .395, .250, .172)
-OUT_ = (.808, .395, .192, .172)
+# ── the circuit, drawn once ───────────────────────────────────────────────
+ENG = (.205, .848, .370, .105)
+GATE = (.270, .742, .085, .070)
+LAND = (.025, .742, .175, .070)
+SELF = (.025, .620, .175, .070)
+EST = (.460, .598, .272, .228)
+BEH = (.795, .668, .180, .085)
 
+box(ax, ENG, '', '#fdf6e3', ACH, ec=ACH, lw=1.0)
+ax.text(.390, .928, 'engagement — attentional focus  (septal / cholinergic)',
+        fontsize=6.8, ha='center', va='center', color=ACH)
+ax.text(.390, .903, 'indexed by a CONSTRICTED pupil, not a dilated one',
+        fontsize=6.2, ha='center', va='center', color=ACH)
+ax.text(.390, .875, '\u22120.41 z on entry to the anchored state and +0.49 z on '
+                    'exit, and the hit rate\nfalls from 0.83 to 0.39 as the '
+                    'pupil widens (Figure 5)', fontsize=5.5, ha='center',
+        va='center', color='0.5', linespacing=1.35)
 
-def route(ax, r):
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off')
-    ax.text(-.050, 1.105, r['label'], transform=ax.transAxes, fontsize=10,
-            weight='bold', va='bottom', ha='left')
-    ax.text(.0, 1.105, r['state'], transform=ax.transAxes, fontsize=8.6,
-            weight='bold', color=r['hue'], va='bottom', ha='left')
-    ax.text(.0, 1.032, r['sub'], transform=ax.transAxes, fontsize=6.5,
-            color='0.35', va='bottom', ha='left')
+box(ax, LAND, 'landmarks\n(the task frame)', '#fbf0ef', LAND_C)
+box(ax, SELF, 'self-motion\n(speed, head direction)', '#eef3fa', SELF_C)
+box(ax, GATE, 'GATE', '#fdf6e3', ACH, fs=7.0, ec=ACH, lw=1.3)
 
-    box(ax, *ENG, r['eng'], r['gate_fc'], r['gate_tc'], fs=6.4,
-        ec=r['gate_ec'], lw=1.0)
-    box(ax, *LAND, 'landmarks\n(the task frame)', r['land_fc'], r['land_tc'])
-    box(ax, *SELF, 'self-motion\n(speed, head direction)', '#eef3fa', SELF_C)
-    box(ax, *EST, 'entorhinal\nposition estimate', '#f4f1ec', '0.3')
-    box(ax, *OUT_, 'grid cells +\nFS interneurons', '#f7f2f6', GRID_C)
+# engagement sets the gate
+arrow(ax, (.312, .836), (.312, .816), ACH, lw=1.2, ls=(0, (2.4, 1.6)),
+      shrink=1, z=2)
+# the two drives
+arrow(ax, (.202, .777), (.267, .777), LAND_C, lw=1.6, shrink=1, head=False)
+arrow(ax, (.358, .772), (.457, .755), LAND_C, lw=1.6, shrink=1)
+arrow(ax, (.202, .655), (.457, .658), SELF_C, lw=1.6, rad=.06, shrink=1)
+ax.text(.234, .792, 'gated', fontsize=5.8, color=LAND_C, ha='center')
+ax.text(.312, .712, 'OPEN \u2192 anchored\nSHUT \u2192 non-anchored', fontsize=5.8,
+        ha='center', va='center', color=ACH, linespacing=1.35)
+ax.text(.240, .672, 'always on', fontsize=5.8, color=SELF_C, ha='center')
+ax.text(.330, .603, 'theta\u2013speed slope 0.374 \u2192 0.218 when the gate opens, '
+                    'while the\nspeed CELLS do not change (+11.9%, p = 0.12; '
+                    'Figure 7)',
+        fontsize=5.4, color='0.5', ha='center', va='top', linespacing=1.35)
 
-    # the landmark drive runs into the gate, and on only if the gate is open
-    arrow(ax, (.302, .660), (.348, .678), r['land_c'], lw=r['land_lw'],
-          ls=r['land_ls'], shrink=1, head=False)
-    box(ax, *NODE, r['node'], r['node_fc'], r['node_tc'], fs=6.0,
-        ec=r['node_ec'], lw=1.1)
-    arrow(ax, (.472, .658), (.512, .560), r['land_c'], lw=r['land_lw'],
-          ls=r['land_ls'], shrink=1)
-    if r['blocked']:
-        ax.plot(.4945, .609, marker='x', ms=7.5, mew=1.9, color='#8a1c1c',
-                zorder=5)
-    ax.text(.150, .565, r['land_note'], fontsize=5.7, color=r['land_tc'],
-            ha='center', va='top', linespacing=1.35)
+# the estimate, with the cells that carry it drawn inside it
+box(ax, EST, '', '#f7f5f1', '0.3', ec='0.68', lw=1.0)
+ax.text(.596, .804, 'entorhinal position estimate', fontsize=7.0,
+        ha='center', va='center', color='0.25', zorder=4)
+ax.text(.596, .782, 'a continuous attractor', fontsize=5.8,
+        ha='center', va='center', color='0.55', zorder=4)
+box(ax, (.480, .638, .112, .105), 'grid\ncells', '#fbf0ef', GRID_C, fs=6.4,
+    z=4)
+box(ax, (.604, .638, .112, .105), 'FS\ninterneurons', '#eef3fa', INT_C,
+    fs=6.4, z=4)
+arrow(ax, (.594, .712), (.602, .712), '0.5', lw=1.0, shrink=1, z=6, ms=6)
+arrow(ax, (.602, .668), (.594, .668), '0.5', lw=1.0, shrink=1, z=6, ms=6)
+ax.text(.596, .614, 'the two populations that follow the state most strongly '
+                    '(+0.185, +0.131; Figure 2)', fontsize=5.3, ha='center',
+        va='center', color='0.5', zorder=5)
 
-    # engagement sets the gate, straight down onto it
-    arrow(ax, (.406, .856), (.406, .726), ACH if not r['blocked'] else '0.62',
-          lw=1.2, ls=(0, (2.4, 1.6)), shrink=2, z=2)
+# the readout
+box(ax, BEH, 'action\n(where the animal\nslows and stops)', '#f2f4f1', '0.3')
+arrow(ax, (.734, .710), (.792, .710), '0.45', lw=1.4, shrink=1)
 
-    # the self-motion drive is always present, gate or no gate
-    arrow(ax, (.302, .300), (.512, .432), SELF_C, rad=.14, lw=1.7, shrink=1)
-    ax.text(.150, .196, 'always on\n' + r['self_note'], fontsize=5.7,
-            color=SELF_C, ha='center', va='top', linespacing=1.35)
+# down into the simulated code
+arrow(ax, (.575, .595), (.575, .512), '0.6', lw=1.1, shrink=1)
+ax.text(.588, .553, 'what the code looks like under each\nsetting of the gate '
+                    '(simulated)', fontsize=5.9, ha='left', va='center',
+        color='0.5', linespacing=1.35)
 
-    # the readout
-    arrow(ax, (.764, .481), (.804, .481), '0.45', lw=1.3, shrink=1)
+# ── the left-hand reading of the two settings ─────────────────────────────
+ax.text(.025, .556, 'GATE OPEN  —  ANCHORED', fontsize=7.2, weight='bold',
+        color=ANCH, va='top')
+ax.text(.025, .530, 'The landmark drive reaches the estimate, which is '
+                    're-referenced to\nthe task frame on every traversal. Grid '
+                    'fields recur at the same\nplaces lap after lap, the '
+                    'attractor\u2019s decoded position stays on the\ntrack, and '
+                    'the animal stops where the reward is.',
+        fontsize=6.5, color='0.35', va='top', linespacing=1.5)
 
-    ax.text(.612, .372, r['est_note'], fontsize=5.9, color='0.45',
-            ha='center', va='top', linespacing=1.4)
-    ax.text(.903, .372, r['out_note'], fontsize=5.9, color='0.45',
-            ha='center', va='top', linespacing=1.4)
+ax.text(.025, .404, 'GATE SHUT  —  NON-ANCHORED', fontsize=7.2, weight='bold',
+        color=NONANCH, va='top')
+ax.text(.025, .378, 'Only self-motion arrives. Nothing re-references the '
+                    'estimate to the\ntrack, so each traversal starts from '
+                    'wherever the attractor\nhappens to be: the grid phase is '
+                    'drawn afresh lap by lap and the\ndecoded position '
+                    'integrates away within the lap.',
+        fontsize=6.5, color='0.35', va='top', linespacing=1.5)
+ax.text(.025, .252, 'The correction is MISSING rather than displaced. '
+                    'Non-anchored\ntrials show no coherent field at any offset '
+                    'once the unrelated-cell\nfloor is applied, and '
+                    'neighbouring non-anchored traversals do not\nalign with '
+                    'one another \u2014 so this is neither a drifting map nor a\n'
+                    're-referenced one, which is why the phase is drawn afresh '
+                    'below\nrather than progressively shifted.',
+        fontsize=6.2, color='0.5', va='top', linespacing=1.5)
 
+ax.text(.025, .128, 'It is the anchored trials on which the animal localises '
+                    'the reward zone\ncorrectly, and most strongly when it '
+                    'must do so by path integration\n(Figure 1) \u2014 which is '
+                    'what puts behaviour downstream of the gate\nrather than '
+                    'beside it.',
+        fontsize=6.2, color='0.5', va='top', linespacing=1.5)
 
-fig = plt.figure(figsize=(9.5, 2.65))
-gs = fig.add_gridspec(1, 2, wspace=.20, left=.045, right=.985, top=.813,
-                      bottom=.160)
-route(fig.add_subplot(gs[0]), A_ROUTE)
-route(fig.add_subplot(gs[1]), B_ROUTE)
+# ── the simulated code: 2 states x (2 rate maps + 1 decode) ───────────────
+COLS = [(.418, .146), (.588, .146), (.758, .172)]
+ROWS = [(.300, .150, True, 'ANCHORED', ANCH),
+        (.092, .150, False, 'NON-ANCHORED', NONANCH)]
+HEAD = ['simulated grid cell 1', 'simulated grid cell 2',
+        'position decoded from the attractor']
+CELLS = [(52., 14.), (74., 41.)]       # spacing, anchored phase
 
-# a divider, so the two routes read as alternatives rather than as a sequence
-fig.add_artist(plt.Line2D([.513, .513], [.195, .900], color='0.86', lw=.8))
+for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
+    ax.text(.386, ry + rh / 2, rlab, fontsize=6.6, weight='bold', color=rcol,
+            ha='center', va='center', rotation=90)
+    for ci, (cx, cw) in enumerate(COLS):
+        a = fig.add_axes([cx, ry, cw, rh])
+        a.tick_params(labelsize=5.6, length=2, pad=1.5)
+        for sp in ('top', 'right'):
+            a.spines[sp].set_visible(False)
+        if ci < 2:
+            lam, ph = CELLS[ci]
+            m = grid_map(lam, ph, anch)
+            a.imshow(m / m.max(), aspect='auto', cmap=CMAP, origin='upper',
+                     extent=[0, TRACK, NTRIAL + .5, .5],
+                     interpolation='nearest', vmin=0, vmax=1)
+        else:
+            x, e = decode_err(anch)
+            for t in range(NTRIAL):
+                a.axhline(t + 1, color='0.88', lw=.4, zorder=0)
+                a.plot(x, (t + 1) - e[t] / 100., color=rcol, lw=.75, zorder=2)
+            a.set_ylim(NTRIAL + .62, .38)
+            if ri == 1:   # one scale, on the lower decode panel
+                a.plot([206, 206], [5.5, 4.5], color='0.4', lw=1.1,
+                       clip_on=False, solid_capstyle='butt')
+                a.text(212, 5.0, '100 cm\nerror', fontsize=5.3, color='0.45',
+                       va='center', ha='left', linespacing=1.3)
+        a.set_yticks([1, 5, 10])
+        a.set_xlim(0, TRACK); a.set_xticks([0, 100, 200])
+        if ri == 0:
+            a.set_title(HEAD[ci], fontsize=6.2, color='0.3', pad=3)
+            a.set_xticklabels([])
+        else:
+            a.set_xlabel('position (cm)', fontsize=6.2, labelpad=1)
+        a.set_ylabel('trial', fontsize=6.2, labelpad=1)
 
-fig.text(.045, .105, 'The state changes what arrives at this circuit, not what '
-                     'the circuit does with it.', fontsize=8.2, weight='bold',
-         color='#2a2a2a', va='center')
-fig.text(.045, .042, 'The same five elements are drawn in both routes because '
-                     'the measurements say the circuit is the same in both '
-                     'states: only the gated arrow differs.',
-         fontsize=6.4, color='0.45', va='center')
+fig.text(.025, .032, 'The state changes what arrives at this circuit, not what '
+                     'the circuit does with it \u2014 and what arrives decides '
+                     'whether the code is on the track.', fontsize=8.2,
+         weight='bold', color='#2a2a2a', va='center')
 
-fig.text(.045, .960, 'HYPOTHESIS', fontsize=8, weight='bold', color='#8a1c1c')
-fig.text(.153, .960, '\u2014 both routes are schematics; the values annotated on '
-                     'them are measured, and name the figure they come from',
-         fontsize=8, color='0.45')
+fig.text(.025, .995, 'HYPOTHESIS', fontsize=8, weight='bold', color='#8a1c1c',
+         va='top')
+fig.text(.133, .995, '\u2014 the circuit is a schematic and the six panels below '
+                     'it are simulated; every measured value names the figure '
+                     'it comes from', fontsize=8, color='0.45', va='top')
 
-plt.savefig(OUT, dpi=300, bbox_inches='tight')
+plt.savefig(OUT, dpi=300)
 plt.close(fig)
 print(f'wrote {OUT}')
