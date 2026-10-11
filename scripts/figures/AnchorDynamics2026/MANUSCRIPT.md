@@ -1,4 +1,4 @@
-# A global engagement state, read out by entorhinal grid cells and local inhibition rather than built by them
+# Entorhinal grid codes are gated by attention
 
 *Manuscript draft, assembled 2026-10-03. This document is the paper written as a manuscript, in the flow and style of Clark and Nolan (2024, eLife) and Tennant et al. (2022, Current Biology): declarative section headings, hypotheses stated before the data that test them, explicit validation steps, statistics kept light in the prose and deferred to figure legends, and conclusions hedged to what the data support. The working draft with its full editorial apparatus — corrections, warnings, TODOs, and the point-by-point argument — remains in `PAPER.md`, which stays the record of why the analyses are what they are. Placeholders that still need values are marked `[n]`. See Editorial notes at the end for what is outstanding.*
 

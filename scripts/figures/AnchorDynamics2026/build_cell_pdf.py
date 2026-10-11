@@ -77,8 +77,7 @@ def text_len(t, font, size):
 
 RULE = (0.70, 0.12, 0.12)      # Cell Press red
 
-TITLE = ('A global engagement state, read out by entorhinal grid cells '
-         'and local inhibition rather than built by them')
+TITLE = 'Entorhinal grid codes are gated by attention'
 AUTHORS = ('Harry Clark,^1 Wolf de Wulfe,^1 Chris Halcrow,^1 '
            'and Matthew F. Nolan^1,2,*')
 AFFIL = ['^1Centre for Discovery Brain Sciences, University of Edinburgh, Edinburgh, UK',
@@ -102,9 +101,12 @@ CITATION = [
 
 HIGHLIGHTS = [
     'Anchoring of entorhinal firing to a task reference frame is a population state',
-    'Grid cells and fast-spiking interneurons follow it; spatial coding in general does not',
+    'Every cell class follows it, but grid cells and fast-spiking interneurons do so '
+    'about twice as strongly',
     'Synaptically connected pairs share the state no more than matched unconnected pairs',
     'The same state is present in every structure recorded, including cerebellum',
+    'Pupil constriction tracks it, and performance improves monotonically as the '
+    'pupil narrows',
 ]
 
 # Figure order, source file, and the caption shown beneath it.

@@ -71,6 +71,32 @@ in the title, and for the reworded versions.**
 > 10. **A global engagement state, read out by entorhinal grid cells and local inhibition rather than built by them** *(option 9, reworded)*
 > 11. **Attentional engagement gates the anchoring of entorhinal spatial coding to a task reference frame** *(option 3, reworded)*
 
+> **CHOSEN, 2026-10-11: "Entorhinal grid codes are gated by attention."** Short,
+> readable, and it foregrounds the two things a reader should take away — the
+> grid code is not always reliable, and engagement is what accompanies the
+> difference.
+>
+> *Two things the title says that the Results do not, recorded so that the
+> prose is not written to match it.* **"Gated by" is causal**, and nothing here
+> manipulates attention: engagement is split observationally, and the one
+> interventional-shaped result we have — the beacon's effect on anchoring
+> differing by pupil state, interaction *p* = 0.007 — has neither simple effect
+> significant on its own, so §5 reports it as a direction to test rather than
+> as support. **"Grid codes"** narrows to grid cells, whereas every class
+> follows the population state and grid cells and putative interneurons lead by
+> roughly a factor of two (Figure 2D, after the signed-null correction). The
+> body should keep saying *tracks*, *follows*, *predicts* and *is shared*, and
+> should not acquire *gates*, *sets* or *determines* to match the title. A
+> reviewer who asks for a non-causal title can be given: "Cell type, not
+> synaptic connectivity, predicts which entorhinal neurons follow a global
+> engagement state."
+>
+> The superseded heading was option 10, **"A global engagement state, read out
+> by entorhinal grid cells and local inhibition rather than built by them"**.
+> It had two faults of its own: "read out" is directional in the same way
+> "gated" is, and "read out by grid cells and local inhibition" reads as
+> exclusive, which Figure 2D no longer supports.
+
 ---
 
 ## The argument, point by point

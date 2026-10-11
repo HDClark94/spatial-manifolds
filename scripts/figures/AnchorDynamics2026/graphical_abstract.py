@@ -1,7 +1,12 @@
 """Graphical abstract, in the Cell Press stacked-panel style.
 
-Three stacked statements, read top to bottom: what the phenomenon is, which cells
-express it, and where it comes from. Numbers are the paper's own.
+Four stacked statements, read top to bottom: what the phenomenon is, which cells
+express it, what the state is, and where it comes from. Numbers are the paper's
+own.
+
+The pupil used to appear only as a one-line strap at the foot and the field
+potential not at all, which left the abstract claiming a state without showing
+either of the two measurements that characterise it.
 
 Set in Arial like every other figure -- the Avenir Next used for the document's
 display type is deliberately NOT used inside figure PDFs.
@@ -23,6 +28,7 @@ FIG = os.path.dirname(os.path.abspath(__file__))
 OUT = f'{FIG}/graphical_abstract.pdf'
 
 ANCH = '#b53f8f'          # magenta, as in the figures
+SLOW_G, FAST_G, THETA_C = '#2f7d32', '#e8701a', '#7b4173'   # bands, as Fig 7
 NON = '#4f9d9d'           # teal
 GRID_C = '#c04744'
 INT_C = '#d95f02'
@@ -30,9 +36,9 @@ GREY = '#9a9a9a'
 
 # generous hspace: each panel carries a two-line bold banner ABOVE its axes, so
 # the usual spacing puts the next banner through the previous panel's content
-fig = plt.figure(figsize=(3.55, 5.15))
-G = fig.add_gridspec(3, 1, height_ratios=[1.00, 0.80, 1.00],
-                     hspace=.95, left=.04, right=.96, top=.935, bottom=.025)
+fig = plt.figure(figsize=(3.55, 6.45))
+G = fig.add_gridspec(4, 1, height_ratios=[1.00, 0.78, 0.86, 0.96],
+                     hspace=.92, left=.04, right=.96, top=.950, bottom=.020)
 
 
 def banner(ax, text):
@@ -78,23 +84,62 @@ for k, (x0, col, lab) in enumerate(((.07, ANCH, 'anchored'),
 
 # ── 2. which cells ───────────────────────────────────────────────────────────
 ax = fig.add_subplot(G[1])
-banner(ax, 'Grid cells and interneurons follow it,\nspatial coding in general does not')
+# The superseded version read 'spatial coding in general does not' over the
+# values +0.119, +0.080, -0.000 and -0.024. Those came from a signed
+# correlation scored against an absolute null; corrected, every class
+# exceeds its own chance level and the claim is graded, not exclusive
+# (Figure 2D).
+banner(ax, 'Every class follows it \u2014 grid cells and\ninterneurons about twice as strongly')
 names = ['grid', 'inter-\nneuron', 'non-grid\nspat.', 'non-\nspat.']
-vals = [0.119, 0.080, -0.000, -0.024]
+vals = [0.185, 0.131, 0.081, 0.056]
 cols = [GRID_C, INT_C, GREY, GREY]
 ax.bar(range(4), vals, .64, color=cols, linewidth=0)
 ax.axhline(0, color='0.35', lw=.9)
 ax.set_xticks(range(4)); ax.set_xticklabels(names, fontsize=5.6)
 ax.set_ylabel('agreement with the\nstate, over chance', fontsize=5.8)
 ax.tick_params(axis='y', labelsize=5.4)
-ax.set_ylim(-.05, .16)
+ax.set_ylim(0, .235)
 for i, v in enumerate(vals):
     if v > .02:
-        ax.text(i, v + .008, f'+{v:.3f}', ha='center', fontsize=5.2, color=cols[i])
+        ax.text(i, v + .010, f'+{v:.3f}', ha='center', fontsize=5.2, color=cols[i])
 ax.spines[['top', 'right']].set_visible(False)
 
-# ── 3. where it comes from ───────────────────────────────────────────────────
+# ── 3. what the state is ─────────────────────────────────────────────────────
 ax = fig.add_subplot(G[2]); ax.axis('off')
+ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+banner(ax, 'A focused, constricted-pupil state, with a\nfrequency-specific change in the field potential')
+
+# the pupil, as performance against pupil size -- the measurement that says the
+# anchored state is focused rather than drowsy
+axp = ax.inset_axes([.10, .33, .34, .60])
+hit = [.826, .712, .659, .582, .552, .534, .472, .481, .440, .391]
+axp.plot(range(1, 11), hit, color=ANCH, lw=1.3, marker='o', ms=2.2,
+         mew=0, clip_on=False)
+axp.set_xlim(.5, 10.5); axp.set_ylim(.33, .89)
+axp.set_xticks([1, 10]); axp.set_xticklabels(['narrow\npupil', 'wide'], fontsize=5.0,
+                    linespacing=1.2)
+axp.set_yticks([.4, .6, .8]); axp.tick_params(labelsize=5.0, length=2, pad=1)
+axp.set_ylabel('hit rate', fontsize=5.4, labelpad=1)
+axp.spines[['top', 'right']].set_visible(False)
+
+# the field potential: slow gamma up, fast gamma and theta down
+axg = ax.inset_axes([.63, .33, .32, .60])
+gv = [-.094, .105, -.108]
+gc = [THETA_C, SLOW_G, FAST_G]
+axg.bar(range(3), gv, .62, color=gc, linewidth=0)
+axg.axhline(0, color='0.35', lw=.9)
+axg.set_xticks(range(3))
+axg.set_xticklabels(['theta', 'slow \u03b3', 'fast \u03b3'], fontsize=5.0)
+axg.set_ylim(-.16, .16); axg.set_yticks([-.1, 0, .1])
+axg.tick_params(labelsize=5.0, length=2, pad=1)
+axg.set_ylabel('anchored $-$ non (z)', fontsize=5.4, labelpad=1)
+axg.spines[['top', 'right']].set_visible(False)
+ax.text(.5, .09, 'the pupil narrows on entry to the anchored state (\u22120.41 z);\n'
+                 'the band difference reverses sign at 67 Hz in 25 of 26 sessions',
+        ha='center', va='top', fontsize=5.2, color='0.35', linespacing=1.4)
+
+# ── 4. where it comes from ───────────────────────────────────────────────────
+ax = fig.add_subplot(G[3]); ax.axis('off')
 ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 banner(ax, 'One global state, read out by cell type —\nnot built by the local circuit')
 regions = [('MEC', .09), ('subicular', .32), ('visual', .565), ('cerebellum', .80)]
@@ -115,7 +160,7 @@ ax.text(.5, .455, 'connected pairs share it no more than\nunconnected pairs  —
 ax.add_patch(FancyBboxPatch((.14, .05), .72, .19,
                             boxstyle='round,pad=0.015,rounding_size=0.03',
                             facecolor='#fdf2f8', edgecolor=ANCH, lw=.9))
-ax.text(.5, .145, 'pupil narrows  →  focused state  →  better path integration',
+ax.text(.5, .145, 'anchored trials  →  better path integration',
         ha='center', va='center', fontsize=5.9, color=ANCH, weight='bold')
 
 fig.savefig(OUT, bbox_inches='tight', dpi=300)
