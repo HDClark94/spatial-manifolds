@@ -64,7 +64,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter1d, median_filter, uniform_filter1d
 from scipy.signal import filtfilt, hilbert, welch
-from scipy.stats import fisher_exact, spearmanr, wilcoxon
+from scipy.stats import fisher_exact, pearsonr, spearmanr, wilcoxon
 
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -227,6 +227,31 @@ def pband(lo, hi):
 TR = pd.concat([pband(30, 48).rename('slow'), pband(60, 100).rename('fast')],
                axis=1).dropna()
 TR['shift'] = TR.slow - TR.fast
+TR['sum'] = TR.slow + TR.fast
+# The redistribution claim is a WITHIN-session, paired one: do the two bands
+# move equal and opposite? That is the sum, not the across-session
+# correlation. A uniform see-saw -- every session shifting by much the same
+# amount -- produces no across-session correlation at all, so the correlation
+# that used to title this panel cannot test the claim it was named after.
+TR['broad'] = Wok.groupby(['mouse', 'day']).d.mean()        # 2-200 Hz
+# the same contrast in log power rather than in per-frequency z, as a check
+# that the conservation is not an artifact of z-scoring each frequency
+_LP = S.pivot_table(index=['mouse', 'day', 'freq'], columns='state',
+                    values='log_p').dropna().reset_index()
+_LP['d'] = _LP.anch - _LP.non
+_LP = _LP[_LP.freq.map(not_mains)]
+_lb = lambda lo, hi: _LP[(_LP.freq >= lo) & (_LP.freq < hi)] \
+    .groupby(['mouse', 'day']).d.mean()
+LPSUM = (_lb(30, 48) + _lb(60, 100)).dropna()
+# ... and weighted by bandwidth, which is the honest caveat: the fast band is
+# 40 Hz wide against slow's 18, so a per-Hz balance is not a power budget
+LPSUM_BW = (_lb(30, 48) * 18 + _lb(60, 100) * 40).dropna()
+P_SUM = wilcoxon(TR['sum']).pvalue
+P_SHIFT = wilcoxon(TR['shift']).pvalue
+P_BROAD = wilcoxon(TR['broad']).pvalue
+R_SF, _ = pearsonr(TR.slow, TR.fast)
+_z, _se = np.arctanh(R_SF), 1 / np.sqrt(len(TR) - 3)
+CI_SF = np.tanh([_z - 1.96 * _se, _z + 1.96 * _se])
 BOTH = int(((TR.slow > 0) & (TR.fast < 0)).sum())
 
 
@@ -267,9 +292,14 @@ EXP_QUAD = _su.sum() * _fd.sum() / len(TR)
 print(f'  slow up {int(_su.sum())}/{len(TR)}, fast down {int(_fd.sum())}/{len(TR)}, '
       f'both {BOTH}/{len(TR)} (expected under observed marginals {EXP_QUAD:.1f}, '
       f'Fisher p={P_QUAD:.2f})')
-print(f'  shift index {TR["shift"].mean():+.3f} p={wilcoxon(TR["shift"]).pvalue:.2g}')
-print(f'  slow vs fast across sessions: rho={spearmanr(TR.slow, TR.fast)[0]:+.3f} '
-      f'p={spearmanr(TR.slow, TR.fast)[1]:.2g}')
+print(f'  shift (slow-fast) {TR["shift"].mean():+.3f} p={P_SHIFT:.2g}  |  '
+      f'sum (slow+fast) {TR["sum"].mean():+.3f} p={P_SUM:.2g}  |  '
+      f'broadband {TR["broad"].mean():+.3f} p={P_BROAD:.2g}')
+print(f'  in log power: sum {LPSUM.mean():+.4f} p={wilcoxon(LPSUM).pvalue:.2g}; '
+      f'bandwidth-weighted {LPSUM_BW.mean():+.3f} '
+      f'p={wilcoxon(LPSUM_BW).pvalue:.2g}')
+print(f'  slow vs fast across sessions: r={R_SF:+.3f} '
+      f'95% CI [{CI_SF[0]:+.2f}, {CI_SF[1]:+.2f}] (not what the claim rests on)')
 print(f'  crossover median {np.median(CX):.1f} Hz in {len(CX)}/{NS} sessions')
 
 # ============================== figure =========================================
@@ -521,20 +551,40 @@ ax.text(.5, -.34, '* contains mains', transform=ax.transAxes, fontsize=5,
 tidy(ax); lp(ax, 'G', x=-.17)
 
 ax = fig.add_subplot(GQ[1])
-ax.axhline(0, color='0.6', lw=.8); ax.axvline(0, color='0.6', lw=.8)
-ax.axhspan(ax.get_ylim()[0], 0, xmin=.5, color=ANCH_COLOR, alpha=.07, linewidth=0)
-ax.scatter(TR.slow, TR.fast, s=16, color=GRID_C, alpha=.8, lw=0, zorder=3)
+# What this panel used to ask -- are the two changes CORRELATED across
+# sessions? -- cannot answer the question it was named after, and with n = 26
+# its null had a 95% CI of roughly -0.33 to +0.44 behind it. The quadrant
+# count that titled it was a dichotomised restatement of the same null, so two
+# reports of one weak test read as two pieces of evidence. The claim is
+# instead tested pairwise, within session: equal and opposite means the SUM is
+# zero while the DIFFERENCE is not, which is what the line and the centroid
+# show.
+_lim = max(abs(np.r_[TR.slow, TR.fast]).max() * 1.12, .08)
+ax.plot([-_lim, _lim], [_lim, -_lim], ls='--', lw=.9, color='0.55', zorder=1)
+ax.axhline(0, color='0.85', lw=.8, zorder=0)
+ax.axvline(0, color='0.85', lw=.8, zorder=0)
+# No per-point residual segments: the sum is zero on AVERAGE, not session by
+# session (SD about 0.3), and drawing 26 long perpendiculars made that spread
+# -- most of which is measurement noise in two independent band estimates --
+# look like a failure of the line. The cloud and the centroid carry it.
+ax.scatter(TR.slow, TR.fast, s=15, color=GRID_C, alpha=.85, lw=0, zorder=3)
+_mx, _my = TR.slow.mean(), TR.fast.mean()
+ax.errorbar(_mx, _my, xerr=TR.slow.std() / np.sqrt(len(TR)),
+            yerr=TR.fast.std() / np.sqrt(len(TR)), fmt='D', ms=4.5,
+            color='0.15', ecolor='0.15', elinewidth=1.1, capsize=2, zorder=5)
+ax.set_xlim(-_lim, _lim); ax.set_ylim(-_lim, _lim)
 ax.set_xlabel('slow gamma change (z)', fontsize=7.5)
 ax.set_ylabel('fast gamma change (z)', fontsize=7.5)
-rho, prho = spearmanr(TR.slow, TR.fast)
-# Title the null, not the count. 16/26 in the quadrant is what 21/26 up and
-# 19/26 down already imply (expected 15.3, Fisher p = 0.59), so advertising the
-# count invites it to be read as independent evidence of a coupled shift.
-ax.set_title(f'{BOTH}/{len(TR)} in the slow-up/fast-down\nquadrant — '
-             f'{EXP_QUAD:.0f} expected, p = {P_QUAD:.2f}', fontsize=8)
-ax.annotate(f'$\\rho$ = {rho:+.2f}, p = {prho:.2f}\n(the two changes are not coupled)',
-            (.03, .03), xycoords='axes fraction', fontsize=5.6, color='0.35',
-            va='bottom')
+ax.set_title('power moves from fast to slow,\nwith no net change', fontsize=8)
+ax.text(.045, .76, 'equal and\nopposite', transform=ax.transAxes,
+        fontsize=5.4, color='0.5', ha='left', va='top', linespacing=1.25)
+ax.text(.985, .975,
+        f'slow $-$ fast  {TR["shift"].mean():+.3f}  p = {P_SHIFT:.0e}'
+        .replace('e-0', 'e-') + '\n'
+        f'slow $+$ fast  {TR["sum"].mean():+.3f}  p = {P_SUM:.2f}\n'
+        f'2\u2013200 Hz     {TR["broad"].mean():+.3f}  p = {P_BROAD:.2f}',
+        transform=ax.transAxes, fontsize=5.0, color='0.25', va='top',
+        ha='right', linespacing=1.55, family='DejaVu Sans Mono')
 tidy(ax); lp(ax, 'H', x=-.17)
 
 # Panels I and J were removed. I ranked the per-session slow-minus-fast
