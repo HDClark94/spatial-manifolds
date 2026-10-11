@@ -40,7 +40,7 @@ from scipy.stats import wilcoxon
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import BoundaryNorm, ListedColormap
-from matplotlib.patches import Patch, Rectangle
+from matplotlib.patches import Rectangle
 
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['pdf.fonttype'] = 42
@@ -83,12 +83,11 @@ def track(ax, x0, w, y0, h, cued):
     else:      # on uncued trials the zone carries no cue at all: an outline,
         ax.add_patch(Rectangle((zx, y0), zw, h, facecolor='none',  # not a fill
                                edgecolor='0.72', lw=.6, ls=(0, (1.6, 1.4))))
-    ax.text(x0 + w / 2, y0 + h + .006, 'cued' if cued else 'uncued',
-            ha='center', va='bottom', fontsize=5.4,
-            color=CUE_C if cued else '0.35')
+    ax.text(x0 - .012, y0 + h / 2, 'cued' if cued else 'uncued', ha='right',
+            va='center', fontsize=5.2, color=CUE_C if cued else '0.45')
     if not cued:
-        ax.text(zx + zw / 2, y0 - .004, 'zone, unmarked', ha='center',
-                va='top', fontsize=4.2, color='0.5')
+        ax.text(x0 + w + .012, y0 + h / 2, 'zone unmarked', ha='left',
+                va='center', fontsize=4.4, color='0.5')
 
 
 # ── 1. the phenomenon, and what it buys ──────────────────────────────────────
@@ -97,41 +96,48 @@ ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 banner(ax, 'Entorhinal firing anchors to the task reference\n'
            'frame and tracks uncued engagement')
 
-track(ax, .035, .42, .935, .030, True)
-track(ax, .545, .42, .935, .030, False)
+# The grid cell, the population and PC1 share one trial axis, as Figure 1 has
+# them share it: the cell's anchored runs line up row for row with the magenta
+# blocks of PC1, which is the whole point and is lost if the cell is drawn as
+# two separate state-sorted blocks.
+track(ax, .105, .255, .945, .024, True)
+track(ax, .105, .255, .890, .024, False)
 
-# one real grid cell, its trials split by the state they were in
 gmap, ganch = Q['gc_map'], Q['gc_anch']
 mo, dy, cid, gs = Q['gc_meta']
+ntr = gmap.shape[0]
+
+
 def _norm(M):
     """Each trial scaled to its own 95th percentile.
 
-    The claim this panel makes is about WHERE the field sits from trial to
-    trial, not how hard the cell fires, and a single map-wide clip lets the
-    loud trials swamp the quiet ones: on the 99th-percentile clip the anchored
-    band is visible but faint and the comparison has to be taken on trust.
+    The claim is about WHERE the field sits from trial to trial, not how hard
+    the cell fires, and a single map-wide clip lets the loud trials swamp the
+    quiet ones: on a 99th-percentile clip the anchored band is visible but
+    faint and the comparison has to be taken on trust.
     """
     d = np.nanpercentile(M, 95, axis=1, keepdims=True)
     return np.clip(M / np.where(d > 0, d, 1.), 0, 1)
-for k, (x0, st, col, lab) in enumerate(((.035, 1., ANCH, 'anchored'),
-                                        (.265, 0., NON, 'non-anchored'))):
-    M = gmap[ganch == st]
-    axm = ax.inset_axes([x0, .50, .20, .33])
-    axm.imshow(_norm(M), aspect='auto', cmap='viridis',
-               origin='upper', extent=[0, 200, M.shape[0], 0],
-               interpolation='nearest', vmin=0, vmax=1)
-    axm.set_xticks([]); axm.set_yticks([])
-    for sp in axm.spines.values():
-        sp.set_color(col); sp.set_linewidth(1.3)
-    ax.text(x0 + .10, .845, lab, ha='center', fontsize=5.4, color=col)
-ax.text(.165, .475, f'one grid cell, {int(gmap.shape[0])} trials',
-        ha='center', va='top', fontsize=5.0, color='0.4')
 
-# the population, as Figure 1 draws it
-z = np.load(f'{ROOT}/data/population_state/labels/M26D18.npz', allow_pickle=True)
+
+axm = ax.inset_axes([.105, .455, .255, .395])
+axm.imshow(_norm(gmap), aspect='auto', cmap='viridis', origin='upper',
+           extent=[0, 200, ntr, 0], interpolation='nearest', vmin=0, vmax=1)
+axm.set_xticks([0, 100, 200]); axm.set_yticks([0, ntr])
+axm.tick_params(labelsize=4.6, length=2, pad=1)
+axm.set_ylabel('trial', fontsize=4.8, labelpad=1)
+axm.set_xlabel('position (cm)', fontsize=4.8, labelpad=1)
+for sp in axm.spines.values():
+    sp.set_linewidth(.5)
+ax.text(.2325, .385, f'one grid cell, score {gs:.2f}', ha='center', va='top',
+        fontsize=5.0, color='0.4')
+
+# the state of the same trials, cell by cell and as PC1
+z = np.load(f'{ROOT}/data/population_state/labels/M{int(mo)}D{int(dy)}.npz',
+            allow_pickle=True)
 L, load, pc1 = z['labels'], z['pc1_load'], z['pc1']
 C = pd.read_csv(f'{ROOT}/data/population_state/anchoring_cells.csv')
-C = C[(C.mouse == 26) & (C.day == 18)]
+C = C[(C.mouse == int(mo)) & (C.day == int(dy))]
 keep = np.isin(z['cluster_id'], C.cluster_id[C.in_population].values)
 L, load = L[keep], load[keep]
 with np.errstate(invalid='ignore'):
@@ -143,32 +149,36 @@ ord_l = lk[np.argsort(-_fr)] if len(lk) else lk
 gap = max(2, int(round(.025 * L.shape[0])))
 Lb = np.vstack([L[ord_v]] + ([np.full((gap, L.shape[1]), np.nan), L[ord_l]]
                              if len(ord_l) else []))
-ntr = Lb.shape[1]
 
-axr = ax.inset_axes([.555, .50, .30, .33])
+axr = ax.inset_axes([.455, .455, .285, .395], sharey=axm)
 axr.imshow(Lb.T, aspect='auto', cmap=TA, norm=NORM, interpolation='nearest',
            extent=[0, Lb.shape[0], ntr, 0])
-axr.set_xticks([]); axr.set_yticks([0, ntr])
-axr.tick_params(labelsize=4.8, length=2, pad=1)
-axr.set_ylabel('trial', fontsize=4.8, labelpad=1)
+axr.set_xticks([]); axr.tick_params(labelsize=4.6, length=2, pad=1,
+                                    labelleft=False)
 for sp in axr.spines.values():
     sp.set_linewidth(.5)
-axq = ax.inset_axes([.875, .50, .085, .33])
+ax.text(.5975, .385, f'{Lb.shape[0]} MEC cells', ha='center', va='top',
+        fontsize=5.0, color='0.4')
+
+axq = ax.inset_axes([.775, .455, .105, .395], sharey=axm)
 tr = np.arange(ntr)
 axq.fill_betweenx(tr, 0, pc1, where=pc1 >= 0, color=ANCH, linewidth=0,
                   edgecolor='none', interpolate=True)
 axq.fill_betweenx(tr, 0, pc1, where=pc1 < 0, color=NON, linewidth=0,
                   edgecolor='none', interpolate=True)
 axq.axvline(0, color='0.4', lw=.5)
-axq.set_ylim(ntr, 0); axq.set_xticks([]); axq.set_yticks([])
-axq.set_xlabel('PC1', fontsize=4.8, labelpad=1)
+axq.set_xticks([]); axq.tick_params(labelleft=False, length=0)
 for sp in axq.spines.values():
     sp.set_visible(False)
-ax.text(.755, .475, f'{Lb.shape[0]} MEC cells, one session',
-        ha='center', va='top', fontsize=5.0, color='0.4')
+ax.text(.8275, .385, 'PC1', ha='center', va='top', fontsize=5.0, color='0.4')
+ax.text(.905, .72, 'anchored', fontsize=4.8, color=ANCH, va='center')
+ax.text(.905, .60, 'non-\nanchored', fontsize=4.8, color=NON, va='center',
+        linespacing=1.2)
+ax.text(.010, .65, f'M{int(mo)} D{int(dy)}', fontsize=5.0, color='0.45',
+        va='center', rotation=90, ha='center')
 
 # what the state buys the animal
-axh = ax.inset_axes([.30, .14, .42, .23])
+axh = ax.inset_axes([.30, .10, .42, .20])
 E = pd.read_csv(f'{ROOT}/data/eye_anchoring/eye_anchoring_trials.csv')
 E = E.dropna(subset=['pc1', 'perf', 'ttype'])
 E['hit'] = (E.perf == 'hit').astype(float)
@@ -189,14 +199,9 @@ axh.set_ylim(0, 1.05); axh.set_yticks([0, .4, .8])
 axh.set_ylabel('hit rate', fontsize=5.2, labelpad=1)
 axh.tick_params(labelsize=4.8, length=2, pad=1)
 axh.spines[['top', 'right']].set_visible(False)
-axh.legend(handles=[Patch(facecolor=ANCH, label='anchored'),
-                    Patch(facecolor=NON, label='non-anchored')],
-           fontsize=4.6, frameon=False, loc='upper left', handlelength=.8,
-           handleheight=.8, borderpad=.1, labelspacing=.2,
-           bbox_to_anchor=(-.02, 1.28), ncol=2, columnspacing=.8)
 _W = (S_.anch - S_.non).unstack('ttype').dropna()
 _p = wilcoxon(_W.nb, _W.b).pvalue
-ax.text(.5, .105, f'the benefit is larger when the zone must be found by path\n'
+ax.text(.5, .062, f'the benefit is larger when the zone must be found by path\n'
                   f'integration ({(_W.nb - _W.b).mean():+.3f}, p = {_p:.0e}'
                   .replace('e-0', 'e-') + f', {len(_W)} sessions)',
         ha='center', va='top', fontsize=5.2, color='0.35', linespacing=1.4)
@@ -235,6 +240,10 @@ for k, (y0, key, col, lab) in enumerate(((.52, 'anch', ANCH, 'anchored'),
     ax.text(.175, y0 + .26, lab, fontsize=4.8, color=col, va='center')
     ax.text(.175, y0 + .14, f'r = {float(Q[f"pupil_{key}_r"][0]):.1f} px',
             fontsize=4.6, color='0.45', va='center')
+    if k:
+        ax.text(.175, y0 + .035, 'same mouse and session,\nboth at \u224820 cm '
+                'on the track', fontsize=4.3, color='0.5', va='center',
+                linespacing=1.3)
 
 axp = ax.inset_axes([.33, .28, .34, .62])
 _z = np.load(f'{ROOT}/data/eye_anchoring/eye_position_profiles_gated.npz')

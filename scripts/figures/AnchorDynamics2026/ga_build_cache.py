@@ -82,26 +82,85 @@ for tt in ('b', 'nb'):
                                sel.pos.values.astype(float)]
     print(f'  {tt}: {len(tr)} trials, {len(sel)} stops')
 out['n_trials'] = np.array([int(trials.number.max())], dtype=float)
-# ---- one pupil image per state, from the cached Figure 5 frames -------------
-# Seven frames per state at MATCHED track positions. Position 0 is used here:
-# it is where the pupil is largest (Figure 5I peaks at the start of the track)
-# and so where a size difference is most legible. It is not the only position
-# that shows it -- the anchored radius is smaller at all seven
-# (10.3 11.1 8.5 7.8 7.9 7.8 7.7 against 12.8 12.0 9.7 9.5 8.6 8.8 8.9 px) --
-# and the panel prints the two radii so the image is not asked to carry the
-# claim on its own.
-EYE = f'{FIG}/eye_frames_M21D19_trials.npz'
-ez = np.load(EYE, allow_pickle=True)
-ks = sorted(int(k) for k in ez.files)
-PUP_R = dict(anch=10.3, non=12.8)
-for lab, k in (('anch', ks[0]), ('non', ks[7])):
-    g = ez[str(k)][:, :, ::-1].mean(2)
-    ys, xs = np.nonzero(g < np.percentile(g, 3))      # the pupil is the darkest
+# ---- one pupil image per state, same mouse, same place on the track --------
+# Both frames come from M21 D19 -- the same mouse and the same session -- and
+# from the two trials Figure 5 uses as its anchored and non-anchored examples.
+# They are matched on track position: 20 cm, early on the track and clear of
+# the teleport at 0. Figure 5's own frame grid is [0, 30, 60, 90, 120, 150,
+# 170], so 20 cm is grabbed fresh here rather than taken from the cache.
+import importlib.util                                          # noqa: E402
+_spec = importlib.util.spec_from_file_location(
+    'f5', f'{FIG}/fig5_pupil_arousal.py')
+f5 = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(f5)          # guarded by __main__, so nothing is built
+
+EMO, EDY, PUP_POS, TOL = 21, 19, 20.0, 5.0
+EYE = f'{FIG}/eye_frames_M{EMO}D{EDY}_trials.npz'
+vid = f5.find_video(EMO, EDY)
+
+
+def crop_pupil(fr):
+    """Square crop centred on the darkest region, which is the pupil."""
+    g = fr.mean(2)
+    ys, xs = np.nonzero(g < np.percentile(g, 3))
     cy, cx, h = int(ys.mean()), int(xs.mean()), 46
-    out[f'pupil_{lab}'] = ez[str(k)][max(0, cy - h):cy + h,
-                                     max(0, cx - h):cx + h, ::-1]
-    out[f'pupil_{lab}_r'] = np.array([PUP_R[lab]])
-    print(f'  pupil {lab}: frame {k}, radius {PUP_R[lab]} px')
+    return fr[max(0, cy - h):cy + h, max(0, cx - h):cx + h]
+
+
+if vid is not None:
+    # the volume is up: take the frames at the position actually wanted
+    import cv2                                                 # noqa: E402
+    S5 = f5.load_session(EMO, EDY)
+    blocks = f5.state_blocks(EMO, EDY, S5, f5.population(EMO, EDY))
+    cap = cv2.VideoCapture(vid)
+    # the full-frame videos need the eye crop from all_eye_crops.csv before
+    # anything is looked for inside them; without it the darkest-region search
+    # finds a dark corner of the rig rather than the pupil
+    if 'eye_zone' in os.path.basename(vid):
+        cx0 = cy0 = 0
+        cw = ch = None
+    else:
+        _r = f5.crops()
+        _r = _r[(_r.mouse == EMO) & (_r.day == EDY) &
+                (_r.session.astype(str).str.lower() == 'vr')].iloc[0]
+        cx0, cy0, cw, ch = int(_r.x), int(_r.y), int(_r.w), int(_r.h)
+    for lab in ('anch', 'non'):
+        a, b, _, _ = blocks[lab]
+        u, _ = f5.pick_trial(S5, a, b)
+        m = np.where((S5['tr'] == u) & S5['good'] & (S5['spd'] >= 3.0) &
+                     (np.abs(S5['pos'] - PUP_POS) <= TOL))[0]
+        i = int(m[np.argmin(np.abs(S5['pos'][m] - PUP_POS))])
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+        ok, fr = cap.read()
+        if not ok:
+            raise SystemExit(f'{lab}: frame {i} unreadable')
+        fr = fr if cw is None else fr[cy0:cy0 + ch, cx0:cx0 + cw]
+        out[f'pupil_{lab}'] = crop_pupil(fr[:, :, ::-1])
+        out[f'pupil_{lab}_r'] = np.array([float(S5['rad'][i])])
+        out[f'pupil_{lab}_pos'] = np.array([float(S5['pos'][i])])
+        print(f'  pupil {lab}: M{EMO}D{EDY} trial {u}, frame {i}, '
+              f'{S5["pos"][i]:.0f} cm, radius {S5["rad"][i]:.1f} px')
+    cap.release()
+else:
+    # The eye videos live on the lab volume, not on the microSD copy, so when
+    # only the SD is mounted the nearest CACHED matched position is used.
+    # Figure 5 grabs its frames at [0, 30, 60, 90, 120, 150, 170] cm, so 30 cm
+    # is the nearest to the 20 cm wanted, and it is on the track proper rather
+    # than at the teleport. Both frames are the same mouse, the same session
+    # and the same two trials Figure 5 uses, matched on position.
+    SHOW_POS = [0, 30, 60, 90, 120, 150, 170]
+    RADII = {'anch': [10.3, 11.1, 8.5, 7.8, 7.9, 7.8, 7.7],
+             'non': [12.8, 12.0, 9.7, 9.5, 8.6, 8.8, 8.9]}
+    j = int(np.argmin(np.abs(np.array(SHOW_POS) - PUP_POS)))
+    ez = np.load(EYE, allow_pickle=True)
+    ks = sorted(int(k) for k in ez.files)
+    for lab, k in (('anch', ks[j]), ('non', ks[7 + j])):
+        out[f'pupil_{lab}'] = crop_pupil(ez[str(k)][:, :, ::-1])
+        out[f'pupil_{lab}_r'] = np.array([RADII[lab][j]])
+        out[f'pupil_{lab}_pos'] = np.array([float(SHOW_POS[j])])
+        print(f'  pupil {lab}: M{EMO}D{EDY} cached frame {k}, '
+              f'{SHOW_POS[j]} cm, radius {RADII[lab][j]} px '
+              f'(lab volume down; {PUP_POS:.0f} cm not cached)')
 
 np.savez_compressed(OUT, **out)
 print(f'wrote {OUT}')
