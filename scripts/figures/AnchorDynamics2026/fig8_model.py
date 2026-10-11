@@ -72,6 +72,7 @@ import numpy as np
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
+from matplotlib.transforms import Bbox
 
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['mathtext.fontset'] = 'custom'
@@ -365,12 +366,9 @@ fig.text(.025, .032, 'The state changes what arrives at this circuit, not what '
                      'whether the code is on the track.', fontsize=8.2,
          weight='bold', color='#2a2a2a', va='center')
 
-fig.text(.025, .995, 'HYPOTHESIS', fontsize=8, weight='bold', color='#8a1c1c',
-         va='top')
-fig.text(.133, .995, '\u2014 the circuit is a schematic and the ten panels below '
-                     'it are simulated; every measured value names the figure '
-                     'it comes from', fontsize=8, color='0.45', va='top')
-
-plt.savefig(OUT, dpi=300)
+# the figure is laid out in explicit figure fractions, so a tight bbox
+# would be set by the full-canvas overlay axes rather than by the content;
+# crop to the top of the engagement box instead
+plt.savefig(OUT, dpi=300, bbox_inches=Bbox.from_extents(0, 0, 9.5, 5.80))
 plt.close(fig)
 print(f'wrote {OUT}')

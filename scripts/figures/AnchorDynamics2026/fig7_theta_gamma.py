@@ -361,6 +361,9 @@ ax.legend(handles=[Patch(facecolor=ANCH_COLOR, label='anchored'),
           bbox_to_anchor=(1.0, 1.02), handlelength=1.0, columnspacing=.9,
           borderpad=.1)
 tidy(ax); lp(ax, 'A', x=-.20)
+# no bottom spine: the trial axis belongs to the panels beneath, and a spine
+# with no ticks under a filled trace reads as a second zero line
+ax.spines['bottom'].set_visible(False)
 # the speed twin axis is gone: it was a second y scale on the panel that
 # carries the state, and speed is not what this figure is about
 

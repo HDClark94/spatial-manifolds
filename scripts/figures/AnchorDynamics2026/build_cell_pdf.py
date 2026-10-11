@@ -316,7 +316,7 @@ FIGURES = [
      'redistribution. Where in the theta cycle each frequency peaks, and how that moves with '
      'the state, is shown in Figure S10.'),
     ('Figure 8', 'fig8_model.pdf',
-     'One circuit, one gate: an account of the anchoring state (hypothesis)',
+     'Proposed engagement gate for position estimation in the entorhinal cortex',
      'A proposed mechanism, placed with Ideas and speculation rather than with the Results. The '
      'circuit is a schematic and the ten panels beneath it are SIMULATED, drawn from the account '
      'rather than measured; every measured value on the page names the figure it comes from. Two '
