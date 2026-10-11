@@ -910,44 +910,49 @@ _TI = pd.read_csv(f'{PS}/of_theta_index.csv')
 _TI = _TI[_TI.of == 'OF1'][['mouse', 'day', 'cluster_id', 'theta_index']]
 _MT = M.merge(_TI, on=['mouse', 'day', 'cluster_id'], how='left')
 _MT = _MT[_MT.theta_index.notna() & _MT.excess.notna()].copy()
-_MT['lti'] = np.log10(_MT.theta_index.clip(lower=.05))
 _MT['sess'] = _MT.mouse.astype(str) + 'D' + _MT.day.astype(str)
-_b1 = smf.mixedlm('excess ~ lti', _MT, groups=_MT['mouse'],
+_b1 = smf.mixedlm('excess ~ theta_index', _MT, groups=_MT['mouse'],
                   vc_formula={'sess': '0 + C(sess)'}).fit(reml=True,
                                                           method='lbfgs')
-_b2 = smf.mixedlm('excess ~ lti + C(identity)', _MT, groups=_MT['mouse'],
+_b2 = smf.mixedlm('excess ~ theta_index + C(identity)', _MT,
+                  groups=_MT['mouse'],
                   vc_formula={'sess': '0 + C(sess)'}).fit(reml=True,
                                                           method='lbfgs')
-print(f'  theta index vs agreement: beta {_b1.params["lti"]:+.4f} '
-      f'(p={_b1.pvalues["lti"]:.2g}) alone, {_b2.params["lti"]:+.4f} '
-      f'(p={_b2.pvalues["lti"]:.2g}) with identity in the model')
-print('  median theta index by identity: '
-      + ', '.join(f'{k} {v:.1f}' for k, v in
-                  _MT.groupby('identity').theta_index.median().items()))
+print(f'  theta index vs agreement: beta {_b1.params["theta_index"]:+.3f} '
+      f'(p={_b1.pvalues["theta_index"]:.2g}) alone, '
+      f'{_b2.params["theta_index"]:+.3f} '
+      f'(p={_b2.pvalues["theta_index"]:.2g}) with identity in the model')
+for _k, _g in _MT.groupby('identity'):
+    if len(_g) < 150:
+        continue
+    _m = smf.mixedlm('excess ~ theta_index', _g, groups=_g['mouse'],
+                     vc_formula={'sess': '0 + C(sess)'}).fit(reml=True,
+                                                             method='lbfgs')
+    print(f'    within {_k:22} n={len(_g):>4} beta={_m.params["theta_index"]:+.3f} '
+          f'p={_m.pvalues["theta_index"]:.2g}  median index '
+          f'{_g.theta_index.median():.3f}')
 ax = fig.add_subplot(g4[4])
-_edges = np.quantile(_MT.lti, np.linspace(0, 1, 7))
+_edges = np.quantile(_MT.theta_index, np.linspace(0, 1, 7))
 for k in ORDER:
     g = _MT[_MT.identity == k]
     xs, ys, es = [], [], []
     for lo, hi in zip(_edges[:-1], _edges[1:]):
-        m_ = (g.lti >= lo) & (g.lti <= hi)
+        m_ = (g.theta_index >= lo) & (g.theta_index <= hi)
         if m_.sum() >= 12:
-            xs.append(10 ** g.lti[m_].median()); ys.append(g.excess[m_].mean())
+            xs.append(g.theta_index[m_].median()); ys.append(g.excess[m_].mean())
             es.append(g.excess[m_].std() / np.sqrt(m_.sum()))
     if len(xs) >= 3:
         ax.errorbar(xs, ys, yerr=es, color=ICOL[k], lw=1.3, marker='o', ms=3,
                     capsize=0, label=SHORT[ORDER.index(k)])
-ax.set_xscale('log'); ax.set_xticks([1, 3, 10])
-ax.set_xticklabels(['1', '3', '10'], fontsize=7)
-ax.xaxis.set_minor_formatter(plt.NullFormatter())
 ax.set_xlabel('open-field theta index', fontsize=8)
 ax.set_ylabel('agreement above\nthe cell\'s own null', fontsize=8)
 ax.legend(fontsize=5.8, frameon=False, ncol=2, loc='upper left',
           handlelength=1.0, columnspacing=.8)
 _lp(ax, 'L')
-ax.set_title('theta modulation adds a little,\n'
-             'mostly by separating the classes\n'
-             f'(beta {_b1.params["lti"]:+.3f}, {_b2.params["lti"]:+.3f} given identity)',
+ax.set_title('more theta-rhythmic cells follow more,\n'
+             'within each class as well as between\n'
+             f'(beta {_b1.params["theta_index"]:+.2f}, '
+             f'{_b2.params["theta_index"]:+.2f} given identity)',
              fontsize=6.8, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 print(f'  K: speed-modulated {_a[0]}on/{_a[1]}off, not {_b[0]}on/{_b[1]}off, '
