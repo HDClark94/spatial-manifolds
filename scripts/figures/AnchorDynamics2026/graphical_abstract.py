@@ -1,12 +1,24 @@
 """Graphical abstract, in the Cell Press stacked-panel style.
 
 Four stacked statements, read top to bottom: what the phenomenon is, which cells
-express it, what the state is, and where it comes from. Numbers are the paper's
-own.
+express it, why it matters for behaviour, and what the state is.
 
-The pupil used to appear only as a one-line strap at the foot and the field
-potential not at all, which left the abstract claiming a state without showing
-either of the two measurements that characterise it.
+The numbers are the paper's own, and the last two panels are computed here from
+the same cached tables the figures use rather than typed in:
+
+  behaviour   data/eye_anchoring/eye_anchoring_trials.csv -- hit rate by state
+              and cue condition, the state being the sign of PC1
+  the pupil   data/eye_anchoring/eye_position_profiles_gated.npz -- the Figure
+              5I profiles, drawn here as the anchored minus non-anchored
+              DIFFERENCE rather than as the two absolute curves. Pupil radius
+              swings 2.2 z along the track against a 0.27 z difference between
+              states, so on an absolute axis at this size the two curves are one
+              curve; the difference form is what makes "lower at every position"
+              visible, and it is the form PAPER.md says is needed for exactly
+              that reason.
+
+A panel titled "One global state, read out by cell type -- not built by the
+local circuit" was dropped to make room.
 
 Set in Arial like every other figure -- the Avenir Next used for the document's
 display type is deliberately NOT used inside figure PDFs.
@@ -15,16 +27,20 @@ Writes graphical_abstract.pdf
 """
 import os
 
+import pandas as pd
+from scipy.stats import wilcoxon
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import FancyBboxPatch, Rectangle
+from matplotlib.patches import Patch, Rectangle
 
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['pdf.fonttype'] = 42
 
 FIG = os.path.dirname(os.path.abspath(__file__))
+ROOT = '/Users/harryclark/Documents/spatial-manifolds'
 OUT = f'{FIG}/graphical_abstract.pdf'
 
 ANCH = '#b53f8f'          # magenta, as in the figures
@@ -36,9 +52,9 @@ GREY = '#9a9a9a'
 
 # generous hspace: each panel carries a two-line bold banner ABOVE its axes, so
 # the usual spacing puts the next banner through the previous panel's content
-fig = plt.figure(figsize=(3.55, 6.45))
-G = fig.add_gridspec(4, 1, height_ratios=[1.00, 0.78, 0.86, 0.96],
-                     hspace=.92, left=.04, right=.96, top=.950, bottom=.020)
+fig = plt.figure(figsize=(3.55, 6.15))
+G = fig.add_gridspec(4, 1, height_ratios=[1.00, 0.76, 0.84, 0.86],
+                     hspace=.95, left=.04, right=.96, top=.950, bottom=.020)
 
 
 def banner(ax, text):
@@ -104,22 +120,72 @@ for i, v in enumerate(vals):
         ax.text(i, v + .010, f'+{v:.3f}', ha='center', fontsize=5.2, color=cols[i])
 ax.spines[['top', 'right']].set_visible(False)
 
-# ── 3. what the state is ─────────────────────────────────────────────────────
+# ── 3. why it matters ────────────────────────────────────────────────────────
 ax = fig.add_subplot(G[2]); ax.axis('off')
 ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-banner(ax, 'A focused, constricted-pupil state, with a\nfrequency-specific change in the field potential')
+banner(ax, 'Anchored trials are better performed \u2014 most\n'
+           'when the reward zone carries no cue')
+axh = ax.inset_axes([.17, .38, .66, .56])
+E = pd.read_csv(f'{ROOT}/data/eye_anchoring/eye_anchoring_trials.csv')
+E = E.dropna(subset=['pc1', 'perf', 'ttype'])
+E['hit'] = (E.perf == 'hit').astype(float)
+E['anch'] = E.pc1 > 0
+# per-session paired benefit, which is what the statistic is computed on; the
+# bars show the pooled rate so the panel reads as performance, not as a delta
+S_ = E.groupby(['mouse', 'day', 'ttype', 'anch']).hit.mean().unstack('anch').dropna()
+S_.columns = ['non', 'anch']
+for j, (tt, lab) in enumerate((('b', 'cued'), ('nb', 'uncued'))):
+    g = E[E.ttype == tt]
+    for k, (st, col) in enumerate(((True, ANCH), (False, NON))):
+        v = g[g.anch == st].hit.mean()
+        axh.bar(j + (k - .5) * .34, v, .32, color=col, linewidth=0)
+    d = (S_.xs(tt, level='ttype').anch - S_.xs(tt, level='ttype').non)
+    hi = max(g[g.anch].hit.mean(), g[~g.anch].hit.mean())
+    axh.text(j, hi + .045, f'+{d.mean():.2f}', ha='center', fontsize=5.4,
+             color='0.2')
+axh.set_xticks([0, 1]); axh.set_xticklabels(['cued', 'uncued'], fontsize=5.6)
+axh.set_ylim(0, 1.14); axh.set_yticks([0, .4, .8])
+axh.set_ylabel('hit rate', fontsize=5.4, labelpad=1)
+axh.tick_params(labelsize=5.0, length=2, pad=1)
+axh.spines[['top', 'right']].set_visible(False)
+axh.legend(handles=[Patch(facecolor=ANCH, label='anchored'),
+                    Patch(facecolor=NON, label='non-anchored')],
+           fontsize=4.8, frameon=False, loc='upper right', handlelength=.9,
+           handleheight=.9, borderpad=.1, labelspacing=.25)
+_W = (S_.anch - S_.non).unstack('ttype').dropna()
+_p = wilcoxon(_W.nb, _W.b).pvalue
+ax.text(.5, .20, f'the benefit is larger when the zone must be found by path\n'
+                 f'integration ({(_W.nb - _W.b).mean():+.3f}, p = {_p:.0e}'
+                 .replace('e-0', 'e-') + f', {len(_W)} sessions)',
+        ha='center', va='top', fontsize=5.2, color='0.35', linespacing=1.4)
 
-# the pupil, as performance against pupil size -- the measurement that says the
-# anchored state is focused rather than drowsy
+# ── 4. what the state is ─────────────────────────────────────────────────────
+ax = fig.add_subplot(G[3]); ax.axis('off')
+ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+banner(ax, 'The state is attentional engagement, with a\n'
+           'frequency-specific change in the field potential')
+
+# the pupil, as Figure 5I: lower at every position on the track, which is what
+# separates a change in engagement from attention paid at particular places
 axp = ax.inset_axes([.10, .33, .34, .60])
-hit = [.826, .712, .659, .582, .552, .534, .472, .481, .440, .391]
-axp.plot(range(1, 11), hit, color=ANCH, lw=1.3, marker='o', ms=2.2,
-         mew=0, clip_on=False)
-axp.set_xlim(.5, 10.5); axp.set_ylim(.33, .89)
-axp.set_xticks([1, 10]); axp.set_xticklabels(['narrow\npupil', 'wide'], fontsize=5.0,
-                    linespacing=1.2)
-axp.set_yticks([.4, .6, .8]); axp.tick_params(labelsize=5.0, length=2, pad=1)
-axp.set_ylabel('hit rate', fontsize=5.4, labelpad=1)
+_z = np.load(f'{ROOT}/data/eye_anchoring/eye_position_profiles_gated.npz')
+_A, _N = _z['anch'], _z['non']
+_x = (np.arange(_A.shape[1]) + .5) * (200.0 / _A.shape[1])
+_d = _A - _N
+_mu = np.nanmean(_d, axis=0)
+_se = np.nanstd(_d, axis=0) / np.sqrt(np.sum(np.isfinite(_d), axis=0))
+axp.axvspan(90, 110, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
+for _x0 in (0, 170):
+    axp.axvspan(_x0, _x0 + 30, color='0.90', lw=0, zorder=0)
+axp.axhline(0, color='0.55', lw=.8, zorder=1)
+axp.fill_between(_x, _mu - _se, _mu + _se, color=ANCH, alpha=.30,
+                 linewidth=0, edgecolor='none', zorder=2)
+axp.plot(_x, _mu, color=ANCH, lw=1.2, zorder=3)
+axp.set_xlim(0, 200); axp.set_xticks([0, 100, 200])
+axp.set_ylim(-.62, .06); axp.set_yticks([-.5, -.25, 0])
+axp.set_xlabel('position (cm)', fontsize=5.4, labelpad=1)
+axp.set_ylabel('z(pupil), anchored\n$-$ non-anchored', fontsize=5.0, labelpad=1)
+axp.tick_params(labelsize=5.0, length=2, pad=1)
 axp.spines[['top', 'right']].set_visible(False)
 
 # the field potential: slow gamma up, fast gamma and theta down
@@ -134,34 +200,12 @@ axg.set_ylim(-.16, .16); axg.set_yticks([-.1, 0, .1])
 axg.tick_params(labelsize=5.0, length=2, pad=1)
 axg.set_ylabel('anchored $-$ non (z)', fontsize=5.4, labelpad=1)
 axg.spines[['top', 'right']].set_visible(False)
-ax.text(.5, .09, 'the pupil narrows on entry to the anchored state (\u22120.41 z);\n'
-                 'the band difference reverses sign at 67 Hz in 25 of 26 sessions',
+
+_same = int((_mu < 0).sum())
+ax.text(.5, .09, f'the pupil is narrower at {_same} of {len(_mu)} positions on the '
+                 f'track \u2014 a tonic shift,\nnot attention paid at the reward '
+                 f'zone; the band difference reverses sign at 67 Hz',
         ha='center', va='top', fontsize=5.2, color='0.35', linespacing=1.4)
-
-# ── 4. where it comes from ───────────────────────────────────────────────────
-ax = fig.add_subplot(G[3]); ax.axis('off')
-ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-banner(ax, 'One global state, read out by cell type —\nnot built by the local circuit')
-regions = [('MEC', .09), ('subicular', .32), ('visual', .565), ('cerebellum', .80)]
-for nm, x in regions:
-    ax.add_patch(FancyBboxPatch((x, .50), .17, .17,
-                                boxstyle='round,pad=0.012,rounding_size=0.02',
-                                facecolor='#eef2f6', edgecolor='#9fb3c8', lw=.7))
-    ax.text(x + .085, .585, nm, ha='center', va='center', fontsize=5.3)
-ax.annotate('', xy=(.95, .80), xytext=(.05, .80),
-            arrowprops=dict(arrowstyle='-', color=ANCH, lw=2.4, alpha=.5))
-ax.text(.5, .845, 'the same anchoring state in every structure recorded',
-        ha='center', fontsize=5.6, color=ANCH)
-for _, x in regions:
-    ax.plot([x + .085, x + .085], [.68, .78], color=ANCH, lw=1.0, alpha=.55)
-
-ax.text(.5, .455, 'connected pairs share it no more than\nunconnected pairs  —  it is not propagated locally',
-        ha='center', va='top', fontsize=5.6, color='0.25')
-ax.add_patch(FancyBboxPatch((.14, .05), .72, .19,
-                            boxstyle='round,pad=0.015,rounding_size=0.03',
-                            facecolor='#fdf2f8', edgecolor=ANCH, lw=.9))
-ax.text(.5, .145, 'anchored trials  →  better path integration',
-        ha='center', va='center', fontsize=5.9, color=ANCH, weight='bold')
 
 fig.savefig(OUT, bbox_inches='tight', dpi=300)
 print(f'wrote {OUT}')
