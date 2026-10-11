@@ -113,6 +113,13 @@ for r in REGIONS:
 
 # ── figure ───────────────────────────────────────────────────────────────────
 fig = plt.figure(figsize=(7.6, 8.8))
+
+def lp(ax, s_, x=-.26, y=1.02):
+    """Bold panel letter, 10 pt, as in every other figure."""
+    ax.text(x, y, s_, transform=ax.transAxes, fontsize=10,
+            weight='bold', va='bottom', ha='right')
+
+
 gs = fig.add_gridspec(3, 4, height_ratios=[1, 1.15, 1.15], hspace=.58, wspace=.52)
 
 bins = np.linspace(0, 80, 33)
@@ -126,6 +133,7 @@ for j, (P, ttl) in enumerate(((PRE, 'before matching'), (POST, 'after matching')
                         linewidth=0, edgecolor='none')
     d_ = (P.speed[P.state].mean() - P.speed[~P.state].mean())
     ax.set_title(f'{ttl}\nΔ = {d_:+.2f} cm/s', fontsize=8.5, loc='left')
+    lp(ax, 'AB'[j], x=-.22, y=1.10)
     ax.set_xlabel('Trial mean running speed (cm/s)', fontsize=8)
     if j == 0:
         ax.set_ylabel('Density', fontsize=8.5); ax.legend(fontsize=7, frameon=False)
@@ -146,6 +154,7 @@ ax.set_xticks([0, 1]); ax.set_xticklabels(['before', 'after'], fontsize=8)
 ax.set_xlim(-.35, 1.35)
 ax.set_ylabel('speed difference\n(anchored − non, cm/s)', fontsize=8)
 ax.set_title('per session', fontsize=8.5, loc='left')
+lp(ax, 'C', x=-.34)
 ax.tick_params(labelsize=7.5); ax.spines[['top', 'right']].set_visible(False)
 
 for j, r in enumerate(REGIONS):
@@ -173,6 +182,7 @@ for j, r in enumerate(REGIONS):
         ax.text((x0 + x1) / 2, 108, star, ha='center', fontsize=7, color='0.2')
     ax.set_xticks([.4, 2.5]); ax.set_xticklabels(['cued', 'uncued'], fontsize=7.5)
     ax.set_ylim(0, 120); ax.set_yticks([0, 50, 100])
+    lp(ax, 'DEF'[j], x=-.20, y=1.17)
     ax.set_title(f'{r}, speed-matched (n={len(b)})', fontsize=8.5, loc='left',
                  color=RCOL[r])
     if j == 0:
@@ -195,6 +205,7 @@ for j, r in enumerate(REGIONS):
 ax.axhline(.5, color='0.6', lw=.7, ls=':')
 ax.set_xticks(range(len(REGIONS))); ax.set_xticklabels(REGIONS, fontsize=8)
 ax.set_ylabel('AUC: state predicts hit', fontsize=8.5)
+lp(ax, 'G', x=-.24, y=1.17)
 ax.set_title('open = before, filled = after\ncircle = cued, square = uncued',
              fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7.5); ax.spines[['top', 'right']].set_visible(False)
@@ -215,6 +226,7 @@ ax.axhline(0, color='0.6', lw=.7, ls=':')
 ax.set_xticks(range(len(REGIONS))); ax.set_xticklabels(REGIONS, fontsize=8)
 ax.set_ylabel('ADI (AUC uncued − cued)', fontsize=8.5)
 ax.set_title('grey = before, colour = after', fontsize=7.5, loc='left')
+lp(ax, 'H', x=-.24, y=1.17)
 ax.tick_params(labelsize=7.5); ax.spines[['top', 'right']].set_visible(False)
 
 ax = fig.add_subplot(gs[2, 3])
@@ -227,6 +239,7 @@ for k, nm in enumerate(('cued', 'uncued')):
 ax.set_xticks([0, 1]); ax.set_xticklabels(['cued', 'uncued'], fontsize=8)
 ax.set_ylabel('trials retained (%)', fontsize=8.5)
 ax.set_title('cost of matching', fontsize=8.5, loc='left')
+lp(ax, 'I', x=-.30, y=1.17)
 ax.set_ylim(0, 100)
 ax.tick_params(labelsize=7.5); ax.spines[['top', 'right']].set_visible(False)
 

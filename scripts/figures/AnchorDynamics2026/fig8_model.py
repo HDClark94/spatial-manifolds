@@ -190,6 +190,13 @@ SELF = (.025, .620, .175, .070)
 EST = (.460, .598, .272, .228)
 BEH = (.795, .668, .180, .085)
 
+# panel letters: A is the circuit, B-E the four things the two rows show
+for _lx, _ly, _ll in ((.004, .826, 'A'), (.070, .492, 'B'),
+                      (.448, .492, 'C'), (.676, .492, 'D'),
+                      (.822, .492, 'E')):
+    ax.text(_lx, _ly, _ll, fontsize=10, weight='bold', va='bottom',
+            ha='left', color='0.1')
+
 box(ax, LAND, 'landmarks\n(the task frame)', '#fbf0ef', LAND_C)
 box(ax, SELF, 'self-motion\n(speed, head direction)', '#eef3fa', SELF_C)
 box(ax, GATE, 'engagement\ngate', '#fdf6e3', ACH, fs=6.6, ec=ACH, lw=1.3)

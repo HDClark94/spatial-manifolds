@@ -145,6 +145,9 @@ for k, (mo, dy) in enumerate(order):
             ax.set_ylabel('Trial', fontsize=6.5)
             ax.yaxis.set_major_locator(plt.MaxNLocator(4))
             pos = gs[r, c0:c0 + 6].get_position(fig)
+            # one panel letter per session block, A-F in the order drawn
+            fig.text(pos.x0 - .030, pos.y1 + .048, chr(ord('A') + k),
+                     fontsize=10, weight='bold', ha='left', va='bottom')
             fig.text(pos.x0, pos.y1 + .052, f'M{mo} D{dy} · {L.shape[0]} cells',
                      fontsize=7.5, ha='left', va='bottom')
         else:
