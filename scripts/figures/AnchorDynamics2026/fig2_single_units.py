@@ -912,22 +912,34 @@ for _k, _g in _MT.groupby('identity'):
           f'p={_m.pvalues["theta_index"]:.2g}  median index '
           f'{_g.theta_index.median():.3f}')
 ax = fig.add_subplot(g4[3])
-_edges = np.quantile(_MT.theta_index, np.linspace(0, 1, 7))
-for k in ORDER:
-    g = _MT[_MT.identity == k]
-    xs, ys, es = [], [], []
-    for lo, hi in zip(_edges[:-1], _edges[1:]):
-        m_ = (g.theta_index >= lo) & (g.theta_index <= hi)
-        if m_.sum() >= 12:
-            xs.append(g.theta_index[m_].median()); ys.append(g.excess[m_].mean())
-            es.append(g.excess[m_].std() / np.sqrt(m_.sum()))
-    if len(xs) >= 3:
-        ax.errorbar(xs, ys, yerr=es, color=ICOL[k], lw=1.3, marker='o', ms=3,
-                    capsize=0, label=SHORT[ORDER.index(k)])
+# POOLED over all cells, with the model's own fit rather than four binned
+# lines: the per-class lines showed the same slope four times and left the
+# reader to judge the trend by eye, when the mixed model has already estimated
+# it. Points are deciles of the index, the line is the fixed effect and the
+# band its standard error, which comes from the 2x2 fixed-effects block of the
+# model's covariance -- not from the scatter of the points, which ignores the
+# nesting the model is there to respect.
+_edges = np.quantile(_MT.theta_index, np.linspace(0, 1, 11))
+_xs, _ys, _es = [], [], []
+for _lo, _hi in zip(_edges[:-1], _edges[1:]):
+    _m = (_MT.theta_index >= _lo) & (_MT.theta_index <= _hi)
+    if _m.sum() >= 20:
+        _xs.append(_MT.theta_index[_m].median())
+        _ys.append(_MT.excess[_m].mean())
+        _es.append(_MT.excess[_m].std() / np.sqrt(_m.sum()))
+ax.errorbar(_xs, _ys, yerr=_es, fmt='o', ms=3.4, color='0.35', lw=0,
+            elinewidth=.9, ecolor='0.6', zorder=3, label='cells, by decile')
+_gx = np.linspace(_MT.theta_index.min(), np.quantile(_MT.theta_index, .995), 60)
+_cov = _b1.cov_params().loc[['Intercept', 'theta_index'],
+                            ['Intercept', 'theta_index']].values
+_fit = _b1.params['Intercept'] + _b1.params['theta_index'] * _gx
+_se = np.sqrt(_cov[0, 0] + _gx ** 2 * _cov[1, 1] + 2 * _gx * _cov[0, 1])
+ax.fill_between(_gx, _fit - _se, _fit + _se, color=COL_GC, alpha=.25,
+                linewidth=0, edgecolor='none', zorder=1)
+ax.plot(_gx, _fit, color=COL_GC, lw=1.6, zorder=2, label='mixed-model fit')
 ax.set_xlabel('open-field theta index', fontsize=8)
 ax.set_ylabel('agreement above\nthe cell\'s own null', fontsize=8)
-ax.legend(fontsize=5.8, frameon=False, ncol=2, loc='upper left',
-          handlelength=1.0, columnspacing=.8)
+ax.legend(fontsize=5.8, frameon=False, loc='upper left', handlelength=1.2)
 _lp(ax, 'K')
 ax.set_title('more theta-rhythmic cells follow more,\n'
              'within each class as well as between\n'

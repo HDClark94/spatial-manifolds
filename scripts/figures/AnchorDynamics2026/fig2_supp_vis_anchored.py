@@ -331,29 +331,14 @@ def mec_state(mo, dy, prefix='ENTm'):
     L = np.vstack([Lv, np.full((gap, L.shape[1]), np.nan), Ll]) if len(Ll) else Lv
     n_var, n_lock = len(Lv), len(Ll)
     pc1 = np.nan_to_num(np.asarray(z['pc1'], float))
-    frac = np.asarray(z['frac_anch'], float)
-    st = median_filter((frac > .5).astype(float), size=9, mode='nearest') > .5
-    # MAJOR transitions only. The median filter still leaves brief excursions,
-    # and a session like M27D23 has 21 crossings over 393 trials -- drawn on
-    # every panel they occlude the rate maps they are meant to be read against.
-    # Runs shorter than MIN_BLOCK are absorbed into the preceding state, so the
-    # lines mark the block structure the figure actually refers to.
-    # the threshold is a FRACTION of the session, not a fixed count: 20 trials
-    # is most of a 107-trial session and a flicker in a 393-trial one, so a
-    # fixed value either strips real blocks from the short sessions or leaves
-    # the long ones unreadable (M27D23 keeps 21 crossings at a count of 5)
-    _minblk = max(5, int(round(MIN_BLOCK_FRAC * len(st))))
-    st = st.copy()
-    changed = True
-    while changed:
-        changed = False
-        edges = np.r_[0, np.where(np.diff(st.astype(int)) != 0)[0] + 1, len(st)]
-        for a, b in zip(edges[:-1], edges[1:]):
-            if b - a < _minblk and a > 0:
-                st[a:b] = st[a - 1]
-                changed = True
-                break
-    tr = list(np.where(np.diff(st.astype(int)) != 0)[0] + 1)
+    # MAJOR TRANSITIONS ARE SIGN CHANGES OF PC1, and nothing else. PC1 is the
+    # state variable the figure plots, so the trial on which it crosses zero
+    # is the trial on which the population changes state -- no threshold, no
+    # filter width and no minimum block length, all of which the previous rule
+    # needed and none of which the data choose for you. It does mean a session
+    # that hovers near zero shows many lines: M27 D23 gives 22 over 393 trials
+    # where the filtered rule gave 3.
+    tr = list(np.where(np.diff(np.sign(pc1)) != 0)[0] + 1)
     return L, pc1, tr, n_var, n_lock, gap, ids_var
 
 
@@ -525,8 +510,11 @@ if __name__ == '__main__':
                 ax.annotate(f'locked ({_nl})', (_nv + _gp + _nl / 2, 1.004),
                             xycoords=('data', 'axes fraction'), ha='center',
                             va='bottom', fontsize=5.6, color='0.35')
+            # thin and part-transparent: a sign-flip rule gives M27 D23 22
+            # lines, and at the old weight they read as solid bands over the
+            # rasters rather than as marks on them
             for t_ in tr:
-                ax.axhline(t_, color='k', lw=.8, ls='--', zorder=4)
+                ax.axhline(t_, color='k', lw=.45, ls='--', alpha=.6, zorder=4)
             ax.set_xlabel(f'{_rn} cell', fontsize=7.5, color=RCOL[_rn])
             ax.tick_params(labelsize=6.5)
             if gi == 0:
@@ -546,7 +534,7 @@ if __name__ == '__main__':
                           interpolate=True)
         axp.axvline(0, color='0.4', lw=.7)
         for t_ in tr:
-            axp.axhline(t_, color='k', lw=.9, ls='--', zorder=4)
+            axp.axhline(t_, color='k', lw=.5, ls='--', alpha=.6, zorder=4)
         axp.set_xticks([]); axp.tick_params(labelleft=False, left=False)
         axp.set_title('PC1', fontsize=6.8, pad=3)
         for sp in axp.spines.values():
@@ -576,7 +564,7 @@ if __name__ == '__main__':
                                  extent=[0, TL, r['maps'].shape[0] - .5, -.5])
                 for t_ in tr:
                     if t_ < r['maps'].shape[0]:
-                        axc.axhline(t_, color='w', lw=.8, ls='--', alpha=.85,
+                        axc.axhline(t_, color='w', lw=.45, ls='--', alpha=.55,
                                     zorder=4)
                 # the maps are narrow now: only the middle one of each group
                 # carries tick labels, which is enough to read the axis off

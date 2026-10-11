@@ -168,9 +168,13 @@ FIGURES = [
      'taken separately the slope holds in three of the four -- grid +0.353 (p = 0.037), non-grid '
      'spatial +0.147 (p = 9 x 10^-5), putative interneuron +0.116 (p = 0.028) -- and only '
      'non-spatial cells fail to reach significance. Theta rhythmicity is therefore a predictor of '
-     'following in its own right, not a restatement of cell type. The index is used continuously; '
-     'a median split is much weaker (p = 0.085) because it discards the within-session variation '
-     'that carries the effect.'),
+     'following in its own right, not a restatement of cell type. The panel pools every cell: '
+     'points are deciles of the index with their standard error, and the line is the fixed '
+     'effect of the mixed model with a band of one standard error, taken from the '
+     'fixed-effects block of the model covariance rather than from the scatter of the points, '
+     'which would ignore the nesting the model exists to respect. The index is used '
+     'continuously; a median split is much weaker (p = 0.085) because it discards the '
+     'within-session variation that carries the effect.'),
     ('Figure 3', 'fig3_anatomy.pdf',
      'The responsive subnetwork is medial, within the superficial grid population',
      'Anatomical organisation of identity and of following. (A) Open-field rate maps from four '
@@ -234,7 +238,7 @@ FIGURES = [
      'Then the entorhinal anchoring raster, the session PC1, and the visual raster. Both '
      'rasters are built the same way -- cells that vary in PC1-loading order, then the cells '
      'whose label never changes to the right of a gap -- and both are cut by the same dashed '
-     'lines, which are the major transitions of the one session state, so the comparison is '
+     'lines, which are the trials on which PC1 changes sign, so the comparison is '
      'between two descriptions of the same trials rather than between two separately defined '
      'states. The entorhinal population reorganises at those lines; the visual locked block, 78 '
      'of 150 cells in A, does not. Each raster is followed by three of its own cells on the '
@@ -294,7 +298,7 @@ FIGURES = [
     ('Figure 7', 'fig7_theta_gamma.pdf',
      'A frequency-specific change in the entorhinal field potential',
      '(A-D) One session trial by trial, with both states shaded behind every panel and dashed '
-     'lines at major transitions. (A) The population axis with running speed overlaid. (B) The '
+     'lines where PC1 changes sign. (A) The population axis with running speed overlaid. (B) The '
      'spectrogram, 1.9-150 Hz rebinned into 56 log-spaced bands and smoothed along the trial axis '
      'only. (C) The three band traces. (D) Theta-gamma modulation index for both bands on twinned '
      'axes, fast on the left axis and slow on the right, which they need because slow-gamma MI is '

@@ -79,13 +79,10 @@ def session(mo, dy):
         blocks += [np.full((gap, L.shape[1]), np.nan), L[ord_l]]
     Lb = np.vstack(blocks)
 
-    # MAJOR population transitions, as Figure 1 defines them: the thresholded
-    # population state after a 9-trial median filter, which removes the short
-    # flickers that would otherwise bury the raster under lines
-    from scipy.ndimage import median_filter
-    st = median_filter((np.asarray(frac, float) > .5).astype(float), size=MAJOR_FILT,
-                       mode='nearest') > .5
-    trans = list(np.where(np.diff(st.astype(int)) != 0)[0] + 1)
+    # MAJOR population transitions are sign changes of PC1, the state variable
+    # plotted beside the raster: the trial it crosses zero is the trial the
+    # population changes state. No threshold and no filter width.
+    trans = list(np.where(np.diff(np.sign(np.asarray(pc1, float))) != 0)[0] + 1)
 
     return (beh, trials, stops, trials_a, Lb, frac, len(ord_v), len(ord_l),
             pc1, sv[0] ** 2 / np.sum(sv ** 2), trans)

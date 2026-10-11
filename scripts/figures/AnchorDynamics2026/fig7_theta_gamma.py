@@ -151,8 +151,11 @@ fr_sel = fr[sel]
 Ax = np.array(spec); nums = np.array(nums); tspd = np.array(tspd)
 pc = np.array([pc1d[u] for u in nums]); pc = (pc - pc.mean()) / (pc.std() or 1)
 anch = np.array([frac[u] for u in nums]) > .5
-major = median_filter(anch.astype(float), size=MAJOR_FILT, mode='nearest') > .5
-TRANS = np.where(np.diff(major.astype(int)) != 0)[0] + 1
+# major transitions are sign changes of PC1, which is the trace in A; the
+# shading still follows the thresholded anchored fraction, since the panels
+# shade STATE and the lines mark where it turns over
+major = anch
+TRANS = np.where(np.diff(np.sign(pc)) != 0)[0] + 1
 
 Lx = np.log10(Ax + 1e-20)
 Zx = (Lx - Lx.mean(0)) / (Lx.std(0) + 1e-12)
@@ -338,27 +341,27 @@ GE2 = GEF[0].subgridspec(2, 1, height_ratios=[.46, 1.0], hspace=.12)
 x = np.arange(len(nums))
 
 ax = fig.add_subplot(GE[0, 0])
-ax.plot(x, pc, color='0.2', lw=1); ax.axhline(0, color='0.6', ls=':', lw=.8)
-shade(ax)
+# drawn the way Figure 1 draws it: PC1 filled against zero, anchored colour
+# above the line and non-anchored below, so the state reads off the fill
+# rather than off a shaded background and a separate trace
+ax.fill_between(x, 0, pc, where=pc >= 0, color=ANCH_COLOR, lw=0,
+                interpolate=True)
+ax.fill_between(x, 0, pc, where=pc < 0, color=NONANCH_COLOR, lw=0,
+                interpolate=True)
+ax.axhline(0, color='0.4', lw=.7)
 ax.set_xlim(-.5, len(x) - .5); ax.set_xticks([])
 ax.set_ylabel('population\naxis (PC1, z)', fontsize=7)
 ax.set_title(f'M{MOUSE} D{DAY} — one session, trial by trial', fontsize=8.8,
              loc='left')
 from matplotlib.patches import Patch
-ax.legend(handles=[Patch(facecolor=ANCH_COLOR, alpha=.35, label='anchored'),
-                   Patch(facecolor=NONANCH_COLOR, alpha=.35,
-                         label='non-anchored')],
+ax.legend(handles=[Patch(facecolor=ANCH_COLOR, label='anchored'),
+                   Patch(facecolor=NONANCH_COLOR, label='non-anchored')],
           fontsize=5.6, frameon=False, ncol=2, loc='lower right',
           bbox_to_anchor=(1.0, 1.02), handlelength=1.0, columnspacing=.9,
           borderpad=.1)
 tidy(ax); lp(ax, 'A', x=-.20)
-axs = ax.twinx()
-axs.plot(x, uniform_filter1d(tspd, SMOOTH, mode='nearest'), color='#b8860b',
-         lw=.8, alpha=.85)
-axs.set_ylabel('speed\n(cm/s)', fontsize=6.2, color='#b8860b')
-axs.tick_params(labelsize=5.5, colors='#b8860b')
-axs.spines[['top', 'left']].set_visible(False)
-axs.spines['right'].set_color('#b8860b')
+# the speed twin axis is gone: it was a second y scale on the panel that
+# carries the state, and speed is not what this figure is about
 
 ax = fig.add_subplot(GE[1, 0])
 im = ax.pcolormesh(x, centres, ZB.T, cmap='RdBu_r', vmin=-1.4, vmax=1.4,
