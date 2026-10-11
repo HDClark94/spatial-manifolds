@@ -32,16 +32,24 @@ WHAT CHANGED, AND WHY.
   3. That version also had the pupil DILATED in the engaged state, which is
      backwards for this task -- see above and Figure 5.
 
-THE EIGHT SMALL PANELS ARE SIMULATED. Three periodic 1D grid cells of
-different spacing, and the position decoded from a continuous attractor fed by
-them, over ten traversals of the 200 cm track. The decode is drawn as the
+THE TEN SMALL PANELS ARE SIMULATED. Three periodic 1D grid cells of different
+spacing, the position decoded from a continuous attractor fed by them, and the
+stops the animal makes on uncued traversals, over ten traversals of the 200 cm
+track. The decode is drawn as the
 decoded position itself -- jet, wrapped onto the track -- rather than as an
 error, so the panel shows what the code says about where the animal is.
 Anchored: the landmark drive re-references the attractor at the start of each
 traversal, so fields recur at the same places and the decoded position runs
 0 to 200 cm identically on every lap. Non-anchored: nothing re-references it,
 so the phase is re-drawn each traversal and the decode starts from an
-arbitrary offset and integrates away within the lap.
+arbitrary offset and integrates away within the lap. The stops raster is the
+account's prediction about BEHAVIOUR, and it is drawn for uncued traversals
+because that is where it has to show: the reward zone at 90-110 cm carries no
+visual cue on those trials, so stopping there requires the estimate to be on
+the track. Measured, anchoring buys most of its behavioural advantage exactly
+there (the uncued-minus-cued anchoring benefit is +0.094, p = 0.012; Figure
+1), which is why behaviour is drawn downstream of the gate rather than beside
+it.
 
 THE FIELD-POTENTIAL CHANGES ARE DRAWN ON THE SCHEMATIC, beside the estimate,
 because the frequency-specific part of the result is what says the change is a
@@ -87,6 +95,7 @@ CMAP = 'viridis'       # rate maps are viridis throughout the paper
 TRACK = 200.           # cm
 NTRIAL = 10
 rng = np.random.default_rng(8)
+RZ = np.array([90., 110.])    # reward zone, as in Figure 1
 
 
 # ── the simulated code under each setting of the gate ─────────────────────
@@ -124,6 +133,29 @@ def decoded_position(anchored):
                    + 3.2 * rng.standard_normal(x.size).cumsum() / 7.)
         p[t] = np.mod(x + err, TRACK)
     return x, p
+
+
+def stops(anchored):
+    """Where the animal stops on uncued traversals, trial by trial.
+
+    The prediction the account makes about behaviour, not a measurement. With
+    the gate open the decode is on the track, so stopping concentrates at the
+    reward zone the animal cannot see; with it shut the decode is off the
+    track by an arbitrary amount, so stopping is scattered and only
+    occasionally lands in the zone by chance.
+    """
+    out = []
+    for t in range(NTRIAL):
+        if anchored:
+            v = list(rng.normal(RZ[0] + 6., 6.0, rng.integers(2, 4)))
+            if rng.random() < .35:                      # the occasional stray
+                v.append(rng.uniform(35, 165))
+        else:
+            v = list(rng.uniform(32, 168, rng.integers(3, 6)))
+            if rng.random() < .30:                      # chance hits
+                v.append(rng.normal(RZ.mean(), 9.))
+        out.append(np.clip(v, 30, 170))
+    return out
 
 
 def arrow(ax, p0, p1, color, rad=0., lw=1.3, ls='-', shrink=9, z=3, head=True,
@@ -276,10 +308,12 @@ ax.text(.025, .128, 'It is the anchored trials on which the animal localises '
         fontsize=6.2, color='0.5', va='top', linespacing=1.5)
 
 # ── the simulated code: 2 states x (3 rate maps + 1 decoded position) ────
-COLS = [(.418, .100), (.534, .100), (.650, .100), (.772, .130)]
+COLS = [(.418, .088), (.518, .088), (.618, .088), (.718, .104),
+        (.872, .104)]
 ROWS = [(.285, .135, True, 'ANCHORED', ANCH),
         (.090, .135, False, 'NON-ANCHORED', NONANCH)]
-HEAD = ['grid cell 1', 'grid cell 2', 'grid cell 3', 'decoded position']
+HEAD = ['grid cell 1', 'grid cell 2', 'grid cell 3', 'decoded position (cm)',
+        'stops, uncued trials']
 CELLS = [(44., 10.), (62., 30.), (86., 55.)]   # spacing cm, anchored phase
 
 for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
@@ -296,17 +330,24 @@ for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
             a.imshow(m / m.max(), aspect='auto', cmap=CMAP, origin='upper',
                      extent=[0, TRACK, NTRIAL + .5, .5],
                      interpolation='nearest', vmin=0, vmax=1)
-        else:
+        elif ci == 3:
             x, p = decoded_position(anch)
             im = a.imshow(p, aspect='auto', cmap='jet', origin='upper',
                           extent=[0, TRACK, NTRIAL + .5, .5],
                           interpolation='nearest', vmin=0, vmax=TRACK)
             if ri == 0:   # one colourbar; both rows share the scale
-                cb = fig.add_axes([cx + cw + .009, ry, .011, rh])
+                cb = fig.add_axes([cx + cw + .006, ry, .009, rh])
                 plt.colorbar(im, cax=cb, ticks=[0, 100, 200])
-                cb.tick_params(labelsize=5.4, length=2, pad=1.5)
-                cb.set_ylabel('decoded position (cm)', fontsize=5.6,
-                              labelpad=2)
+                cb.tick_params(labelsize=5.3, length=2, pad=1.5)
+        else:
+            a.axvspan(*RZ, color='#e8e2d6', linewidth=0, zorder=0)
+            for t, v in enumerate(stops(anch)):
+                a.plot(v, np.full(len(v), t + 1), ls='none', marker='|',
+                       ms=3.6, mew=.9, color=rcol)
+            a.set_ylim(NTRIAL + .62, -.30)   # headroom for the zone label
+            if ri == 0:
+                a.text(np.mean(RZ), .02, 'reward zone', fontsize=4.9,
+                       ha='center', va='center', color='0.45')
         a.set_yticks([1, 5, 10])
         a.set_xlim(0, TRACK); a.set_xticks([0, 100, 200])
         if ri == 0:
@@ -316,6 +357,8 @@ for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
             a.set_xlabel('position (cm)', fontsize=6.2, labelpad=1)
         if ci == 0:
             a.set_ylabel('trial', fontsize=6.2, labelpad=1)
+        else:
+            a.set_yticklabels([])
 
 fig.text(.025, .032, 'The state changes what arrives at this circuit, not what '
                      'the circuit does with it \u2014 and what arrives decides '
@@ -324,7 +367,7 @@ fig.text(.025, .032, 'The state changes what arrives at this circuit, not what '
 
 fig.text(.025, .995, 'HYPOTHESIS', fontsize=8, weight='bold', color='#8a1c1c',
          va='top')
-fig.text(.133, .995, '\u2014 the circuit is a schematic and the eight panels below '
+fig.text(.133, .995, '\u2014 the circuit is a schematic and the ten panels below '
                      'it are simulated; every measured value names the figure '
                      'it comes from', fontsize=8, color='0.45', va='top')
 
