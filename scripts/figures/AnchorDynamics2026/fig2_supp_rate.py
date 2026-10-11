@@ -54,6 +54,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.stats import wilcoxon
+from statsmodels.stats.multitest import multipletests
 
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 from spatial_manifolds.anchoring import ANCH_COLOR, NONANCH_COLOR
@@ -106,6 +107,8 @@ M = (D.merge(R, on=['mouse', 'day', 'cluster_id'])
             on=['mouse', 'day', 'cluster_id']).query('in_population'))
 M = M[M.identity.isin(ORDER)].reset_index(drop=True)
 lg = lambda a, b: np.log2((a + .1) / (b + .1))
+MIN_CELLS_CLASS = 5    # cells of a class needed for a session to count
+REPORT = []            # filled by the by-identity panels, printed at the end
 MEAS = [('rate_pop_anch', 'rate_pop_non', 'spatially av.\n(unmatched)'),
         ('rate_a', 'rate_n', 'time av.\n(unmatched)'),
         ('rate_a_sm', 'rate_n_sm', 'time av.\nSPEED-MATCHED')]
@@ -197,13 +200,35 @@ ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 for j, (a, b, nm) in enumerate(((('rate_a', 'rate_n', 'unmatched')),
                                 (('rate_a_sm', 'rate_n_sm', 'speed-matched')))):
     ax = fig.add_subplot(gs[1, j])
-    d = M.dropna(subset=[a, b])
-    for i, k in enumerate(ORDER):
-        q = d[d.identity == k]; v = lg(q[a], q[b])
+    d = M.dropna(subset=[a, b]).copy()
+    d['v'] = lg(d[a], d[b])
+    # SESSIONS, NOT CELLS. Cells within a session share one behavioural state,
+    # so a cell-level error bar counts the same state change hundreds of times
+    # -- the same reason the speed-tuning analysis in Methods works per
+    # session. On these panels it is the difference between p = 1e-9 and
+    # p = 0.7 for the non-grid spatial class.
+    SS = (d.groupby(['mouse', 'day', 'identity'])
+          .agg(v=('v', 'mean'), n=('v', 'size')).reset_index())
+    SS = SS[SS.n >= MIN_CELLS_CLASS]
+    pv = []
+    for k in ORDER:
+        q = SS[SS.identity == k]
+        pv.append(wilcoxon(q.v).pvalue if len(q) > 5 else np.nan)
+    pv = multipletests(pv, method='holm')[1]
+    for i, (k, pk) in enumerate(zip(ORDER, pv)):
+        v = d[d.identity == k].v
         ax.scatter(i + rng.uniform(-.16, .16, len(v)), v, s=1.5, color=ICOL[k],
-                   alpha=.2, lw=0)
-        ax.errorbar(i, v.mean(), yerr=v.std(ddof=1) / np.sqrt(len(v)), color='k',
-                    marker='_', ms=13, lw=1.5, capsize=3, zorder=4)
+                   alpha=.13, lw=0)
+        q = SS[SS.identity == k].v
+        ax.scatter(i + rng.uniform(-.11, .11, len(q)), q, s=5.5, color=ICOL[k],
+                   alpha=.85, lw=0, zorder=3)
+        ax.errorbar(i, q.mean(), yerr=q.std(ddof=1) / np.sqrt(len(q)),
+                    color='k', marker='_', ms=13, lw=1.5, capsize=3, zorder=4)
+        ax.annotate(f'{pk:.2f}' if pk >= .01 else f'{pk:.0e}'.replace('e-0', 'e-'),
+                    (i, .985), xycoords=('data', 'axes fraction'), ha='center',
+                    va='top', fontsize=5.2,
+                    color='#8a1c1c' if pk < .05 else '0.5')
+        REPORT.append((nm, k, len(q), float(q.mean()), float(pk)))
     ax.axhline(0, color='k', lw=1, ls='--')
     ax.set_ylim(-.6, .6)
     ax.set_xticks(range(4)); ax.set_xticklabels(SHORT, fontsize=7)
@@ -211,6 +236,8 @@ for j, (a, b, nm) in enumerate(((('rate_a', 'rate_n', 'unmatched')),
     _lp(ax, _L("EF"[j]))
     ax.set_title(f'{nm}, by identity', fontsize=7.5, loc='left')
     ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+    ax.text(.5, .015, 'points are sessions; cloud is cells',
+            transform=ax.transAxes, fontsize=5.0, color='0.5', ha='center')
 
 ax = fig.add_subplot(gs[1, 2])
 for j, (a, b) in enumerate((('rate_a', 'rate_n'), ('rate_a_sm', 'rate_n_sm'))):
@@ -245,4 +272,11 @@ ax.text(0, .46,
 
 out = f'{FIG}/fig2_supp_rate.pdf'
 plt.savefig(out, dpi=200, bbox_inches='tight')
+print('\nBY IDENTITY, sessions as the unit '
+      f'(classes with >= {MIN_CELLS_CLASS} cells in a session):')
+for nm in dict.fromkeys(r[0] for r in REPORT):
+    print(f'  {nm.replace(chr(10), " ")}')
+    for _, k, n, mu, pk in [r for r in REPORT if r[0] == nm]:
+        print(f'    {k:22s} {n:3d} sessions  log2 {mu:+.4f} '
+              f'({100 * (2 ** mu - 1):+5.1f}%)  Holm p = {pk:.3g}')
 print(f'saved {out}')
