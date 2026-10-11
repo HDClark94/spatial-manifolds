@@ -438,7 +438,7 @@ g3 = outer[2].subgridspec(1, 6, width_ratios=[1.12, .16, .98, .98, 1.02, .82],
 # H is a stacked-bar summary and does not need the width of a scatter, so it
 # is narrowed and the gap to I widened -- at the old uniform wspace the two
 # read as one block
-g4 = outer[3].subgridspec(1, 5, width_ratios=[.60, .92, 1.16, .86, 1.04],
+g4 = outer[3].subgridspec(1, 4, width_ratios=[.72, 1.20, .92, 1.08],
                           wspace=.62)
 SHORT = ['grid', 'NGS', 'NS', 'int']   # full names collide at this width
 
@@ -758,26 +758,6 @@ ax.set_title(f'locked state by identity\n{100*(P.lockstate!="varies").mean():.0f
              fontsize=6.8, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-# the asymmetry, per mouse so it is not one animal
-ax = fig.add_subplot(g4[1])
-for i, k in enumerate(ORDER):
-    pm = []
-    for mo, g in P[P.identity == k].groupby('mouse'):
-        a = (g.lockstate == 'always').sum(); n = (g.lockstate == 'never').sum()
-        if a + n >= 8:
-            pm.append(np.log2((a + .5) / (n + .5)))
-    if not pm:
-        continue
-    ax.scatter(np.full(len(pm), i) + rng.uniform(-.12, .12, len(pm)), pm, s=14,
-               color=ICOL[k], lw=0, zorder=3)
-    ax.plot([i - .22, i + .22], [np.mean(pm)] * 2, color='k', lw=2, zorder=4)
-ax.axhline(0, color='0.5', lw=.9)
-ax.set_xticks(range(4)); ax.set_xticklabels(SHORT, fontsize=6.5)
-ax.set_ylabel('log2  always anchored :\nalways non-anchored', fontsize=7)
-_lp(ax, 'I')
-ax.set_title('lock direction, per mouse', fontsize=7.5, loc='left')
-ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
-
 # ── I: why interneurons lock ON — speed coding ──────────────────────────────
 # A cell tuned to running speed has a profile that repeats on every trial,
 # because the speed profile along the track is itself stereotyped. The
@@ -787,7 +767,7 @@ ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 # cells are predominantly fast-spiking interneurons, which is exactly the class
 # that locks on. Speed scores come from the OPEN FIELD, so they cannot have been
 # shaped by the task dynamics being explained.
-ax = fig.add_subplot(g4[2])
+ax = fig.add_subplot(g4[1])
 SP = P.dropna(subset=['speed_r', 'speed_p']).copy()
 SP['cls'] = np.where(SP.putative_int, 'interneuron', 'principal')
 STATES = ['always', 'varies', 'never']
@@ -838,7 +818,7 @@ for cls, cx in (('interneuron', np.mean(xs[:3])), ('principal', np.mean(xs[3:]))
     ax.annotate(cls, (cx, -.34), xycoords=('data', 'axes fraction'), ha='center',
                 fontsize=6.4, weight='bold',
                 color=ICOL['putative interneuron'] if cls == 'interneuron' else '0.35')
-_lp(ax, 'J')
+_lp(ax, 'I')
 ax.set_title('locked-ON cells are the speed cells', fontsize=6.8,
              loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
@@ -872,7 +852,7 @@ for _lab, _m in (('speed-\nmodulated', _sw.speed_p < .05),
     _on = int(((_lk.cell_frac_anch == 1) & _m.reindex(_lk.index, fill_value=False)).sum())
     _off = int(((_lk.cell_frac_anch == 0) & _m.reindex(_lk.index, fill_value=False)).sum())
     _cnt[_lab] = (_on, _off)
-ax = fig.add_subplot(g4[3])
+ax = fig.add_subplot(g4[2])
 _x = np.arange(len(_cnt))
 _w = .38
 for _i, (_lab, (_on, _off)) in enumerate(_cnt.items()):
@@ -894,7 +874,7 @@ ax.legend(handles=[Patch(facecolor=ANCH_COLOR, label='locked anchored'),
                    Patch(facecolor=NONANCH_COLOR, label='locked non-anchored')],
           fontsize=6, frameon=False, loc='upper center', ncol=1,
           bbox_to_anchor=(.5, -.20), handlelength=1.2, handletextpad=.5)
-_lp(ax, 'K')
+_lp(ax, 'J')
 ax.set_title(f'the lock-on bias is the speed cells\n'
              f'(interaction OR {_orr:.2f}, p = {_pf:.0e})',
              fontsize=7.5, loc='left')
@@ -931,7 +911,7 @@ for _k, _g in _MT.groupby('identity'):
     print(f'    within {_k:22} n={len(_g):>4} beta={_m.params["theta_index"]:+.3f} '
           f'p={_m.pvalues["theta_index"]:.2g}  median index '
           f'{_g.theta_index.median():.3f}')
-ax = fig.add_subplot(g4[4])
+ax = fig.add_subplot(g4[3])
 _edges = np.quantile(_MT.theta_index, np.linspace(0, 1, 7))
 for k in ORDER:
     g = _MT[_MT.identity == k]
@@ -948,14 +928,14 @@ ax.set_xlabel('open-field theta index', fontsize=8)
 ax.set_ylabel('agreement above\nthe cell\'s own null', fontsize=8)
 ax.legend(fontsize=5.8, frameon=False, ncol=2, loc='upper left',
           handlelength=1.0, columnspacing=.8)
-_lp(ax, 'L')
+_lp(ax, 'K')
 ax.set_title('more theta-rhythmic cells follow more,\n'
              'within each class as well as between\n'
              f'(beta {_b1.params["theta_index"]:+.2f}, '
              f'{_b2.params["theta_index"]:+.2f} given identity)',
              fontsize=6.8, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
-print(f'  K: speed-modulated {_a[0]}on/{_a[1]}off, not {_b[0]}on/{_b[1]}off, '
+print(f'  J: speed-modulated {_a[0]}on/{_a[1]}off, not {_b[0]}on/{_b[1]}off, '
       f'OR {_orr:.2f} p {_pf:.2g}')
 
 out = (f'{FIG}/fig2_single_units.pdf' if CMAP == 'viridis'
