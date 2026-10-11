@@ -91,11 +91,17 @@ NPERSEG, FLO, FHI = 1024, 1.9, 150.
 MIN_RUN_S, PAC_WIN, SMOOTH = 2.0, 9, 5
 N_LOGBINS, TRIAL_SIGMA, MAJOR_FILT = 56, 1.8, 9
 MIN_TRIALS = 8
-GRID_C = '#c04744'
+# Emphasis colour for 'significant', not a cell class: this figure has no
+# cell types in it, and the grid-cell red it used to borrow is reserved.
+SIG_C = '#2f3e46'
 LINE = [(48, 52), (98, 102), (148, 152)]
 BANDS = [('theta 6–10', 6, 10, '#7b4173'),
-         ('slow gamma 30–48', 30, 48, '#2b6cb0'),
-         ('fast gamma 60–100', 60, 100, '#c04744')]
+         ('slow gamma 30–48', 30, 48, '#2f7d32'),
+         ('fast gamma 60–100', 60, 100, '#e8701a')]
+# BAND PALETTE. Slow and fast gamma used to be drawn in the non-grid-spatial
+# blue and the grid-cell red of the class palette (Figure 2). Those two
+# colours are reserved for cell types across the paper, so the bands now take
+# green and orange. Theta keeps its purple, which is not a class colour.
 # mid gamma (60-100) and HFO (150-250) were dropped from this panel: the
 # 60-100 band already has a panel of its own in the band traces above, and HFO
 # at this reference carries no state effect worth a column.
@@ -402,7 +408,8 @@ im = ax.pcolormesh(x, centres, ZB.T, cmap='RdBu_r', vmin=-1.4, vmax=1.4,
                    shading='gouraud', rasterized=True)
 for tr_ in TRANS:
     ax.axvline(tr_ - .5, color='0.25', ls='--', lw=.7, zorder=5)
-for lo, hi, c in [(6, 10, '#7b4173'), (30, 48, '#2b6cb0'), (60, 100, '#c04744')]:
+for lo, hi, c in [(6, 10, '#7b4173'), (30, 48, '#2f7d32'),
+                  (60, 100, '#e8701a')]:
     ax.axhline(lo, color=c, lw=.5, alpha=.6); ax.axhline(hi, color=c, lw=.5, alpha=.6)
 ax.set_yscale('log'); ax.set_yticks([2, 8, 20, 50, 100])
 ax.set_yticklabels(['2', '8', '20', '50', '100'], fontsize=6.5)
@@ -430,7 +437,7 @@ ax = fig.add_subplot(GE[3, 0]); shade(ax)
 # Slow gamma on its own axis: its MI is ~5x smaller than fast gamma's, so on a
 # shared axis it is a flat line at the bottom and the reader cannot see that it
 # does NOT fall -- which is the comparison the panel exists to make.
-PAC_C = {'slow_gamma': '#2b6cb0', 'fast_gamma': '#c04744'}
+PAC_C = {'slow_gamma': '#2f7d32', 'fast_gamma': '#e8701a'}
 ax.plot(pac_t, pac_v['fast_gamma'] * 1e3, color=PAC_C['fast_gamma'], lw=1.1)
 ax.set_xlim(-.5, len(x) - .5)
 ax.set_xlabel('trial', fontsize=7.5)
@@ -513,7 +520,7 @@ ax = fig.add_subplot(GEF[1])
 for j, (nm, lo, hi) in enumerate(PBANDS):
     g = pband(lo, hi).dropna()
     p = wilcoxon(g).pvalue
-    c = GRID_C if p < .05 else '0.6'
+    c = SIG_C if p < .05 else '0.6'
     ax.bar(j, g.mean(), .62, color=c, linewidth=0)
     se = g.std() / np.sqrt(len(g))
     ax.plot([j, j], [g.mean() - se, g.mean() + se], color='0.3', lw=1)
@@ -543,7 +550,7 @@ for j, b in enumerate(['slow_gamma', 'fast_gamma']):
                 color='0.3', lw=1)
     ax.annotate(f'{p:.0e}'.replace('e-0', 'e-') if p < .001 else f'p={p:.2f}',
                 (j, max(g.anch.mean(), g.non.mean()) * 1.10), ha='center',
-                fontsize=5.6, color=GRID_C if p < .05 else '0.5')
+                fontsize=5.6, color=SIG_C if p < .05 else '0.5')
 ax.set_xticks([0, 1]); ax.set_xticklabels(['slow\n30–55*', 'fast\n60–100'],
                                           fontsize=6.2)
 ax.set_ylim(0, .0034)
@@ -570,7 +577,7 @@ ax.axvline(0, color='0.85', lw=.8, zorder=0)
 # session (SD about 0.3), and drawing 26 long perpendiculars made that spread
 # -- most of which is measurement noise in two independent band estimates --
 # look like a failure of the line. The cloud and the centroid carry it.
-ax.scatter(TR.slow, TR.fast, s=15, color=GRID_C, alpha=.85, lw=0, zorder=3)
+ax.scatter(TR.slow, TR.fast, s=15, color=SIG_C, alpha=.85, lw=0, zorder=3)
 _mx, _my = TR.slow.mean(), TR.fast.mean()
 ax.errorbar(_mx, _my, xerr=TR.slow.std() / np.sqrt(len(TR)),
             yerr=TR.fast.std() / np.sqrt(len(TR)), fmt='D', ms=4.5,
@@ -590,7 +597,7 @@ tidy(ax); lp(ax, 'H', x=-.22)
 # is here as the spread of the quantities actually tested.
 ax = fig.add_subplot(GH[1])
 _jr = np.random.default_rng(7)
-COLS_H = [('slow\n$-$ fast', TR['shift'], P_SHIFT, GRID_C),
+COLS_H = [('slow\n$-$ fast', TR['shift'], P_SHIFT, SIG_C),
           ('slow\n$+$ fast', TR['sum'], P_SUM, '0.55'),
           ('2\u2013200\nHz', TR['broad'], P_BROAD, '0.55')]
 ax.axhline(0, color='0.4', lw=.9, zorder=1)
@@ -605,7 +612,7 @@ for j, (nm, v, pv, col) in enumerate(COLS_H):
     ax.annotate(f'{pv:.0e}'.replace('e-0', 'e-') if pv < .001 else f'{pv:.2f}',
                 (j, .995), xycoords=('data', 'axes fraction'), ha='center',
                 va='top', fontsize=5.6,
-                color=GRID_C if pv < .05 else '0.5')
+                color=SIG_C if pv < .05 else '0.5')
 ax.set_xticks(range(3))
 ax.set_xticklabels([c[0] for c in COLS_H], fontsize=5.9,
                    linespacing=1.25)

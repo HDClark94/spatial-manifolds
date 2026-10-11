@@ -91,8 +91,12 @@ MIN_RUN_S, SMOOTH, MAJOR_FILT = 2.0, 5, 9
 N_LOGBINS, TRIAL_SIGMA = 48, 1.8
 LINE = [(48, 52), (98, 102), (148, 152)]
 BANDS = [('theta 6–10', 6, 10, '#7b4173'),
-         ('slow gamma 30–48', 30, 48, '#2b6cb0'),
-         ('fast gamma 60–100', 60, 100, '#c04744')]
+         ('slow gamma 30–48', 30, 48, '#2f7d32'),
+         ('fast gamma 60–100', 60, 100, '#e8701a')]
+# BAND PALETTE. Slow and fast gamma used to be drawn in the non-grid-spatial
+# blue and the grid-cell red of the class palette (Figure 2). Those two
+# colours are reserved for cell types across the paper, so the bands now take
+# green and orange. Theta keeps its purple, which is not a class colour.
 
 # (mouse, day, follows the population pattern?)
 #
@@ -253,8 +257,8 @@ for i, r in enumerate(rows):
     im = ax.pcolormesh(x, r['centres'], r['spec'].T, cmap='RdBu_r',
                        vmin=-1.4, vmax=1.4, shading='gouraud', rasterized=True)
     lines(ax, '0.25')
-    for lo_, hi_, c in [(6, 10, '#7b4173'), (30, 48, '#2b6cb0'),
-                        (60, 100, '#c04744')]:
+    for lo_, hi_, c in [(6, 10, '#7b4173'), (30, 48, '#2f7d32'),
+                        (60, 100, '#e8701a')]:
         ax.axhline(lo_, color=c, lw=.45, alpha=.6)
         ax.axhline(hi_, color=c, lw=.45, alpha=.6)
     ax.set_yscale('log'); ax.set_yticks([2, 8, 20, 50, 100])
