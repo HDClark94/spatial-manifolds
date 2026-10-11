@@ -181,7 +181,7 @@ ax = fig.add_axes([0, 0, 1, 1]); ax.set_axis_off()
 ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 
 # ── the circuit, drawn once ───────────────────────────────────────────────
-ENG = (.205, .848, .370, .105)
+ENG = (.205, .876, .370, .076)
 GATE = (.270, .742, .085, .070)
 LAND = (.025, .742, .175, .070)
 SELF = (.025, .620, .175, .070)
@@ -189,21 +189,17 @@ EST = (.460, .598, .272, .228)
 BEH = (.795, .668, .180, .085)
 
 box(ax, ENG, '', '#fdf6e3', ACH, ec=ACH, lw=1.0)
-ax.text(.390, .928, 'engagement — attentional focus  (septal / cholinergic)',
+ax.text(.390, .932, 'engagement — attentional focus  (septal / cholinergic)',
         fontsize=6.8, ha='center', va='center', color=ACH)
-ax.text(.390, .903, 'indexed by a CONSTRICTED pupil, not a dilated one',
+ax.text(.390, .908, 'indexed by a CONSTRICTED pupil, not a dilated one',
         fontsize=6.2, ha='center', va='center', color=ACH)
-ax.text(.390, .875, '\u22120.41 z on entry to the anchored state and +0.49 z on '
-                    'exit, and the hit rate\nfalls from 0.83 to 0.39 as the '
-                    'pupil widens (Figure 5)', fontsize=5.5, ha='center',
-        va='center', color='0.5', linespacing=1.35)
 
 box(ax, LAND, 'landmarks\n(the task frame)', '#fbf0ef', LAND_C)
 box(ax, SELF, 'self-motion\n(speed, head direction)', '#eef3fa', SELF_C)
 box(ax, GATE, 'GATE', '#fdf6e3', ACH, fs=7.0, ec=ACH, lw=1.3)
 
 # engagement sets the gate
-arrow(ax, (.312, .836), (.312, .816), ACH, lw=1.2, ls=(0, (2.4, 1.6)),
+arrow(ax, (.312, .864), (.312, .816), ACH, lw=1.2, ls=(0, (2.4, 1.6)),
       shrink=1, z=2)
 # the two drives
 arrow(ax, (.202, .777), (.267, .777), LAND_C, lw=1.6, shrink=1, head=False)
@@ -213,10 +209,8 @@ ax.text(.234, .792, 'gated', fontsize=5.8, color=LAND_C, ha='center')
 ax.text(.312, .712, 'OPEN \u2192 anchored\nSHUT \u2192 non-anchored', fontsize=5.8,
         ha='center', va='center', color=ACH, linespacing=1.35)
 ax.text(.240, .672, 'always on', fontsize=5.8, color=SELF_C, ha='center')
-ax.text(.330, .603, 'theta\u2013speed slope 0.374 \u2192 0.218 when the gate opens, '
-                    'while the\nspeed CELLS do not change (+11.9%, p = 0.12; '
-                    'Figure 7)',
-        fontsize=5.4, color='0.5', ha='center', va='top', linespacing=1.35)
+ax.text(.300, .636, 'theta\u2013speed slope 0.374 \u2192 0.218', fontsize=5.4,
+        color='0.5', ha='center', va='top')
 
 # the estimate, with the cells that carry it drawn inside it
 box(ax, EST, '', '#f7f5f1', '0.3', ec='0.68', lw=1.0)
@@ -230,9 +224,6 @@ box(ax, (.604, .638, .112, .105), 'FS\ninterneurons', '#eef3fa', INT_C,
     fs=6.4, z=4)
 arrow(ax, (.594, .712), (.602, .712), '0.5', lw=1.0, shrink=1, z=6, ms=6)
 arrow(ax, (.602, .668), (.594, .668), '0.5', lw=1.0, shrink=1, z=6, ms=6)
-ax.text(.596, .614, 'the two populations that follow the state most strongly '
-                    '(+0.185, +0.131; Figure 2)', fontsize=5.3, ha='center',
-        va='center', color='0.5', zorder=5)
 
 # the readout
 box(ax, BEH, 'action\n(where the animal\nslows and stops)', '#f2f4f1', '0.3')
@@ -240,160 +231,110 @@ arrow(ax, (.734, .710), (.792, .710), '0.45', lw=1.4, shrink=1)
 
 # down into the simulated code
 arrow(ax, (.575, .595), (.575, .512), '0.6', lw=1.1, shrink=1)
-ax.text(.588, .553, 'what the code looks like under each\nsetting of the gate '
-                    '(simulated)', fontsize=5.9, ha='left', va='center',
-        color='0.5', linespacing=1.35)
+ax.text(.590, .553, 'simulated', fontsize=5.9, ha='left', va='center',
+        color='0.5')
 
-# ── what the field potential does when the gate opens (measured) ─────────
-# The frequency-specific part of the story belongs in the schematic, because
-# it is what tells you the change is a rotation of the input balance rather
-# than a gain change: the difference between states reverses sign across the
-# spectrum instead of scaling it.
-ax.text(.752, .656, 'and what the field potential does when the gate opens\n'
-                    '(measured, Figure 7; anchored \u2212 non-anchored)',
-        fontsize=6.0, ha='left', va='top', color='0.3', linespacing=1.4)
-
-_fb = fig.add_axes([.840, .505, .096, .094])
-_val = [+0.105, -0.108, -0.094, -0.159]
-_lab = ['slow gamma 30\u201348 Hz', 'fast gamma 60\u2013100 Hz', 'theta 6\u201310 Hz',
-        'theta\u2013fast coupling']
-_y = np.arange(4)[::-1]
-_fb.barh(_y, _val, color=[SLOW, FAST, THETA, FAST], alpha=.85, height=.62,
-         lw=0)
-_fb.axvline(0, color='0.35', lw=.8, zorder=3)
-for _yy, _v in zip(_y, _val):
-    _fb.text(_v + (.010 if _v > 0 else -.010), _yy, f'{_v:+.3f}', fontsize=5.0,
-             va='center', ha='left' if _v > 0 else 'right', color='0.3')
-_fb.set_yticks(_y); _fb.set_yticklabels(_lab, fontsize=5.3)
-_fb.set_xlim(-.30, .22); _fb.set_xticks([-.2, 0, .2])
-_fb.tick_params(labelsize=5.2, length=2, pad=1.2)
-_fb.spines[['top', 'right']].set_visible(False)
-
-ax.text(.752, .485, 'The difference REVERSES SIGN across the spectrum rather\n'
-                    'than scaling it: it crosses zero at a median of 67 Hz, in\n'
-                    '25 of 26 sessions. The spectrum rotates.',
-        fontsize=5.5, ha='left', va='top', color='0.5', linespacing=1.45)
-
-# ── the frequency-specific signature of the same switch ──────────────────
-# Replaces a prose reading of the two gate settings. The theta phases here are
-# MEASURED (Figure S10, 28 sessions): slow gamma 30-48 Hz peaks at about 95 deg
-# of theta and fast gamma 60-100 Hz at about 42 deg, with 0 deg the theta peak
-# (the phase comes from the angle of the 6-10 Hz Hilbert). They are drawn at
-# the SAME phase in both states because that is what the data say -- paired
-# within session the anchored state prefers a phase 6.6 deg earlier in the slow
-# band (p = 0.33) and 2.8 deg earlier in the fast band (p = 0.16), neither
-# reliable. What differs between the two panels is amplitude and, for fast
-# gamma, how tightly the burst is confined to its phase.
-PH_SLOW, PH_FAST = 95., 42.      # deg of theta, measured
-ax.text(.025, .576, 'and the frequency-specific signature of the same switch',
-        fontsize=7.2, weight='bold', color='0.25', va='top')
-ax.text(.025, .553, 'theta-nested gamma in entorhinal cortex, drawn at the '
-                    'measured phases (Figures 7, S10)',
-        fontsize=6.0, color='0.5', va='top')
-
+# ── two states, one row each: the rhythm, the code, and the behaviour ────
+# The left column is the frequency-specific result drawn as a mechanism, in
+# the same row as the code it is a claim about. Theta phases are MEASURED
+# (Figure S10, 28 sessions): slow gamma 30-48 Hz peaks near 95 deg of theta
+# and fast gamma 60-100 Hz near 42 deg, 0 deg being the theta peak. They are
+# drawn at the SAME phase in both rows because the state does not move them
+# (paired, 6.6 deg and 2.8 deg, p = 0.33 and 0.16). What the state does move
+# is amplitude -- slow up, fast down -- and how tightly the fast burst is
+# confined to its phase, which is the 15.9% loss of theta-fast coupling.
+PH_SLOW, PH_FAST = 95., 42.
 _p = np.linspace(-180., 540., 1400)
-_rows = [(.408, True, 'ANCHORED — gate open', ANCH, .90, 1.05, .78, 3.6),
-         (.286, False, 'NON-ANCHORED — gate shut', NONANCH, 1.0, .75, 1.12, 6.2)]
-for _y, _anch, _lab, _c, _at, _as_, _af, _kf in _rows:
-    a = fig.add_axes([.062, _y, .300, .100])
-    for sp in ('top', 'right', 'left'):
-        a.spines[sp].set_visible(False)
-    a.set_yticks([])
-    for _ph, _col in ((PH_SLOW, SLOW), (PH_FAST, FAST)):
-        for _k in (0, 360):
-            a.axvline(_ph + _k, color=_col, lw=.6, ls=(0, (2.0, 1.8)),
-                      alpha=.55, zorder=0)
-    # theta, then the two gamma bands beneath it, phase-aligned
-    a.plot(_p, 3.4 + _at * np.cos(np.radians(_p)), color=THETA, lw=1.3)
-    _es = np.exp(4.4 * (np.cos(np.radians(_p - PH_SLOW)) - 1.))
-    a.plot(_p, 1.3 + _as_ * _es * np.sin(np.radians(_p) * 5.),
-           color=SLOW, lw=.75)
-    _ef = np.exp(_kf * (np.cos(np.radians(_p - PH_FAST)) - 1.))
-    a.plot(_p, -.7 + _af * _ef * np.sin(np.radians(_p) * 10.),
-           color=FAST, lw=.75)
-    a.set_xlim(-180, 540); a.set_ylim(-2.4, 6.1)
-    a.set_xticks([-180, 0, 180, 360, 540])
-    a.text(.012, .97, _lab, transform=a.transAxes, fontsize=5.8,
-           weight='bold', color=_c, va='top')
-    if _anch:
-        a.set_xticklabels([])
-        # stacked in the corner rather than on the dashed lines: at 42 and 95
-        # deg the two labels sit 53 deg apart and overlap at this width
-        a.text(.995, .99, f'fast \u03b3  {PH_FAST:.0f}\u00b0', transform=a.transAxes,
-               fontsize=5.2, color=FAST, ha='right', va='top')
-        a.text(.995, .84, f'slow \u03b3  {PH_SLOW:.0f}\u00b0', transform=a.transAxes,
-               fontsize=5.2, color=SLOW, ha='right', va='top')
-    else:
-        a.set_xlabel('theta phase (deg, 0 = peak)', fontsize=6.2, labelpad=1)
-    a.tick_params(labelsize=5.6, length=2, pad=1.5)
+OFF_T, OFF_S, OFF_F = 4.2, 1.4, -1.8
 
-ax.text(.025, .238, 'The gate changes how much each band carries, not when in '
-                    'the cycle it\narrives. Slow gamma rises and fast gamma '
-                    'falls with theta, and theta\u2013fast\ncoupling weakens by '
-                    '15.9% (p = 5e-6) while theta\u2013slow coupling does not\n'
-                    '(p = 0.71) \u2014 drawn above as a smaller, less tightly '
-                    'confined fast burst.',
-        fontsize=6.3, color='0.35', va='top', linespacing=1.5)
-ax.text(.025, .142, 'The preferred phases themselves do not move: paired '
-                    'within session the\nanchored state is 6.6\u00b0 earlier in '
-                    'the slow band (p = 0.33) and 2.8\u00b0 in the\nfast '
-                    '(p = 0.16), and the laminar theta phase gradient is '
-                    'identical (every\nlayer p \u2265 0.06). The circuit\'s own '
-                    'timing is untouched.',
-        fontsize=6.1, color='0.5', va='top', linespacing=1.5)
-
-# ── the simulated code: 2 states x (3 rate maps + 1 decoded position) ────
-COLS = [(.418, .088), (.518, .088), (.618, .088), (.718, .104),
-        (.872, .104)]
-ROWS = [(.285, .135, True, 'ANCHORED', ANCH),
-        (.090, .135, False, 'NON-ANCHORED', NONANCH)]
-HEAD = ['grid cell 1', 'grid cell 2', 'grid cell 3', 'decoded position (cm)',
-        'stops, uncued trials']
+COLS = [(.082, .276), (.400, .085), (.498, .085), (.596, .085),
+        (.694, .100), (.845, .100)]
+ROWS = [(.318, .165, True, 'ANCHORED', ANCH),
+        (.103, .165, False, 'NON-ANCHORED', NONANCH)]
+HEAD = ['theta-nested gamma', 'grid cell 1', 'grid cell 2', 'grid cell 3',
+        'decoded position (cm)', 'stops, uncued']
 CELLS = [(44., 10.), (62., 30.), (86., 55.)]   # spacing cm, anchored phase
+# theta, slow, fast amplitude and the fast burst's concentration, per state
+LFP = {True: (.95, 1.30, .72, 3.0), False: (1.05, .75, 1.35, 7.5)}
 
 for ri, (ry, rh, anch, rlab, rcol) in enumerate(ROWS):
-    ax.text(.386, ry + rh / 2, rlab, fontsize=6.6, weight='bold', color=rcol,
+    ax.text(.014, ry + rh / 2, rlab, fontsize=7.4, weight='bold', color=rcol,
             ha='center', va='center', rotation=90)
     for ci, (cx, cw) in enumerate(COLS):
-        a = fig.add_axes([cx, ry, cw, rh])
-        a.tick_params(labelsize=5.6, length=2, pad=1.5)
+        a_ = fig.add_axes([cx, ry, cw, rh])
+        a_.tick_params(labelsize=5.8, length=2, pad=1.5)
         for sp in ('top', 'right'):
-            a.spines[sp].set_visible(False)
-        if ci < 3:
-            lam, ph = CELLS[ci]
+            a_.spines[sp].set_visible(False)
+        if ci == 0:
+            _at, _as, _af, _kf = LFP[anch]
+            a_.spines['left'].set_visible(False)
+            for _ph, _col in ((PH_SLOW, SLOW), (PH_FAST, FAST)):
+                for _k in (0, 360):
+                    a_.axvline(_ph + _k, color=_col, lw=.7, ls=(0, (2.0, 1.8)),
+                               alpha=.6, zorder=0)
+            a_.plot(_p, OFF_T + _at * np.cos(np.radians(_p)), color=THETA,
+                    lw=1.4)
+            a_.plot(_p, OFF_S + _as * np.exp(3.4 * (np.cos(np.radians(
+                _p - PH_SLOW)) - 1.)) * np.sin(np.radians(_p) * 5.),
+                color=SLOW, lw=.8)
+            a_.plot(_p, OFF_F + _af * np.exp(_kf * (np.cos(np.radians(
+                _p - PH_FAST)) - 1.)) * np.sin(np.radians(_p) * 10.),
+                color=FAST, lw=.8)
+            a_.set_xlim(-180, 540); a_.set_ylim(-3.7, 5.9)
+            a_.set_xticks([-180, 0, 180, 360, 540])
+            a_.set_yticks([OFF_T, OFF_S, OFF_F])
+            a_.set_yticklabels(['theta', 'slow \u03b3', 'fast \u03b3'],
+                               fontsize=6.0)
+            for _t, _col in zip(a_.get_yticklabels(), (THETA, SLOW, FAST)):
+                _t.set_color(_col)
+            a_.tick_params(axis='y', length=0)
+            if ri == 0:   # the measured phases, marked once
+                for _ph, _col in ((PH_FAST, FAST), (PH_SLOW, SLOW)):
+                    a_.text(_ph + 360, 5.8, f'{_ph:.0f}\u00b0', fontsize=5.4,
+                            color=_col, ha='center', va='top')
+            else:
+                a_.set_xlabel('theta phase (deg, 0 = peak)', fontsize=6.4,
+                              labelpad=1)
+            if ri == 0:
+                a_.set_xticklabels([])
+            a_.set_title(HEAD[ci], fontsize=6.6, color='0.3', pad=3) \
+                if ri == 0 else None
+            continue
+        if ci < 4:
+            lam, ph = CELLS[ci - 1]
             m = grid_map(lam, ph, anch)
-            a.imshow(m / m.max(), aspect='auto', cmap=CMAP, origin='upper',
-                     extent=[0, TRACK, NTRIAL + .5, .5],
-                     interpolation='nearest', vmin=0, vmax=1)
-        elif ci == 3:
-            x, p = decoded_position(anch)
-            im = a.imshow(p, aspect='auto', cmap='jet', origin='upper',
-                          extent=[0, TRACK, NTRIAL + .5, .5],
-                          interpolation='nearest', vmin=0, vmax=TRACK)
-            if ri == 0:   # one colourbar; both rows share the scale
+            a_.imshow(m / m.max(), aspect='auto', cmap=CMAP, origin='upper',
+                      extent=[0, TRACK, NTRIAL + .5, .5],
+                      interpolation='nearest', vmin=0, vmax=1)
+        elif ci == 4:
+            x, p_ = decoded_position(anch)
+            im = a_.imshow(p_, aspect='auto', cmap='jet', origin='upper',
+                           extent=[0, TRACK, NTRIAL + .5, .5],
+                           interpolation='nearest', vmin=0, vmax=TRACK)
+            if ri == 0:
                 cb = fig.add_axes([cx + cw + .006, ry, .009, rh])
                 plt.colorbar(im, cax=cb, ticks=[0, 100, 200])
-                cb.tick_params(labelsize=5.3, length=2, pad=1.5)
+                cb.tick_params(labelsize=5.4, length=2, pad=1.5)
         else:
-            a.axvspan(*RZ, color='#e8e2d6', linewidth=0, zorder=0)
+            a_.axvspan(*RZ, color='#e8e2d6', linewidth=0, zorder=0)
             for t, v in enumerate(stops(anch)):
-                a.plot(v, np.full(len(v), t + 1), ls='none', marker='|',
-                       ms=3.6, mew=.9, color=rcol)
-            a.set_ylim(NTRIAL + .62, -.30)   # headroom for the zone label
+                a_.plot(v, np.full(len(v), t + 1), ls='none', marker='|',
+                        ms=3.8, mew=.9, color=rcol)
+            a_.set_ylim(NTRIAL + .62, -.30)
             if ri == 0:
-                a.text(np.mean(RZ), .02, 'reward zone', fontsize=4.9,
-                       ha='center', va='center', color='0.45')
-        a.set_yticks([1, 5, 10])
-        a.set_xlim(0, TRACK); a.set_xticks([0, 100, 200])
+                a_.text(np.mean(RZ), .02, 'reward zone', fontsize=5.0,
+                        ha='center', va='center', color='0.45')
+        a_.set_yticks([1, 5, 10])
+        a_.set_xlim(0, TRACK); a_.set_xticks([0, 100, 200])
         if ri == 0:
-            a.set_title(HEAD[ci], fontsize=6.2, color='0.3', pad=3)
-            a.set_xticklabels([])
+            a_.set_title(HEAD[ci], fontsize=6.6, color='0.3', pad=3)
+            a_.set_xticklabels([])
         else:
-            a.set_xlabel('position (cm)', fontsize=6.2, labelpad=1)
-        if ci == 0:
-            a.set_ylabel('trial', fontsize=6.2, labelpad=1)
+            a_.set_xlabel('position (cm)', fontsize=6.4, labelpad=1)
+        if ci == 1:
+            a_.set_ylabel('trial', fontsize=6.4, labelpad=1)
         else:
-            a.set_yticklabels([])
+            a_.set_yticklabels([])
 
 fig.text(.025, .032, 'The state changes what arrives at this circuit, not what '
                      'the circuit does with it \u2014 and what arrives decides '
