@@ -160,7 +160,17 @@ FIGURES = [
      'error. The slope is +0.173 per unit index alone (p = 1e-11) and +0.136 with identity in the '
      'model (p = 2e-6), and holds within grid (+0.353, p = 0.037), non-grid spatial (+0.147, p = '
      '9e-5) and interneuron (+0.116, p = 0.028) classes, so theta rhythmicity predicts following '
-     'in its own right rather than restating cell type.'),
+     'in its own right rather than restating cell type. (L) Whether each '
+     "class's own state predicts behaviour, as the Anchoring Dependence "
+     'Index: AUC(uncued) minus AUC(cued) for a state built from five '
+     'randomly drawn cells of that class, so a class with 92 cells in a '
+     'session is not compared against one with five. Every class is '
+     'positive -- grid +0.098, putative interneuron +0.050, non-grid '
+     'spatial +0.039, non-spatial +0.024, Holm p <= 0.065 -- and no pair '
+     'of classes differs (smallest p = 0.12 across the 27 sessions '
+     'carrying all four). The ordering follows panel D, but this figure '
+     'cannot show that one class carries the behavioural index more than '
+     'another.'),
     ('Figure 3', 'fig3_anatomy.pdf',
      'The responsive subnetwork is medial, within the superficial grid population',
      '(A) Open-field rate maps from four M25 sessions whose probes sat at different mediolateral '

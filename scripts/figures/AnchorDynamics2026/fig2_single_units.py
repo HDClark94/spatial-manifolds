@@ -130,6 +130,7 @@ from matplotlib.patches import Patch
 import seaborn as sns
 import statsmodels.formula.api as smf
 from scipy.stats import kruskal, mannwhitneyu, spearmanr, wilcoxon
+from statsmodels.stats.multitest import multipletests
 
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 from spatial_manifolds.anchoring import (ANCH_COLOR, NONANCH_COLOR,
@@ -438,7 +439,7 @@ g3 = outer[2].subgridspec(1, 6, width_ratios=[1.12, .16, .98, .98, 1.02, .82],
 # H is a stacked-bar summary and does not need the width of a scatter, so it
 # is narrowed and the gap to I widened -- at the old uniform wspace the two
 # read as one block
-g4 = outer[3].subgridspec(1, 4, width_ratios=[.72, 1.20, .92, 1.08],
+g4 = outer[3].subgridspec(1, 5, width_ratios=[.68, 1.10, .86, 1.00, .80],
                           wspace=.62)
 SHORT = ['grid', 'NGS', 'NS', 'int']   # full names collide at this width
 
@@ -947,6 +948,37 @@ ax.set_title('more theta-rhythmic cells follow more,\n'
              f'{_b2.params["theta_index"]:+.2f} given identity)',
              fontsize=6.8, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+# ---- L: does each class's own state predict uncued performance? -------------
+# The Anchoring Dependence Index, AUC(uncued) - AUC(cued), built from FIVE
+# randomly drawn cells of one class so that a class with 92 cells per session
+# is not compared against one with 5 (adi_by_identity.py).
+ax = fig.add_subplot(g4[4])
+_A = pd.read_csv(f'{PS}/adi_by_identity.csv')
+_AO = ORDER          # so SHORT labels the columns correctly
+_ps = []
+for _i, _k in enumerate(_AO):
+    _v = _A[_k].dropna()
+    _ps.append(wilcoxon(_v).pvalue)
+    ax.scatter(_i + np.random.default_rng(2).uniform(-.16, .16, len(_v)), _v,
+               s=4, color=ICOL[_k], alpha=.35, lw=0)
+    ax.errorbar(_i, _v.mean(), yerr=_v.std(ddof=1) / np.sqrt(len(_v)),
+                color='k', marker='_', ms=13, lw=1.5, capsize=3, zorder=4)
+_ps = multipletests(_ps, method='holm')[1]
+for _i, _p in enumerate(_ps):
+    ax.annotate(f'{_p:.3f}' if _p >= .001 else f'{_p:.0e}'.replace('e-0', 'e-'),
+                (_i, .99), xycoords=('data', 'axes fraction'), ha='center',
+                va='top', fontsize=5.6, color=COL_GC if _p < .05 else '0.5')
+ax.axhline(0, color='k', lw=1, ls='--')
+ax.set_xticks(range(4)); ax.set_xticklabels(SHORT, fontsize=7)
+ax.set_ylabel('ADI (AUC uncued $-$ cued)', fontsize=8)
+_lp(ax, 'L')
+ax.set_title('every class\'s own state predicts\nuncued performance, and they\n'
+             'do not differ from one another', fontsize=6.8, loc='left')
+ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+print('  L: ADI by class ' + ', '.join(
+    f'{k.split()[-1]} {_A[k].dropna().mean():+.3f}' for k in _AO))
+
 print(f'  J: speed-modulated {_a[0]}on/{_a[1]}off, not {_b[0]}on/{_b[1]}off, '
       f'OR {_orr:.2f} p {_pf:.2g}')
 

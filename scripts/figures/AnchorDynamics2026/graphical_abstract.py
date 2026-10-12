@@ -63,7 +63,7 @@ RZ = (90., 110.)
 Q = np.load(f'{FIG}/ga_cache.npz', allow_pickle=True)
 
 fig = plt.figure(figsize=(3.55, 6.05))
-G = fig.add_gridspec(3, 1, height_ratios=[2.10, 0.62, 0.92],
+G = fig.add_gridspec(3, 1, height_ratios=[2.10, 1.28, 0.92],
                      hspace=.46, left=.04, right=.96, top=.958, bottom=.016)
 
 
@@ -179,7 +179,7 @@ ax.text(.010, .65, f'M{int(mo)} D{int(dy)}', fontsize=5.0, color='0.45',
         va='center', rotation=90, ha='center')
 
 # what the state buys the animal
-axh = ax.inset_axes([.235, .10, .33, .20])
+axh = ax.inset_axes([.105, .10, .30, .20])
 E = pd.read_csv(f'{ROOT}/data/eye_anchoring/eye_anchoring_trials.csv')
 E = E.dropna(subset=['pc1', 'perf', 'ttype'])
 E['hit'] = (E.perf == 'hit').astype(float)
@@ -202,7 +202,7 @@ axh.tick_params(labelsize=4.8, length=2, pad=1)
 axh.spines[['top', 'right']].set_visible(False)
 # the same benefit as one number per session: the Anchoring Dependence Index,
 # AUC(uncued) minus AUC(cued) for the state predicting a hit
-axa = ax.inset_axes([.665, .10, .105, .20])
+axa = ax.inset_axes([.505, .10, .095, .20])
 _rows = []
 for _k, _g in E.groupby(['mouse', 'day']):
     try:
@@ -224,48 +224,61 @@ axa.tick_params(labelsize=4.8, length=2, pad=1)
 axa.spines[['top', 'right']].set_visible(False)
 axa.set_title(f'{_adi.mean():+.3f}, p = {wilcoxon(_adi).pvalue:.3f}',
               fontsize=4.8, color='0.3', pad=2)
-ax.text(.46, .038, 'anchoring helps most when the zone must be found by path '
+ax.text(.33, .038, 'anchoring helps most when the zone must be found by path '
                    'integration',
         ha='center', va='top', fontsize=5.2, color='0.35')
 
-# ── 2. what follows it ───────────────────────────────────────────────────────
-# Three questions on one axis, all measured the same way: the mean excess over
-# each cell's own circular-shift null, averaged within session and then across
-# sessions, so a cell class, a position in the tissue and a rhythmicity measure
-# can be read against each other without a change of scale.
-ax = fig.add_subplot(G[1])
-LINES = [
-    # the tier is how far the label sits from the line: two classes 0.033
-    # apart cannot both be labelled at the same height without touching
-    ('cell type', 2, [('grid', .183, GRID_C, 1, 1), ('interneuron', .132, INT_C, 1, 1),
-                      ('non-grid spatial', .085, GREY, 1, 2),
-                      ('non-spatial', .052, GREY, 1, 1)]),
-    # mediolateral position only. Layer predicts cell IDENTITY but not whether
-    # a cell follows (superficial +0.078 against deep +0.065, p = 0.13), so it
-    # does not belong on a line about what follows.
-    ('anatomy', 1, [('medial', .084, '#6a51a3', 1, 1), ('lateral', .060, '#9e9ac8', 1, 1)]),
-    ('theta rhythmicity', 0, [('high', .104, '#1f7a6f', 1, 1), ('low', .078, '#8fc4bd', 1, 1)]),
+# ── 2. which cells follow it, and whose state predicts behaviour ─────────────
+# Two lines, one question each, each with its own scale. Top: mean excess over
+# every cell's own circular-shift null, averaged within session then across
+# sessions, which lands within 0.004 of the mixed-model estimates in Figure 2D.
+# Bottom: the Anchoring Dependence Index of a state built from FIVE randomly
+# drawn cells of that class, so a class with 92 cells per session is not
+# compared against one with 5 (Figure 2L).
+ax = fig.add_subplot(G[1]); ax.axis('off')
+ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+banner(ax, 'Grid cells and fast-spiking interneurons follow it\n'
+           'most strongly, and every class\'s state predicts behaviour')
+
+_adi = pd.read_csv(f'{ROOT}/data/population_state/adi_by_identity.csv')
+COL4 = {'grid': GRID_C, 'putative interneuron': INT_C,
+        'non-grid spatial': GREY, 'non-spatial': GREY}
+ROWS2 = [
+    (.54, 'follows\nthe state', .215, [0, .05, .10, .15, .20],
+     {'grid': .183, 'putative interneuron': .132, 'non-grid spatial': .085,
+      'non-spatial': .052}, {'non-grid spatial': 2}),
+    (.06, 'its state\npredicts\nuncued hits', .125, [0, .04, .08, .12],
+     {k: float(_adi[k].dropna().mean()) for k in COL4},
+     {'non-grid spatial': 2, 'putative interneuron': 3}),
 ]
-for nm, y, items in LINES:
-    ax.plot([0, .21], [y, y], color='0.78', lw=.9, zorder=1, solid_capstyle='butt')
-    ax.text(-.012, y, nm, ha='right', va='center', fontsize=5.8, color='0.3')
-    for lab, v, col, side, tier in items:
-        ax.scatter([v], [y], s=24, color=col, lw=0, zorder=3)
-        _dy = side * (.16 + .30 * (tier - 1))
-        if tier > 1:
-            ax.plot([v, v], [y + side * .10, y + _dy], color=col, lw=.5,
-                    zorder=2)
-        ax.annotate(f'{lab}\n{v:+.3f}', (v, y + _dy), ha='center',
-                    va='bottom' if side > 0 else 'top', fontsize=4.9,
-                    color=col, linespacing=1.2)
-ax.set_xlim(-.002, .215); ax.set_ylim(-.30, 3.05)
-ax.set_xticks([0, .05, .10, .15, .20]); ax.set_yticks([])
-ax.set_xlabel('agreement with the state, over each cell\'s own chance level',
-              fontsize=5.8, labelpad=1)
-ax.tick_params(axis='x', labelsize=5.2, length=2, pad=1)
-ax.spines[['top', 'right', 'left']].set_visible(False)
-banner(ax, 'Cell type, position in the tissue and theta\n'
-           'rhythmicity all predict which cells follow it')
+for _y, _lab, _xmax, _ticks, _vals, _tier in ROWS2:
+    axl = ax.inset_axes([.30, _y, .68, .34])
+    axl.plot([0, _xmax], [0, 0], color='0.78', lw=1.0, zorder=1,
+             solid_capstyle='butt')
+    for _k, _v in _vals.items():
+        axl.scatter([_v], [0], s=26, color=COL4[_k], lw=0, zorder=3)
+        _t = _tier.get(_k, 1)
+        _dy = .28 + .98 * (_t - 1)
+        if _t > 1:
+            axl.plot([_v, _v], [.16, _dy], color=COL4[_k], lw=.5, zorder=2)
+        axl.annotate(f'{_k.replace("putative ", "")}\n{_v:+.3f}', (_v, _dy),
+                     ha='center', va='bottom', fontsize=4.8, color=COL4[_k],
+                     linespacing=1.2)
+    axl.set_xlim(-_xmax * .02, _xmax)
+    axl.set_ylim(-.55, .22 + 1.05 * max([1] + list(_tier.values())))
+    axl.set_xticks(_ticks); axl.set_yticks([])
+    axl.tick_params(axis='x', labelsize=4.8, length=2, pad=1)
+    axl.spines[['top', 'right', 'left']].set_visible(False)
+    axl.spines['bottom'].set_position(('outward', 3))
+    ax.text(.275, _y + .17, _lab, ha='right', va='center', fontsize=5.4,
+            color='0.3', linespacing=1.25)
+# the arrow goes above the pair, not below: under the lower line it lands on
+# that line's own tick marks
+ax.annotate('', xy=(.975, .905), xytext=(.315, .905),
+            arrowprops=dict(arrowstyle='-|>', color='0.5', lw=1.0,
+                            mutation_scale=8))
+ax.text(.645, .925, 'more strongly with the population state', ha='center',
+        va='bottom', fontsize=5.0, color='0.5')
 
 # ── 3. what the state is ─────────────────────────────────────────────────────
 ax = fig.add_subplot(G[2]); ax.axis('off')
@@ -273,18 +286,19 @@ ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 banner(ax, 'The state is attentional engagement, with a\n'
            'frequency-specific change in the field potential')
 
-for k, (y0, key, col, lab) in enumerate(((.52, 'anch', ANCH, 'anchored'),
-                                         (.05, 'non', NON, 'non-anchored'))):
-    axe = ax.inset_axes([.02, y0, .145, .40])
+for k, (y0, key, col, lab) in enumerate(((.55, 'anch', ANCH, 'anchored'),
+                                         (.06, 'non', NON, 'non-anchored'))):
+    # label under each frame, not beside it: beside, it runs into the pupil
+    # profile's y-axis label
+    axe = ax.inset_axes([.035, y0 + .11, .125, .28])
     axe.imshow(Q[f'pupil_{key}'], interpolation='bilinear')
     axe.set_xticks([]); axe.set_yticks([])
     for sp in axe.spines.values():
         sp.set_color(col); sp.set_linewidth(1.1)
-    ax.text(.175, y0 + .26, lab, fontsize=4.8, color=col, va='center')
-    ax.text(.175, y0 + .14, f'r = {float(Q[f"pupil_{key}_r"][0]):.1f} px',
-            fontsize=4.6, color='0.45', va='center')
+    ax.text(.0975, y0 + .085, f'{lab}\nr = {float(Q[f"pupil_{key}_r"][0]):.1f} px',
+            fontsize=4.7, color=col, ha='center', va='top', linespacing=1.3)
 
-axp = ax.inset_axes([.33, .28, .34, .62])
+axp = ax.inset_axes([.27, .28, .25, .62])
 _z = np.load(f'{ROOT}/data/eye_anchoring/eye_position_profiles_gated.npz')
 _A, _N = _z['anch'], _z['non']
 _x = (np.arange(_A.shape[1]) + .5) * (200.0 / _A.shape[1])
@@ -304,16 +318,44 @@ axp.set_ylabel('z(pupil radius)', fontsize=5.2, labelpad=1)
 axp.tick_params(labelsize=4.8, length=2, pad=1)
 axp.spines[['top', 'right']].set_visible(False)
 
-axg = ax.inset_axes([.76, .28, .21, .62])
-axg.bar(range(3), [-.094, .105, -.108], .62,
-        color=[THETA_C, SLOW_G, FAST_G], linewidth=0)
-axg.axhline(0, color='0.35', lw=.9)
-axg.set_xticks(range(3))
-axg.set_xticklabels(['theta', 'slow γ', 'fast γ'], fontsize=4.8)
-axg.set_ylim(-.16, .16); axg.set_yticks([-.1, 0, .1])
-axg.tick_params(labelsize=4.8, length=2, pad=1)
-axg.set_ylabel('anchored $-$ non (z)', fontsize=5.2, labelpad=1)
-axg.spines[['top', 'right']].set_visible(False)
+# the same schematic Figure 8 draws, at the measured preferred theta phases:
+# what the state changes is how much each band carries and, for fast gamma,
+# how tightly its burst is confined -- not when in the cycle it arrives
+PH_SLOW, PH_FAST = 95., 42.
+OFF_T, OFF_S, OFF_F = 4.6, 1.5, -2.2
+LFP = {True: (.95, 1.55, .55, 2.6), False: (1.05, .55, 1.55, 8.0)}
+_ph = np.linspace(-180., 180., 700)
+for _i, (_y, _anch, _c) in enumerate(((.53, True, ANCH), (.10, False, NON))):
+    axw = ax.inset_axes([.655, _y, .335, .37])
+    _at, _as, _af, _kf = LFP[_anch]
+    for _p0, _col in ((PH_SLOW, SLOW_G), (PH_FAST, FAST_G)):
+        axw.axvline(_p0, color=_col, lw=.6, ls=(0, (2.0, 1.8)), alpha=.55,
+                    zorder=0)
+    axw.plot(_ph, OFF_T + _at * np.cos(np.radians(_ph)), color=THETA_C, lw=1.1)
+    for _off, _amp, _p0, _k, _n, _col in (
+            (OFF_S, _as, PH_SLOW, 3.4, 5., SLOW_G),
+            (OFF_F, _af, PH_FAST, _kf, 10., FAST_G)):
+        _e = _amp * np.exp(_k * (np.cos(np.radians(_ph - _p0)) - 1.))
+        axw.fill_between(_ph, _off - _e, _off + _e, color=_col, alpha=.22,
+                         linewidth=0, edgecolor='none')
+        axw.plot(_ph, _off + _e * np.sin(np.radians(_ph) * _n), color=_col,
+                 lw=.7)
+    axw.set_xlim(-180, 180); axw.set_ylim(-4.2, 6.4)
+    axw.set_yticks([OFF_T, OFF_S, OFF_F])
+    axw.set_yticklabels(['theta', 'slow \u03b3', 'fast \u03b3'], fontsize=4.6)
+    for _t, _col in zip(axw.get_yticklabels(), (THETA_C, SLOW_G, FAST_G)):
+        _t.set_color(_col)
+    axw.tick_params(axis='y', length=0, pad=1)
+    axw.set_xticks([-180, 0, 180])
+    axw.tick_params(axis='x', labelsize=4.6, length=2, pad=1)
+    for _sp in ('top', 'right', 'left'):
+        axw.spines[_sp].set_visible(False)
+    axw.set_title('anchored' if _anch else 'non-anchored', loc='left',
+                  fontsize=4.8, color=_c, fontweight='bold', pad=1)
+    if _anch:
+        axw.set_xticklabels([])
+    else:
+        axw.set_xlabel('theta phase (deg)', fontsize=4.8, labelpad=1)
 
 fig.savefig(OUT, bbox_inches='tight', dpi=300)
 print(f'wrote {OUT}')
