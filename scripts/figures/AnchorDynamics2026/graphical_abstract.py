@@ -36,6 +36,7 @@ import matplotlib
 import numpy as np
 import pandas as pd
 from scipy.stats import wilcoxon
+from sklearn.metrics import roc_auc_score
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -178,7 +179,7 @@ ax.text(.010, .65, f'M{int(mo)} D{int(dy)}', fontsize=5.0, color='0.45',
         va='center', rotation=90, ha='center')
 
 # what the state buys the animal
-axh = ax.inset_axes([.30, .10, .42, .20])
+axh = ax.inset_axes([.235, .10, .33, .20])
 E = pd.read_csv(f'{ROOT}/data/eye_anchoring/eye_anchoring_trials.csv')
 E = E.dropna(subset=['pc1', 'perf', 'ttype'])
 E['hit'] = (E.perf == 'hit').astype(float)
@@ -199,30 +200,72 @@ axh.set_ylim(0, 1.05); axh.set_yticks([0, .4, .8])
 axh.set_ylabel('hit rate', fontsize=5.2, labelpad=1)
 axh.tick_params(labelsize=4.8, length=2, pad=1)
 axh.spines[['top', 'right']].set_visible(False)
-_W = (S_.anch - S_.non).unstack('ttype').dropna()
-_p = wilcoxon(_W.nb, _W.b).pvalue
-ax.text(.5, .062, f'the benefit is larger when the zone must be found by path\n'
-                  f'integration ({(_W.nb - _W.b).mean():+.3f}, p = {_p:.0e}'
-                  .replace('e-0', 'e-') + f', {len(_W)} sessions)',
-        ha='center', va='top', fontsize=5.2, color='0.35', linespacing=1.4)
+# the same benefit as one number per session: the Anchoring Dependence Index,
+# AUC(uncued) minus AUC(cued) for the state predicting a hit
+axa = ax.inset_axes([.665, .10, .105, .20])
+_rows = []
+for _k, _g in E.groupby(['mouse', 'day']):
+    try:
+        _a = [roc_auc_score(_g[_g.ttype == t].hit, _g[_g.ttype == t].pc1)
+              for t in ('nb', 'b')]
+    except ValueError:
+        continue
+    _rows.append(_a[0] - _a[1])
+_adi = np.array(_rows)
+axa.axhline(0, color='0.4', lw=.9)
+axa.scatter(np.random.default_rng(1).uniform(-.2, .2, len(_adi)), _adi, s=4,
+            color=ANCH, alpha=.5, lw=0)
+axa.errorbar(0, _adi.mean(), yerr=_adi.std(ddof=1) / np.sqrt(len(_adi)),
+             color='k', marker='_', ms=11, lw=1.3, capsize=2, zorder=4)
+axa.set_xlim(-.55, .55); axa.set_xticks([0]); axa.set_xticklabels(['ADI'],
+                                                                 fontsize=5.4)
+axa.set_ylabel('AUC uncued $-$ cued', fontsize=5.0, labelpad=1)
+axa.tick_params(labelsize=4.8, length=2, pad=1)
+axa.spines[['top', 'right']].set_visible(False)
+axa.set_title(f'{_adi.mean():+.3f}, p = {wilcoxon(_adi).pvalue:.3f}',
+              fontsize=4.8, color='0.3', pad=2)
+ax.text(.46, .038, 'anchoring helps most when the zone must be found by path '
+                   'integration',
+        ha='center', va='top', fontsize=5.2, color='0.35')
 
-# ── 2. which cells ───────────────────────────────────────────────────────────
+# ── 2. what follows it ───────────────────────────────────────────────────────
+# Three questions on one axis, all measured the same way: the mean excess over
+# each cell's own circular-shift null, averaged within session and then across
+# sessions, so a cell class, a position in the tissue and a rhythmicity measure
+# can be read against each other without a change of scale.
 ax = fig.add_subplot(G[1])
-banner(ax, 'Every class follows it — grid cells and\n'
-           'interneurons about twice as strongly')
-vals = [0.185, 0.131, 0.081, 0.056]
-cols = [GRID_C, INT_C, GREY, GREY]
-ax.bar(range(4), vals, .64, color=cols, linewidth=0)
-ax.axhline(0, color='0.35', lw=.9)
-ax.set_xticks(range(4))
-ax.set_xticklabels(['grid', 'inter-\nneuron', 'non-grid\nspat.', 'non-\nspat.'],
-                   fontsize=5.6)
-ax.set_ylabel('agreement with the\nstate, over chance', fontsize=5.8)
-ax.tick_params(axis='y', labelsize=5.4)
-ax.set_ylim(0, .235)
-for i, v in enumerate(vals):
-    ax.text(i, v + .010, f'+{v:.3f}', ha='center', fontsize=5.2, color=cols[i])
-ax.spines[['top', 'right']].set_visible(False)
+LINES = [
+    # the tier is how far the label sits from the line: two classes 0.033
+    # apart cannot both be labelled at the same height without touching
+    ('cell type', 2, [('grid', .183, GRID_C, 1, 1), ('interneuron', .132, INT_C, 1, 1),
+                      ('non-grid spatial', .085, GREY, 1, 2),
+                      ('non-spatial', .052, GREY, 1, 1)]),
+    # mediolateral position only. Layer predicts cell IDENTITY but not whether
+    # a cell follows (superficial +0.078 against deep +0.065, p = 0.13), so it
+    # does not belong on a line about what follows.
+    ('anatomy', 1, [('medial', .084, '#6a51a3', 1, 1), ('lateral', .060, '#9e9ac8', 1, 1)]),
+    ('theta rhythmicity', 0, [('high', .104, '#1f7a6f', 1, 1), ('low', .078, '#8fc4bd', 1, 1)]),
+]
+for nm, y, items in LINES:
+    ax.plot([0, .21], [y, y], color='0.78', lw=.9, zorder=1, solid_capstyle='butt')
+    ax.text(-.012, y, nm, ha='right', va='center', fontsize=5.8, color='0.3')
+    for lab, v, col, side, tier in items:
+        ax.scatter([v], [y], s=24, color=col, lw=0, zorder=3)
+        _dy = side * (.16 + .30 * (tier - 1))
+        if tier > 1:
+            ax.plot([v, v], [y + side * .10, y + _dy], color=col, lw=.5,
+                    zorder=2)
+        ax.annotate(f'{lab}\n{v:+.3f}', (v, y + _dy), ha='center',
+                    va='bottom' if side > 0 else 'top', fontsize=4.9,
+                    color=col, linespacing=1.2)
+ax.set_xlim(-.002, .215); ax.set_ylim(-.30, 3.05)
+ax.set_xticks([0, .05, .10, .15, .20]); ax.set_yticks([])
+ax.set_xlabel('agreement with the state, over each cell\'s own chance level',
+              fontsize=5.8, labelpad=1)
+ax.tick_params(axis='x', labelsize=5.2, length=2, pad=1)
+ax.spines[['top', 'right', 'left']].set_visible(False)
+banner(ax, 'Cell type, position in the tissue and theta\n'
+           'rhythmicity all predict which cells follow it')
 
 # ── 3. what the state is ─────────────────────────────────────────────────────
 ax = fig.add_subplot(G[2]); ax.axis('off')
@@ -240,10 +283,6 @@ for k, (y0, key, col, lab) in enumerate(((.52, 'anch', ANCH, 'anchored'),
     ax.text(.175, y0 + .26, lab, fontsize=4.8, color=col, va='center')
     ax.text(.175, y0 + .14, f'r = {float(Q[f"pupil_{key}_r"][0]):.1f} px',
             fontsize=4.6, color='0.45', va='center')
-    if k:
-        ax.text(.175, y0 + .035, 'same mouse and session,\nboth at \u224820 cm '
-                'on the track', fontsize=4.3, color='0.5', va='center',
-                linespacing=1.3)
 
 axp = ax.inset_axes([.33, .28, .34, .62])
 _z = np.load(f'{ROOT}/data/eye_anchoring/eye_position_profiles_gated.npz')
@@ -275,12 +314,6 @@ axg.set_ylim(-.16, .16); axg.set_yticks([-.1, 0, .1])
 axg.tick_params(labelsize=4.8, length=2, pad=1)
 axg.set_ylabel('anchored $-$ non (z)', fontsize=5.2, labelpad=1)
 axg.spines[['top', 'right']].set_visible(False)
-
-_same = int((np.nanmean(_A - _N, axis=0) < 0).sum())
-ax.text(.5, .04, f'the pupil is narrower at {_same} of {_A.shape[1]} positions on '
-                 f'the track — a tonic shift, not\nattention paid at the reward '
-                 f'zone; the band difference reverses sign at 67 Hz',
-        ha='center', va='top', fontsize=5.0, color='0.35', linespacing=1.4)
 
 fig.savefig(OUT, bbox_inches='tight', dpi=300)
 print(f'wrote {OUT}')
