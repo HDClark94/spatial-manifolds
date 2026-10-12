@@ -166,20 +166,21 @@ def main():
         except Exception as e:
             print(f'  ! M{mo}D{dy}: {type(e).__name__}: {e}', flush=True)
             continue
-        if S is None or S.state.sum() < 50 or (~S.state).sum() < 50:
+        if S is None or S['state'].sum() < 50 or (~S['state']).sum() < 50:
             continue
         E = gamma_env(mo, dy, S['t'])
         if E is None:
             continue
         # tuning curves from ANCHORED bins define the task frame
-        f_tc = tuning(S['counts'][S.state], S['pbin'][S.state])
+        f_tc = tuning(S['counts'][S['state']], S['pbin'][S['state']])
         dec, _ = decode(S['counts'], f_tc)
         err = circ_err_cm(dec, S['pbin'])
-        rec = dict(mouse=mo, day=dy, n_non=int((~S.state).sum()),
-                   n_anch=int(S.state.sum()), err_non=float(err[~S.state].mean()),
-                   err_anch=float(err[S.state].mean()))
+        st = S['state']
+        rec = dict(mouse=mo, day=dy, n_non=int((~st).sum()),
+                   n_anch=int(st.sum()), err_non=float(err[~st].mean()),
+                   err_anch=float(err[st].mean()))
         for nmb, _, _ in GAMMA:
-            for tag, m in (('non', ~S.state), ('anch', S.state)):
+            for tag, m in (('non', ~st), ('anch', st)):
                 r, p = partial_r(E[nmb][m], err[m], S['spd'][m], S['pbin'][m])
                 rec[f'r_{nmb}_{tag}'] = r
         rows.append(rec)
@@ -201,6 +202,58 @@ def main():
         print(f'  fast minus slow, non-anchored: {v.mean():+.4f}  '
               f'p = {wilcoxon(v).pvalue:.3g}')
     print(f'wrote {OUT_CSV}')
+    draw()
+
+
+def draw():
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from scipy.stats import spearmanr
+    plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = 42
+    R = pd.read_csv(OUT_CSV)
+    FAST_C, SLOW_C = '#e8701a', '#2f7d32'
+    fig, axes = plt.subplots(1, 2, figsize=(6.4, 2.6))
+    rng = np.random.default_rng(0)
+
+    ax = axes[0]
+    cols = [('r_fast_non', 'fast\nnon-anch', FAST_C),
+            ('r_fast_anch', 'fast\nanchored', FAST_C),
+            ('r_slow_non', 'slow\nnon-anch', SLOW_C),
+            ('r_slow_anch', 'slow\nanchored', SLOW_C)]
+    for i, (c, lab, col) in enumerate(cols):
+        v = R[c].dropna()
+        ax.scatter(i + rng.uniform(-.16, .16, len(v)), v, s=7, color=col,
+                   alpha=.45, lw=0)
+        ax.errorbar(i, v.mean(), yerr=v.std(ddof=1) / np.sqrt(len(v)), color='k',
+                    marker='_', ms=13, lw=1.4, capsize=3, zorder=4)
+        p_ = wilcoxon(v).pvalue
+        ax.annotate(f'{p_:.0e}'.replace('e-0', 'e-') if p_ < .01 else f'{p_:.2f}',
+                    (i, .99), xycoords=('data', 'axes fraction'), ha='center',
+                    va='top', fontsize=6,
+                    color='#8a1c1c' if p_ < .05 else '0.5')
+    ax.axhline(0, color='k', lw=1, ls='--')
+    ax.set_xticks(range(4)); ax.set_xticklabels([c[1] for c in cols], fontsize=6.5)
+    ax.set_ylabel('partial r, gamma against |decode error|', fontsize=7.5)
+    ax.set_title('fast gamma tracks the mismatch;\nslow gamma does not',
+                 fontsize=8, loc='left')
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+    ax = axes[1]
+    ax.scatter(R.err_non, R.r_fast_non, s=13, color=FAST_C, alpha=.75, lw=0)
+    ax.axhline(0, color='k', lw=1, ls='--')
+    rho, p_ = spearmanr(R.err_non, R.r_fast_non)
+    ax.set_xlabel('mean |decode error|, non-anchored (cm)', fontsize=7.5)
+    ax.set_ylabel('partial r, fast gamma', fontsize=7.5)
+    ax.set_title(f'no dose-response across sessions\n'
+                 f'(rho = {rho:+.2f}, p = {p_:.2f})', fontsize=8, loc='left')
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+    fig.tight_layout()
+    out = f'{FIG}/gamma_vs_decode_error.pdf'
+    fig.savefig(out, dpi=300, bbox_inches='tight')
+    print(f'wrote {out}')
 
 
 if __name__ == '__main__':
