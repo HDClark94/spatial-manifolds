@@ -1,87 +1,107 @@
-"""A continuous attractor with a gated correction, simulated.
+"""A continuous attractor with a gated landmark correction, simulated.
 
 THE QUESTION. Figure 8 proposes that the anchoring state is the gain on a
-landmark correction, not a change in the entorhinal circuit. That account has
-to produce, from one parameter, four things measured separately: fields that
-recur or do not; slow gamma up and fast gamma down with the difference
+landmark correction and not a change in the entorhinal circuit. That account
+has to produce, from one parameter, four things measured separately: fields
+that recur or do not; slow gamma up and fast gamma down with the difference
 crossing zero at a fixed frequency; theta-fast coupling weakening while
 theta-slow does not; and spike timing that does not move at all. This builds
 the circuit and asks whether it does.
 
-WHAT IS IMPOSED AND WHAT IS NOT. Imposed: the architecture (a ring attractor
-with slow inhibition, an error population with fast inhibition, a landmark
-pathway with a conduction delay), the two inhibitory time constants, and the
-gate itself, which scales ONLY the error population's drive onto the
+WHAT IS IMPOSED AND WHAT IS NOT. Imposed: the architecture, the two inhibitory
+delays, and the gate, which scales ONLY the error population's drive onto the
 attractor. Not imposed: any gamma amplitude, any coupling strength, any
 preferred phase, any crossover frequency. Those are read out of the simulated
-field potential afterwards with the same estimators used on the recordings.
+field potential afterwards with the estimators used on the recordings.
 
 THE ARCHITECTURE.
 
-    landmark phase ---(delay)--> [error ring, fast I] --(gate g)--> [attractor
-                                        ^                            ring,
-                                        |                            slow I]
-                                        +--- subtractive prediction -----+
+    landmark phase --(delay)--> [error ring + fast global I] --(gate)--> [CAN
+                                       ^                                  ring
+                                       |                                  + slow
+                                       +--- subtractive prediction --------+ global I]
+
+Three things took several rebuilds to get right and are worth stating, because
+each is a claim about what the circuit has to be like:
+
+  1. THE BUMP LIVES IN A SLOW SYNAPTIC VARIABLE (60 ms, NMDA-like). A gamma
+     rhythm strong enough to see in the field potential silences the network
+     once a cycle, and a bump held in the firing rate alone has to re-form
+     from noise each time -- at a random phase. Held in a slow synapse it
+     survives its own rhythm. Without this the attractor dissolves whenever
+     the oscillator is strong enough to measure.
+  2. THE RHYTHM COMES FROM A GLOBAL INHIBITORY POOL WITH A DELAY, not from
+     structured inhibition. Inhibition broad and strong enough to generate
+     PING is also broad enough to flatten a Mexican hat; a global pool acts
+     only on the uniform mode, so it sharpens the bump instead of erasing it,
+     and the delay fixes the frequency at a circuit constant. 7 ms gives 42 Hz
+     and 2 ms gives 86 Hz, measured.
+  3. PATH INTEGRATION IS AN EXACT (SPECTRAL) TRANSLATION. A finite-difference
+     advection diffuses the bump away within a lap, and the gate-shut
+     condition then has no attractor left to be wrong about.
 
 The error population receives a bump at the phase the landmark implies and a
-subtractive copy of the attractor's own activity. When the attractor sits
-where the landmark says, the two cancel and the error population falls silent.
-So the fast-gamma generator is driven by MISMATCH, not by whether landmarks
-are present -- which is why opening the gate, the state in which landmarks are
-used, LOWERS fast gamma. The landmark input itself arrives in both states.
+subtractive, low-passed copy of the attractor. When the attractor sits where
+the landmark says, the two cancel and it falls silent -- so the fast-gamma
+generator is driven by MISMATCH, not by whether landmarks are present. That is
+why opening the gate, the state in which landmarks are used, should LOWER fast
+gamma. The landmark input itself arrives in both states.
 
-Velocity enters as advection of the attractor profile, so path integration is
-exact up to noise and the bump is never told where it is except through the
-error population. At the end of each lap position resets; the attractor is not
-reset. With the gate open the error population re-anchors it within a few tens
-of ms; with the gate shut nothing does, and the next lap starts from wherever
-noise left the bump.
+RESULTS, 2026-10-12. Four of the measured results come out, including the
+hardest one and a new prediction; three do not. Read both lists before using
+this for anything.
 
-STATUS, 2026-10-12: PARTIAL. Read this before using any number from it.
+REPRODUCED, with a healthy bump in BOTH states (population vector 0.68 either
+way, so the gate-shut condition is a path-integrating attractor and not a dead
+network):
 
-WHAT WORKS. The gate reproduces the anchoring result decisively. In the
-configuration that holds a bump, opening it gives a lap-to-lap rate-map
-correlation of +0.943 and a mean |mismatch| of 2.2 deg; shutting it gives
--0.042 and 90.1 deg, which is the value for a phase drawn uniformly. That is
-the hardest measured result -- a phase re-drawn each lap rather than a map
-displaced to a consistent offset -- and it falls out of path integration
-through a teleport with no correction, needing nothing else.
+  anchoring      lap-to-lap rate-map correlation +0.993 with the gate open and
+                 -0.059 with it shut; mean |mismatch| 15 deg against 86 deg,
+                 86 being the value for a phase drawn uniformly. The phase is
+                 RE-DRAWN each lap rather than displaced to a consistent
+                 offset, which is what the drift test found and what no
+                 displaced-map account gives.
+  slow gamma     UP when the gate opens, +0.134 log10 at 42 Hz (data +0.105 z)
+  fast gamma     DOWN when the gate opens, -0.059 log10 at 86 Hz (data -0.108)
+  the spectrum   rotates rather than scales: a positive lobe in the slow band
+                 and a negative one in the fast band, crossing between them
+  NEW PREDICTION within the gate-shut state, fast-gamma amplitude scales with
+                 the instantaneous |mismatch|, r = +0.23, carried by the top
+                 three deciles. This is the sharp test for the recordings and
+                 the model generates it rather than assuming it.
 
-WHAT ALSO WORKS. Delayed inhibition gives each band a frequency fixed by a
-circuit constant: 7 ms of delay gives 42 Hz and 2-3 ms gives 86-90 Hz,
-measured. Over a threefold change in drive the fast loop's amplitude moves by
-a factor of three while its frequency moves by 1 Hz. That is the property the
-account needs -- amplitude tracks drive, frequency does not -- and it is a
-property of the circuit rather than an assumption about the state. It is also
-what would produce a state difference that crosses zero at the same frequency
-in every session.
+NOT REPRODUCED:
 
-WHAT DOES NOT WORK YET, and why. The attractor does not survive with the gate
-shut inside the full model: the bump's population-vector length falls to about
-0.04, so the gate-shut condition is a dead network rather than an uncorrected
-one. In isolation -- no theta, no error population -- the same attractor
-parameters hold a bump for 40 s with a population vector of 0.4 to 0.6. Adding
-the rhythm destroys it, whether theta enters as an additive current or as a
-multiplicative gain.
+  theta-fast coupling   the model has it RISE when the gate opens (+26%); the
+                        recordings have it fall 15.9%. Making theta gate the
+                        error transmission rather than drive the error
+                        population independently moved this from +105% to
+                        +26% and cost half the slow-gamma effect, so it is the
+                        right direction of fix and not enough of one. What is
+                        missing is a reason for the RESIDUAL fast gamma in the
+                        anchored state to be less theta-locked, not merely
+                        smaller.
+  one crossover frequency  the measured difference crosses zero once, at 67 Hz
+                        in 25 of 26 sessions. Here it crosses many times
+                        because the spectra come from one 160 s run; averaging
+                        over seeds would test whether a single crossover
+                        emerges, and has not been done.
+  theta-speed decoupling   the model shows essentially none (slope 0.049
+                        against 0.048). The network contributes almost nothing
+                        to the 6-10 Hz band -- theta is an imposed septal drive
+                        -- so there is no mechanism here for its speed gain to
+                        change with state. This is an architectural gap, not a
+                        parameter.
 
-The diagnosis is architectural, not a matter of tuning. Inhibition broad and
-strong enough to generate PING is also broad and strong enough to flatten the
-Mexican hat that holds the bump. A single inhibitory population cannot do both
-jobs. The attractor needs two: structured, undelayed inhibition to hold the
-bump, and a separate delayed pool to make the rhythm -- which is what the
-biology suggests anyway, since these are different interneuron classes.
+  Spike-field PPC and preferred phase cannot be scored here: the surrogate
+  spikes are drawn from the population sum, which carries no gamma structure,
+  so PPC is zero in both states and the phase estimates are meaningless. The
+  model therefore says nothing yet about the invariances in Figures S10 and
+  S11, which are among the strongest constraints on the account.
 
-CONSEQUENCE. The fast band does come out larger with the gate shut (sd 14.8
-against 11.8), which is the direction the account predicts, and the direction
-the recordings show. IT CANNOT BE CLAIMED from this simulation, because in
-that configuration the gate-shut attractor had already lost its bump, so the
-comparison may be bump against no bump rather than corrected against
-uncorrected. The slow band has no generator at all yet: the attractor here has
-undelayed inhibition and so does not oscillate.
-
-TO FINISH IT: give the attractor two inhibitory populations as above, confirm
-the bump survives with the gate shut for a whole session, then re-run. Only
-then are the gamma numbers worth reading.
+SO IT IS NOT READY TO REPLACE FIGURE 8. It earns the two power results, the
+anchoring and a testable prediction; it fails the coupling result, which is a
+Figure 7 headline, and is silent on the spike-timing invariances.
 
 Writes can_gate_model.pdf and prints every measured quantity.
 """
@@ -100,30 +120,21 @@ plt.rcParams['pdf.fonttype'] = 42
 FIG = os.path.dirname(os.path.abspath(__file__))
 OUT = f'{FIG}/can_gate_model.pdf'
 
-# ---- parameters -------------------------------------------------------------
-# The two gamma bands are produced by DELAYED INHIBITION, not by the membrane
-# time constants: a negative feedback loop with delay d oscillates near
-# 1/(2d + ...), so each band's frequency is set by a fixed circuit constant and
-# cannot drift with drive. Measured in isolation, 7 ms gives 42 Hz and 2 ms
-# gives 86 Hz, and the fast loop's AMPLITUDE tracks its drive over a 3-fold
-# range while its frequency moves by 1 Hz. That is the property the account
-# needs and it is a property of the circuit, not an assumption about the state.
-DT = 0.0005                 # s; 2 kHz
+DT = 0.0005                  # s, 2 kHz
 N = 128
 TRACK, LAM = 200.0, 55.0
-NLAP = 24
-TAU_E, TAU_I = 0.005, 0.009   # attractor: no delay, a stable bump
-TAU_F = 0.002                 # error population, fast
-D_SLOW, D_FAST = 0.007, 0.003      # inhibitory delays -> 42 Hz and 86 Hz
-DELAY_LAND = 0.012          # landmark pathway conduction delay
-F_THETA = 8.0
-G_OPEN = 9.0                # correction gain when the gate is open
-TAU_PRED = 0.008            # the prediction copy is rate-coded, not spiking
-NOISE = 0.05
-DRIVE_E = 0.10              # the bump is self-sustaining at this drive;
-#                             with the gate shut it path-integrates for the
-#                             whole session instead of dissolving
-RMAX = 2.0
+NLAP = 20
+TAU_E, TAU_S = 0.005, 0.060  # membrane; slow recurrent synapse holding the bump
+TAU_EF = 0.002               # error population: a faster membrane
+TAU_G = 0.002                # inhibitory pools
+D_SLOW, D_FAST = 0.007, 0.0035       # -> 42 Hz and 86 Hz
+A_EE, A_G, DRIVE = 4.0, 2.0, 0.50    # attractor: bump PV 0.66, stable
+F_EE, F_G, F_DR = 3.0, 6.0, 0.0      # error ring
+DELAY_LAND = 0.012
+F_THETA, THETA_DEPTH = 8.0, 0.35
+TAU_PRED = 0.008
+G_OPEN = 4.5
+NOISE, RMAX = 0.05, 2.0
 
 th = np.arange(N) * 2 * np.pi / N
 KF = np.fft.fftfreq(N) * N
@@ -135,12 +146,8 @@ def ring(k, amp):
     return amp * W / W.sum(1, keepdims=True)
 
 
-W_EE = ring(2.2, 3.00)
-W_EI = ring(0.9, 2.60)      # attractor inhibition, structured, NOT delayed
-W_IE = ring(1.6, 1.70)
-W_FE = ring(0.9, 4.00)      # error population, delayed by D_FAST
-W_EF = ring(1.6, 3.00)
-fsat = lambda x: np.maximum(x, 0.0)
+W_EE, W_FF = ring(2.2, A_EE), ring(2.2, F_EE)
+relu = lambda x: np.maximum(x, 0.0)
 
 
 def bump(phase, k=2.2):
@@ -148,21 +155,21 @@ def bump(phase, k=2.2):
     return b / b.max()
 
 
+def shift(v, s):
+    return relu(np.real(np.fft.ifft(np.fft.fft(v) * np.exp(-2j * np.pi * KF * s / N))))
+
+
 def run(gate, seed=0):
-    """One session at a fixed correction gain. Returns the recorded traces."""
     rng = np.random.default_rng(seed)
     nstep = int(NLAP * TRACK / 30.0 / DT)
     x, lap = 0.0, 0
-    r_E = bump(0.0) * 0.6
-    r_I = np.zeros(N)
-    r_F = np.zeros(N)
-    r_FI = np.zeros(N)
-    bufF = [np.zeros(N) for _ in range(int(D_FAST / DT))]
-    pred = np.zeros(N)
-    land_buf = [0.0] * max(1, int(DELAY_LAND / DT))
-    rec = dict(t=[], x=[], lap=[], spd=[], phi=[], mism=[],
-               lfp_s=[], lfp_f=[], lfp_th=[], rE=[])
-    keep_every = 4
+    s = bump(0.0); r_E = s.copy(); g_s = 0.0
+    r_F = np.zeros(N); g_f = 0.0; pred = np.zeros(N)
+    buf_s = [0.0] * int(D_SLOW / DT)
+    buf_f = [0.0] * int(D_FAST / DT)
+    land = [0.0] * max(1, int(DELAY_LAND / DT))
+    rec = {k: [] for k in ('t', 'x', 'lap', 'spd', 'phi', 'mism',
+                           'lfp_s', 'lfp_f', 'lfp_th', 'rE')}
     for i in range(nstep):
         t = i * DT
         spd = 30.0 + 9.0 * np.sin(2 * np.pi * x / TRACK) \
@@ -170,68 +177,57 @@ def run(gate, seed=0):
             + 2.5 * rng.standard_normal()
         spd = max(spd, 3.0)
         x += spd * DT
-        if x >= TRACK:                  # position resets; the bump does not
-            x -= TRACK
-            lap += 1
-        phi_land = 2 * np.pi * (x % LAM) / LAM
-        land_buf.append(phi_land)
-        phi_delayed = land_buf.pop(0)
+        if x >= TRACK:                   # position resets; the bump does not
+            x -= TRACK; lap += 1
+        land.append(2 * np.pi * (x % LAM) / LAM)
+        phi_land = land.pop(0)
 
-        a_theta = 0.30 + 0.011 * spd    # septal theta, scaling with speed
-        theta = a_theta * np.cos(2 * np.pi * F_THETA * t)
+        # septal theta, multiplicative on the recurrent drive and scaling with
+        # speed; added as a current its trough rectifies the bump away
+        a_th = THETA_DEPTH * (0.55 + 0.015 * spd)
+        th_t = a_th * np.cos(2 * np.pi * F_THETA * t)
 
-        # the prediction the error population subtracts is a RATE copy of the
-        # attractor, low-passed: without this the attractor's own rhythm is
-        # injected straight into the fast loop and entrains it
-        pred = pred + DT / TAU_PRED * (-pred + r_E)
+        pred = pred + DT / TAU_PRED * (-pred + s)
+        # theta GATES the transmission of the error rather than driving the
+        # error population on its own. Added as an independent current it is
+        # still there when the error is zero, so the residual fast gamma in the
+        # anchored state is the theta-locked part and theta-fast coupling goes
+        # UP when the gate opens -- the opposite of what is measured.
+        I_F = ((1.0 + 1.6 * th_t) * (1.6 * bump(phi_land) - 1.1 * pred)
+               - F_G * buf_f[0] + F_DR)
+        r_F = r_F + DT / TAU_EF * (-r_F + np.clip(I_F, 0, RMAX))
+        g_f = g_f + DT / TAU_G * (-g_f + relu((r_F ** 2).mean()))
+        buf_f.append(g_f); buf_f.pop(0)
 
-        # error population: landmark bump minus prediction, fast delayed
-        # inhibition. Silent when the attractor already sits where the
-        # landmark says, whatever the state of the gate.
-        I_F = (1.55 * bump(phi_delayed) - 1.05 * pred + 0.55 * theta
-               - W_FE @ bufF[0])
-        r_F = r_F + DT / TAU_F * (-r_F + fsat(I_F))
-        r_FI = r_FI + DT / TAU_F * (-r_FI + fsat(W_EF @ r_F))
-        bufF.append(r_FI.copy()); bufF.pop(0)
+        corr = r_F - r_F.mean()          # zero-mean: moves the bump, adds no drive
+        I_E = ((1.0 + th_t) * (W_EE @ s) - A_G * buf_s[0] + DRIVE
+               + gate * corr + NOISE * rng.standard_normal(N))
+        r_E = r_E + DT / TAU_E * (-r_E + np.clip(I_E, 0, RMAX))
+        s = s + DT / TAU_S * (-s + r_E)
+        g_s = g_s + DT / TAU_G * (-g_s + relu((r_E ** 2).mean()))
+        buf_s.append(g_s); buf_s.pop(0)
 
-        # the correction is zero-mean across the ring: it moves the bump, it
-        # does not add drive, so opening the gate cannot raise rates by itself
-        corr = r_F - r_F.mean()
+        sh = spd * DT / LAM * N
+        s = shift(s, sh); r_E = shift(r_E, sh)
 
-        # theta as a multiplicative gain on the recurrent drive, not an
-        # additive current: added, its trough rectifies the bump away within
-        # a cycle and the gate-shut attractor cannot survive its own rhythm
-        I_E = ((1.0 + 0.45 * np.cos(2 * np.pi * F_THETA * t))
-               * (W_EE @ r_E) - W_EI @ r_I + DRIVE_E + gate * corr
-               + NOISE * rng.standard_normal(N))
-        r_E = r_E + DT / TAU_E * (-r_E + fsat(I_E))
-        # path integration as an exact translation of the profile; a
-        # finite-difference advection diffuses the bump away within a lap and
-        # the gate-shut condition then has no attractor left to be wrong about
-        shift = spd * DT / LAM * N
-        r_E = np.maximum(np.real(np.fft.ifft(
-            np.fft.fft(r_E) * np.exp(-2j * np.pi * KF * shift / N))), 0.0)
-        r_I = r_I + DT / TAU_I * (-r_I + fsat(W_IE @ r_E))
-
-        rec['lfp_s'].append(float(r_I.sum()))
-        rec['lfp_f'].append(float(r_FI.sum()))
-        rec['lfp_th'].append(float(theta))
-        if i % keep_every == 0:
-            z = (r_E * np.exp(1j * th)).sum()
-            phi = np.angle(z) % (2 * np.pi)
+        rec['lfp_s'].append(g_s); rec['lfp_f'].append(g_f); rec['lfp_th'].append(th_t)
+        if i % 4 == 0:
+            phi = np.angle((s * np.exp(1j * th)).sum()) % (2 * np.pi)
             rec['t'].append(t); rec['x'].append(x); rec['lap'].append(lap)
             rec['spd'].append(spd); rec['phi'].append(phi)
             rec['mism'].append(abs(np.angle(np.exp(1j * (phi_land - phi)))))
-            rec['rE'].append(r_E.copy())
+            rec['rE'].append(s.copy())
     return {k: np.asarray(v) for k, v in rec.items()}
 
 
-def lfp_of(rec):
-    """One field potential: the two inhibitory currents plus the theta drive."""
-    s = rec['lfp_s'] - rec['lfp_s'].mean()
-    f = rec['lfp_f'] - rec['lfp_f'].mean()
-    th_ = rec['lfp_th'] - rec['lfp_th'].mean()
-    return 1.0 * s + 1.0 * f + 14.0 * th_
+ANCH_C, NON_C = '#a8559e', '#3f9b8f'
+SLOW_C, FAST_C, THETA_C = '#2f7d32', '#e8701a', '#7b4173'
+
+
+def lfp_of(r, w_th=9.0):
+    """One field potential: the two inhibitory pools plus the theta drive."""
+    z = lambda v: v - v.mean()
+    return z(r['lfp_s']) + z(r['lfp_f']) + w_th * z(r['lfp_th'])
 
 
 def band(x, lo, hi, fs=1 / DT, order=3):
@@ -247,121 +243,186 @@ def tort_mi(phase, amp, nb=18):
     return float((np.log(nb) + (p * np.log(p + 1e-12)).sum()) / np.log(nb))
 
 
-def ppc(phases):
-    """Pairwise phase consistency: unbiased by spike count, as in Figure S11."""
-    n = len(phases)
-    if n < 20:
+def ppc(ph):
+    n = len(ph)
+    if n < 50:
         return np.nan
-    z = np.exp(1j * phases)
+    z = np.exp(1j * ph)
     return float((np.abs(z.sum()) ** 2 - n) / (n * (n - 1)))
 
 
-def analyse(rec, seed=0):
-    """Everything the recordings are scored on, scored the same way."""
-    fs = 1 / DT
-    lfp = lfp_of(rec)
-    out = {}
+def ratemap(r, unit, nb=40):
+    L = int(r['lap'].max())
+    M = np.full((L, nb), np.nan)
+    b = ((r['x'] % LAM) / LAM * nb).astype(int) % nb
+    for lp in range(L):
+        m = r['lap'] == lp
+        for k in range(nb):
+            v = r['rE'][m][b[m] == k, unit]
+            if len(v):
+                M[lp, k] = v.mean()
+    return M
+
+
+def analyse(r, seed=0):
+    fs, out = 1 / DT, {}
+    lfp = lfp_of(r)
     f, P = welch(lfp, fs=fs, nperseg=4096)
     out['f'], out['P'] = f, P
     for nm, lo, hi in (('theta', 6, 10), ('slow', 30, 48), ('fast', 60, 100)):
-        m = (f >= lo) & (f < hi)
-        out[nm] = float(np.log10(P[m]).mean())
+        out[nm] = float(np.log10(P[(f >= lo) & (f < hi)]).mean())
     ph_t = np.angle(hilbert(band(lfp, 5, 11)))
-    for nm, lo, hi in (('slow', 30, 48), ('fast', 60, 100)):
-        amp = np.abs(hilbert(band(lfp, lo, hi)))
-        out[f'mi_{nm}'] = tort_mi(ph_t, amp)
-        # spike-field: Poisson spikes from the attractor, phase of each band
-        rng = np.random.default_rng(seed)
-        step = int(round(fs / 500))
-        rE = rec['rE'] if 'rE' in rec else None
-        ph_g = np.angle(hilbert(band(lfp, lo, hi)))[::step][:len(rec['phi'])]
-        rate = rec['_pop']
-        k = rng.random(len(rate)) < np.clip(rate / rate.max() * .35, 0, 1)
-        out[f'ppc_{nm}'] = ppc(ph_g[k])
-        out[f'pref_{nm}'] = float(np.degrees(np.angle(
-            np.mean(np.exp(1j * np.angle(hilbert(band(lfp, 5, 11)))[::step]
-                           [:len(rec['phi'])][k])))) % 360)
-        out[f'amp_{nm}'] = amp
-    # theta amplitude against running speed, per lap
-    a_t = np.abs(hilbert(band(lfp, 5, 11)))
+    rng = np.random.default_rng(seed)
     step = int(round(fs / 500))
-    a_ds = a_t[::step][:len(rec['spd'])]
-    sl = np.polyfit(rec['spd'], a_ds, 1)
-    out['theta_speed_slope'] = float(sl[0])
+    pop = r['rE'].sum(1)
+    spk = rng.random(len(pop)) < np.clip(pop / pop.max() * .4, 0, 1)
+    for nm, lo, hi in (('slow', 30, 48), ('fast', 60, 100)):
+        a = np.abs(hilbert(band(lfp, lo, hi)))
+        out[f'mi_{nm}'] = tort_mi(ph_t, a)
+        out[f'amp_{nm}'] = a
+        pg = np.angle(hilbert(band(lfp, lo, hi)))[::step][:len(pop)]
+        out[f'ppc_{nm}'] = ppc(pg[spk])
+        out[f'pref_{nm}'] = float(np.degrees(np.angle(
+            np.mean(np.exp(1j * ph_t[::step][:len(pop)][spk])))) % 360)
+        # where in theta each band peaks: phase of theta at that band's maxima
+        env = a[::step][:len(pop)]
+        pk = env > np.quantile(env, .9)
+        out[f'thphase_{nm}'] = float(np.degrees(np.angle(
+            np.mean(np.exp(1j * ph_t[::step][:len(pop)][pk])))) % 360)
+    at = np.abs(hilbert(band(lfp, 5, 11)))[::step][:len(r['spd'])]
+    out['theta_speed'] = float(np.polyfit(r['spd'], at, 1)[0])
     return out
 
 
 if __name__ == '__main__':
-    print('simulating ...', flush=True)
+    print('simulating two states ...', flush=True)
     S = {True: run(G_OPEN, 0), False: run(0.0, 0)}
-    for k, r in S.items():
-        r['_pop'] = r['rE'].sum(1)
-    A = {k: analyse(r) for k, r in S.items()}
+    A = {k: analyse(v) for k, v in S.items()}
+    o, s_ = A[True], A[False]
 
-    print('\n--- does the field recur? -----------------------------------')
+    print('\n=== 1. does the field recur? ================================')
     for anch in (True, False):
-        r = S[anch]
-        # trial x phase map for one unit, correlated between laps
-        nb, L = 40, int(r['lap'].max())
-        M = np.zeros((L, nb))
-        pos_phase = (r['x'] % LAM) / LAM * nb
-        u = N // 4
-        for lp in range(L):
-            m = r['lap'] == lp
-            idx = pos_phase[m].astype(int) % nb
-            for b in range(nb):
-                v = r['rE'][m][idx == b, u]
-                M[lp, b] = v.mean() if len(v) else np.nan
+        M = ratemap(S[anch], N // 4)
         C = np.corrcoef(np.nan_to_num(M))
-        iu = np.triu_indices(L, 1)
-        print(f'  gate {"OPEN " if anch else "SHUT "}: lap-to-lap map '
-              f'correlation {C[iu].mean():+.3f}   mean |mismatch| '
-              f'{np.degrees(r["mism"]).mean():5.1f} deg')
+        iu = np.triu_indices(len(M), 1)
+        pv = np.mean(np.abs((S[anch]['rE'] * np.exp(1j * th)).sum(1))
+                     / np.maximum(S[anch]['rE'].sum(1), 1e-9))
+        print(f'  gate {"OPEN " if anch else "SHUT "}: lap-to-lap map r '
+              f'{C[iu].mean():+.3f}   |mismatch| '
+              f'{np.degrees(S[anch]["mism"]).mean():5.1f} deg   bump {pv:.3f}')
         S[anch]['_map'] = M
 
-    print('\n--- the field potential -------------------------------------')
+    print('\n=== 2. the field potential ==================================')
     for nm in ('theta', 'slow', 'fast'):
-        d = A[True][nm] - A[False][nm]
-        print(f'  {nm:<6} log10 power  open {A[True][nm]:+.3f}  '
-              f'shut {A[False][nm]:+.3f}   open - shut {d:+.3f}')
-    f = A[True]['f']
-    d = np.log10(A[True]['P']) - np.log10(A[False]['P'])
+        print(f'  {nm:<6} log10 power  open {o[nm]:+.3f}  shut {s_[nm]:+.3f}  '
+              f'open - shut {o[nm] - s_[nm]:+.3f}')
+    f = o['f']
+    d = np.log10(o['P']) - np.log10(s_['P'])
     m = (f >= 20) & (f <= 120)
     sgn = np.sign(d[m])
-    cross = f[m][np.where(np.diff(sgn) != 0)[0]]
-    print(f'  difference crosses zero at '
-          + (', '.join(f'{c:.0f} Hz' for c in cross) if len(cross) else 'nowhere')
-          + ' between 20 and 120 Hz')
+    cr = f[m][np.where(np.diff(sgn) != 0)[0]]
+    print('  difference crosses zero at ' +
+          (', '.join(f'{c:.0f}' for c in cr) + ' Hz' if len(cr) else 'nowhere')
+          + ' (20-120 Hz)')
 
-    print('\n--- theta-gamma coupling, and spike timing ------------------')
+    print('\n=== 3. coupling and spike timing ============================')
     for nm in ('slow', 'fast'):
-        o, sh = A[True][f'mi_{nm}'], A[False][f'mi_{nm}']
-        print(f'  theta-{nm:<5} MI  open {o:.5f}  shut {sh:.5f}  '
-              f'change {100 * (o - sh) / sh:+.1f}%')
+        print(f'  theta-{nm:<5} MI  open {o[f"mi_{nm}"]:.5f}  '
+              f'shut {s_[f"mi_{nm}"]:.5f}  '
+              f'{100 * (o[f"mi_{nm}"] - s_[f"mi_{nm}"]) / s_[f"mi_{nm}"]:+.1f}%')
     for nm in ('slow', 'fast'):
-        print(f'  {nm:<5} PPC open {A[True][f"ppc_{nm}"]:.4f} '
-              f'shut {A[False][f"ppc_{nm}"]:.4f}   preferred theta phase '
-              f'open {A[True][f"pref_{nm}"]:.0f} deg, '
-              f'shut {A[False][f"pref_{nm}"]:.0f} deg')
+        print(f'  {nm:<5} PPC open {o[f"ppc_{nm}"]:.4f} shut {s_[f"ppc_{nm}"]:.4f}'
+              f'   theta phase of band peak: open {o[f"thphase_{nm}"]:.0f}, '
+              f'shut {s_[f"thphase_{nm}"]:.0f} deg')
 
-    print('\n--- theta against running speed -----------------------------')
-    print(f'  slope  open {A[True]["theta_speed_slope"]:.4f}   '
-          f'shut {A[False]["theta_speed_slope"]:.4f}')
+    print('\n=== 4. theta against running speed ==========================')
+    print(f'  slope  open {o["theta_speed"]:.4f}   shut {s_["theta_speed"]:.4f}')
 
-    print('\n--- the prediction: fast gamma against mismatch -------------')
+    print('\n=== 5. the prediction: fast gamma against mismatch ==========')
     r = S[False]
     step = int(round((1 / DT) / 500))
-    af = A[False]['amp_fast'][::step][:len(r['mism'])]
-    nb = 10
-    q = np.quantile(r['mism'], np.linspace(0, 1, nb + 1))
-    mu = [af[(r['mism'] >= q[i]) & (r['mism'] < q[i + 1])].mean() for i in range(nb)]
-    rho = np.corrcoef(r['mism'], af)[0, 1]
+    af = s_['amp_fast'][::step][:len(r['mism'])]
+    rho = float(np.corrcoef(r['mism'], af)[0, 1])
+    q = np.quantile(r['mism'], np.linspace(0, 1, 11))
+    dec = [af[(r['mism'] >= q[i]) & (r['mism'] < q[i + 1])].mean() for i in range(10)]
     print(f'  within the SHUT state, r(|mismatch|, fast-gamma amplitude) '
           f'= {rho:+.3f}')
-    print('  by decile of mismatch: ' + ' '.join(f'{v:.2f}' for v in mu))
-    np.savez_compressed(f'{FIG}/can_gate_model.npz',
-                        f=f, d=d, P_open=A[True]['P'], P_shut=A[False]['P'],
+    print('  by decile: ' + ' '.join(f'{v:.3f}' for v in dec))
+    np.savez_compressed(f'{FIG}/can_gate_model.npz', f=f, d=d,
+                        P_open=o['P'], P_shut=s_['P'],
                         map_open=S[True]['_map'], map_shut=S[False]['_map'],
-                        mism_shut=r['mism'], ampfast_shut=af,
-                        spd_open=S[True]['spd'], spd_shut=S[False]['spd'])
+                        mism=r['mism'], ampfast=af, dec=np.array(dec))
     print('\nwrote can_gate_model.npz')
+    draw()
+
+
+def draw():
+    """The figure, from the cached run."""
+    z = np.load(f'{FIG}/can_gate_model.npz')
+    fig = plt.figure(figsize=(8.6, 4.5))
+    gs = fig.add_gridspec(2, 3, hspace=.62, wspace=.38, left=.07, right=.98,
+                          top=.90, bottom=.11)
+
+    for j, (key, nm, col) in enumerate(((('map_open'), 'gate OPEN', ANCH_C),
+                                        (('map_shut'), 'gate SHUT', NON_C))):
+        ax = fig.add_subplot(gs[j, 0])
+        M = z[key]
+        ax.imshow(M / np.nanmax(M), aspect='auto', cmap='viridis',
+                  interpolation='nearest', origin='upper')
+        ax.set_xticks([0, M.shape[1] - 1]); ax.set_xticklabels(['0', 'grid period'],
+                                                              fontsize=6)
+        ax.set_ylabel('lap', fontsize=7.5)
+        ax.set_title(nm, fontsize=8, color=col, loc='left')
+        ax.tick_params(labelsize=6.5)
+        if j == 0:
+            ax.text(-.30, 1.12, 'A', transform=ax.transAxes, fontsize=10,
+                    weight='bold', va='bottom')
+
+    ax = fig.add_subplot(gs[0, 1])
+    ax.semilogy(z['f'], z['P_open'], color=ANCH_C, lw=1.1, label='open')
+    ax.semilogy(z['f'], z['P_shut'], color=NON_C, lw=1.1, label='shut')
+    ax.set_xlim(2, 120); ax.set_xlabel('frequency (Hz)', fontsize=7.5)
+    ax.set_ylabel('power', fontsize=7.5)
+    ax.legend(fontsize=6, frameon=False)
+    ax.set_title('the two states as spectra', fontsize=8, loc='left')
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+    ax.text(-.26, 1.12, 'B', transform=ax.transAxes, fontsize=10, weight='bold',
+            va='bottom')
+
+    ax = fig.add_subplot(gs[1, 1])
+    ax.axhline(0, color='0.6', lw=.8, ls=':')
+    ax.axvspan(30, 48, color='#2f7d32', alpha=.10, lw=0)
+    ax.axvspan(60, 100, color='#e8701a', alpha=.10, lw=0)
+    ax.plot(z['f'], z['d'], color='0.25', lw=.9)
+    ax.set_xlim(2, 120); ax.set_ylim(-.6, .6)
+    ax.set_xlabel('frequency (Hz)', fontsize=7.5)
+    ax.set_ylabel('open $-$ shut (log10)', fontsize=7.5)
+    ax.set_title('slow band up, fast band down', fontsize=8, loc='left')
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+    ax.text(-.26, 1.12, 'C', transform=ax.transAxes, fontsize=10, weight='bold',
+            va='bottom')
+
+    ax = fig.add_subplot(gs[0, 2])
+    f, d = z['f'], z['d']
+    vals = [d[(f >= lo) & (f < hi)].mean() for lo, hi in ((6, 10), (30, 48), (60, 100))]
+    ax.bar(range(3), vals, .62, color=[THETA_C, SLOW_C, FAST_C], lw=0)
+    ax.axhline(0, color='0.3', lw=.9)
+    ax.set_xticks(range(3)); ax.set_xticklabels(['theta', 'slow \u03b3', 'fast \u03b3'],
+                                                fontsize=7)
+    ax.set_ylabel('open $-$ shut (log10)', fontsize=7.5)
+    ax.set_title('the model, by band', fontsize=8, loc='left')
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+    ax.text(-.30, 1.12, 'D', transform=ax.transAxes, fontsize=10, weight='bold',
+            va='bottom')
+
+    ax = fig.add_subplot(gs[1, 2])
+    ax.plot(range(1, 11), z['dec'], color=FAST_C, marker='o', ms=3, lw=1.2)
+    ax.set_xlabel('decile of |mismatch|, gate shut', fontsize=7.5)
+    ax.set_ylabel('fast-\u03b3 amplitude', fontsize=7.5)
+    ax.set_title('the prediction to test in the data', fontsize=8, loc='left')
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+    ax.text(-.30, 1.12, 'E', transform=ax.transAxes, fontsize=10, weight='bold',
+            va='bottom')
+
+    fig.savefig(OUT, dpi=300, bbox_inches='tight')
+    print(f'wrote {OUT}')
