@@ -457,6 +457,37 @@ SUPPLEMENTS = [
      'none of which changes either. (F) The power of the comparison: it resolves a 17% change in '
      'slope and an 18% change in gain at 80% power, so a halving of speed drive of the size seen '
      'in the field potential is excluded in the cells that carry it.'),
+    ('Figure S13', 'fig8_supp_can_model.pdf',
+     'A continuous attractor with a gated landmark correction, simulated, '
+     'related to Figure 8',
+     'The mechanism Figure 8 proposes, built as a circuit to see what it produces rather than '
+     'to illustrate what it claims. (A) The architecture. A landmark phase drives an error ring '
+     'with fast inhibition, which compares it against a subtractive copy of the attractor; the '
+     'gate scales only that error\'s drive onto the attractor ring, which has slow inhibition. '
+     'The landmark input arrives in both states, so the gate controls whether the error is acted '
+     'on and not whether it is transmitted. (B, C) One simulated grid cell over 20 laps, gate '
+     'open and shut. Open, fields recur, lap-to-lap correlation +0.997; shut, the phase is drawn '
+     'afresh each lap, -0.059, and the mean mismatch reaches 86 degrees, the value for a '
+     'uniformly drawn phase. The bump is equally well formed in both states, so the shut '
+     'condition is a path-integrating attractor rather than a dead network. (D) The simulated '
+     'field potential in the two states. Each band\'s frequency is set by an inhibitory delay, '
+     '7 ms giving 42 Hz and 3.5 ms giving 86 Hz, so amplitude can change with the state while '
+     'frequency cannot. (E) The difference across frequency: slow gamma rises (+0.228 log10) and '
+     'fast gamma falls (-0.295), so the spectrum rotates rather than scales. (F) What the model '
+     'reproduces and what it does not. It gets the anchoring, both band changes, the fall in '
+     'theta-fast coupling (-58.6% against a measured -15.9%) and the prediction in G and H. It '
+     'does not get theta-slow coupling, which rises 105% where the recordings have it unchanged, '
+     'nor the halving of theta\'s speed gain, for which it has no mechanism; and the spike-field '
+     'invariances of Figures S10 and S11 cannot be scored at all, because the surrogate spikes '
+     'carry no gamma structure and the consistency measure is zero in both states. (G) The '
+     'prediction the model generates: within the gate-shut state, fast-gamma amplitude scales '
+     'with the instantaneous mismatch. (H) The same test in the recordings. A decoder trained on '
+     'anchored trials defines the task frame, and the partial correlation between its error and '
+     'gamma amplitude, with running speed and track position removed from both, is +0.032 across '
+     '41 sessions and 133,583 bins, positive in 35 of 41 (p = 1e-07) and absent in the slow band '
+     '(19 of 41, p = 0.58). The effect is small, about a tenth of one percent of the variance, '
+     'and sessions with a larger mean mismatch do not show a stronger relationship, so this '
+     'confirms the direction and the band specificity rather than establishing a large effect.'),
 ]
 
 REFS_FULL = [
