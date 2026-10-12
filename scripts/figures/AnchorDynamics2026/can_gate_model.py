@@ -47,61 +47,58 @@ generator is driven by MISMATCH, not by whether landmarks are present. That is
 why opening the gate, the state in which landmarks are used, should LOWER fast
 gamma. The landmark input itself arrives in both states.
 
-RESULTS, 2026-10-12. Four of the measured results come out, including the
-hardest one and a new prediction; three do not. Read both lists before using
-this for anything.
+RESULTS. Five of the measured results come out, three do not, and one of the
+five is a prediction the model made first and the recordings then confirmed.
+Read both lists before using this for anything.
 
-REPRODUCED, with a healthy bump in BOTH states (population vector 0.68 either
-way, so the gate-shut condition is a path-integrating attractor and not a dead
-network):
+REPRODUCED, with a healthy bump in BOTH states (population vector 0.70 and
+0.68, so the gate-shut condition is a path-integrating attractor and not a
+dead network):
 
-  anchoring      lap-to-lap rate-map correlation +0.993 with the gate open and
-                 -0.059 with it shut; mean |mismatch| 15 deg against 86 deg,
-                 86 being the value for a phase drawn uniformly. The phase is
-                 RE-DRAWN each lap rather than displaced to a consistent
-                 offset, which is what the drift test found and what no
+  anchoring      lap-to-lap rate-map correlation +0.99 with the gate open
+                 against -0.06 with it shut; mean |mismatch| 10 deg against
+                 86, where 86 is the value for a phase drawn uniformly. The
+                 phase is RE-DRAWN each lap rather than displaced to a
+                 consistent offset -- what the drift test found, and what no
                  displaced-map account gives.
-  slow gamma     UP when the gate opens, +0.134 log10 at 42 Hz (data +0.105 z)
-  fast gamma     DOWN when the gate opens, -0.059 log10 at 86 Hz (data -0.108)
-  the spectrum   rotates rather than scales: a positive lobe in the slow band
-                 and a negative one in the fast band, crossing between them
-  NEW PREDICTION within the gate-shut state, fast-gamma amplitude scales with
-                 the instantaneous |mismatch|, r = +0.23, carried by the top
-                 three deciles. This is the sharp test for the recordings and
-                 the model generates it rather than assuming it.
+  slow gamma     UP when the gate opens, +0.228 log10 at 42 Hz (data +0.105 z)
+  fast gamma     DOWN when the gate opens, -0.295 log10 at 86 Hz (data -0.108)
+  theta-fast     coupling FALLS when the gate opens, -58.6% (data -15.9%).
+                 Right sign, roughly four times too large.
+  THE PREDICTION within the gate-shut state, fast-gamma amplitude scales with
+                 the instantaneous |mismatch|. Tested in the recordings by
+                 gamma_vs_decode_error.py: partial r = +0.032 over 41 sessions
+                 and 133,583 bins, positive in 35 of 41, p = 1.4e-07, and
+                 ABSENT in the slow band (19 of 41, p = 0.58). The model
+                 generated this before it was looked for.
 
 NOT REPRODUCED:
 
-  theta-fast coupling   the model has it RISE when the gate opens (+26%); the
-                        recordings have it fall 15.9%. Making theta gate the
-                        error transmission rather than drive the error
-                        population independently moved this from +105% to
-                        +26% and cost half the slow-gamma effect, so it is the
-                        right direction of fix and not enough of one. What is
-                        missing is a reason for the RESIDUAL fast gamma in the
-                        anchored state to be less theta-locked, not merely
-                        smaller.
-  one crossover frequency  the measured difference crosses zero once, at 67 Hz
-                        in 25 of 26 sessions. Here it crosses many times
-                        because the spectra come from one 160 s run; averaging
-                        over seeds would test whether a single crossover
-                        emerges, and has not been done.
-  theta-speed decoupling   the model shows essentially none (slope 0.049
-                        against 0.048). The network contributes almost nothing
-                        to the 6-10 Hz band -- theta is an imposed septal drive
-                        -- so there is no mechanism here for its speed gain to
-                        change with state. This is an architectural gap, not a
-                        parameter.
+  theta-slow coupling  the model has it rise 105% when the gate opens; the
+                       recordings have it unchanged (-7.9%, p = 0.71). It
+                       rises because the slow pool inherits its theta
+                       modulation through the bump, so a better-formed bump is
+                       more deeply modulated. Giving the pool its own septal
+                       theta, which is anatomically real, moves it only from
+                       +105% to +84% and was left out.
+  theta-speed decoupling  absent (slope 0.049 against 0.048). Theta here is an
+                       imposed septal drive the network barely contributes to,
+                       so nothing can change its speed gain. Architectural.
+  spike-field invariances  cannot be scored: the surrogate spikes are drawn
+                       from the population sum, which carries no gamma
+                       structure, so PPC is zero in both states. The model is
+                       therefore silent on Figures S10 and S11, which are
+                       among the strongest constraints on the account.
 
-  Spike-field PPC and preferred phase cannot be scored here: the surrogate
-  spikes are drawn from the population sum, which carries no gamma structure,
-  so PPC is zero in both states and the phase estimates are meaningless. The
-  model therefore says nothing yet about the invariances in Figures S10 and
-  S11, which are among the strongest constraints on the account.
+WHAT MADE THE DIFFERENCE, beyond the three architectural facts below: the fast
+band needs an ASYNCHRONOUS BACKGROUND that is not theta-gated. With the error
+signal theta-gated and nothing else in the band, the residual when the gate is
+open is pure theta-locked error and coupling goes UP. With a background, the
+error collapses and the background becomes the larger share of what is left,
+so coupling falls while the timing never moves.
 
-SO IT IS NOT READY TO REPLACE FIGURE 8. It earns the two power results, the
-anchoring and a testable prediction; it fails the coupling result, which is a
-Figure 7 headline, and is silent on the spike-timing invariances.
+NOT YET READY TO REPLACE FIGURE 8: theta-slow coupling goes the wrong way and
+the spike-timing invariances cannot be checked at all.
 
 Writes can_gate_model.pdf and prints every measured quantity.
 """
@@ -130,6 +127,14 @@ TAU_G = 0.002                # inhibitory pools
 D_SLOW, D_FAST = 0.007, 0.0035       # -> 42 Hz and 86 Hz
 A_EE, A_G, DRIVE = 4.0, 2.0, 0.50    # attractor: bump PV 0.66, stable
 F_EE, F_G, F_DR = 3.0, 6.0, 0.0      # error ring
+F_BG, F_NOISE = 0.25, 0.10   # asynchronous background on the error ring
+S_THETA = 0.0                # septal theta direct onto the slow pool.
+#                              Tried at 0.15, 0.35 and 0.60 to flatten
+#                              theta-slow coupling and it does not: the
+#                              change is +105% at 0 and +84% at 0.60,
+#                              still far from the measured null. Left at
+#                              zero rather than carried as a knob that
+#                              buys nothing.
 DELAY_LAND = 0.012
 F_THETA, THETA_DEPTH = 8.0, 0.35
 TAU_PRED = 0.008
@@ -193,8 +198,15 @@ def run(gate, seed=0):
         # still there when the error is zero, so the residual fast gamma in the
         # anchored state is the theta-locked part and theta-fast coupling goes
         # UP when the gate opens -- the opposite of what is measured.
+        # the error signal is theta-gated; the background is NOT. When the
+        # gate is open the error collapses and the background becomes the
+        # larger share of what is left in this band, so theta-fast coupling
+        # falls even though nothing about the timing has moved. Without a
+        # background the residual is pure theta-gated error and coupling goes
+        # UP when the gate opens -- the opposite of the recordings.
         I_F = ((1.0 + 1.6 * th_t) * (1.6 * bump(phi_land) - 1.1 * pred)
-               - F_G * buf_f[0] + F_DR)
+               - F_G * buf_f[0] + F_DR + F_BG
+               + F_NOISE * rng.standard_normal(N))
         r_F = r_F + DT / TAU_EF * (-r_F + np.clip(I_F, 0, RMAX))
         g_f = g_f + DT / TAU_G * (-g_f + relu((r_F ** 2).mean()))
         buf_f.append(g_f); buf_f.pop(0)
@@ -204,7 +216,13 @@ def run(gate, seed=0):
                + gate * corr + NOISE * rng.standard_normal(N))
         r_E = r_E + DT / TAU_E * (-r_E + np.clip(I_E, 0, RMAX))
         s = s + DT / TAU_S * (-s + r_E)
-        g_s = g_s + DT / TAU_G * (-g_s + relu((r_E ** 2).mean()))
+        # the medial septum projects onto interneurons directly, so the
+        # slow pool's theta modulation need not be inherited through the
+        # bump. Inherited, it scales with how well formed the bump is and
+        # theta-slow coupling rises when the gate opens; the recordings
+        # have it unchanged.
+        g_s = g_s + DT / TAU_G * (-g_s + relu((r_E ** 2).mean()
+                                              + S_THETA * th_t))
         buf_s.append(g_s); buf_s.pop(0)
 
         sh = spd * DT / LAM * N
@@ -353,7 +371,6 @@ if __name__ == '__main__':
                         map_open=S[True]['_map'], map_shut=S[False]['_map'],
                         mism=r['mism'], ampfast=af, dec=np.array(dec))
     print('\nwrote can_gate_model.npz')
-    draw()
 
 
 def draw():
@@ -426,3 +443,7 @@ def draw():
 
     fig.savefig(OUT, dpi=300, bbox_inches='tight')
     print(f'wrote {OUT}')
+
+
+if __name__ == '__main__':
+    draw()      # defined below main, so it is called once the module is whole
