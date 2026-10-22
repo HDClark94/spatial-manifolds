@@ -1,4 +1,4 @@
-"""Figure 5 — the anchoring state tracks attentional engagement.
+"""Figure 6 — the anchoring state tracks attentional engagement.
 
     A   camera and IR illumination schematic, the recording arrangement
     B   the pupillometry drawing, landmarks and radius definition

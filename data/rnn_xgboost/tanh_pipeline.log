@@ -1,0 +1,3 @@
+QUEUED 23:55 — waiting for tanh training + 710grid to finish...
+tanh training ended: min loss=6.238 (chance=6.238), min err=90.5 cm  02:26
+TANH NOT PROMISING (min loss 6.238 >= 6.10, ~chance) — SKIPPING xgboost 02:26

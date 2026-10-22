@@ -1,4 +1,4 @@
-"""Figure 7: what the entorhinal LFP does between anchoring states.
+"""Figure 8: what the entorhinal LFP does between anchoring states.
 
 Portrait, four rows: the example full width, then the six population panels two
 to a row. Reading order is A-D down, then E F / G H / I J.

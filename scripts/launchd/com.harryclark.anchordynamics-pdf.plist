@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.harryclark.anchordynamics-pdf</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/anaconda3/envs/sm/bin/python3</string>
+        <string>/Users/harryclark/Documents/spatial-manifolds/scripts/export_docs_pdf.py</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <!-- if the Mac was asleep at 07:00, run once it wakes -->
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/Users/harryclark/Documents/AnchorDynamics_PDFs/export.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/harryclark/Documents/AnchorDynamics_PDFs/export.log</string>
+</dict>
+</plist>

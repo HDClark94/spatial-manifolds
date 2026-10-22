@@ -84,9 +84,9 @@ for tt in ('b', 'nb'):
 out['n_trials'] = np.array([int(trials.number.max())], dtype=float)
 # ---- one pupil image per state, same mouse, same place on the track --------
 # Both frames come from M21 D19 -- the same mouse and the same session -- and
-# from the two trials Figure 5 uses as its anchored and non-anchored examples.
+# from the two trials Figure 6 uses as its anchored and non-anchored examples.
 # They are matched on track position: 20 cm, early on the track and clear of
-# the teleport at 0. Figure 5's own frame grid is [0, 30, 60, 90, 120, 150,
+# the teleport at 0. Figure 6's own frame grid is [0, 30, 60, 90, 120, 150,
 # 170], so 20 cm is grabbed fresh here rather than taken from the cache.
 import importlib.util                                          # noqa: E402
 _spec = importlib.util.spec_from_file_location(
@@ -144,10 +144,10 @@ if vid is not None:
 else:
     # The eye videos live on the lab volume, not on the microSD copy, so when
     # only the SD is mounted the nearest CACHED matched position is used.
-    # Figure 5 grabs its frames at [0, 30, 60, 90, 120, 150, 170] cm, so 30 cm
+    # Figure 6 grabs its frames at [0, 30, 60, 90, 120, 150, 170] cm, so 30 cm
     # is the nearest to the 20 cm wanted, and it is on the track proper rather
     # than at the teleport. Both frames are the same mouse, the same session
-    # and the same two trials Figure 5 uses, matched on position.
+    # and the same two trials Figure 6 uses, matched on position.
     SHOW_POS = [0, 30, 60, 90, 120, 150, 170]
     RADII = {'anch': [10.3, 11.1, 8.5, 7.8, 7.9, 7.8, 7.7],
              'non': [12.8, 12.0, 9.7, 9.5, 8.6, 8.8, 8.9]}

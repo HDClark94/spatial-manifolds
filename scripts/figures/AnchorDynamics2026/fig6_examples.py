@@ -1,4 +1,4 @@
-"""Candidate example sessions for Figure 5, side by side.
+"""Candidate example sessions for Figure 6, side by side.
 
 The population analysis makes four claims about the anchored state:
 

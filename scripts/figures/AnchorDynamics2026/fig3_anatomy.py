@@ -92,9 +92,9 @@ import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.colors import BoundaryNorm, ListedColormap
+from matplotlib.colors import TwoSlopeNorm, BoundaryNorm, ListedColormap
 from matplotlib.patches import Patch, Rectangle
-from scipy.stats import spearmanr, wilcoxon
+from scipy.stats import mannwhitneyu, spearmanr, wilcoxon
 from tifffile import imread
 
 plt.rcParams['font.family'] = 'Arial'
@@ -117,14 +117,40 @@ FIG = f'{ROOT}/scripts/figures/AnchorDynamics2026'
 PS = f'{ROOT}/data/population_state'
 RENDERS = f'{ROOT}/data/anatomy_renders'
 BG = '/Users/harryclark/.brainglobe/allen_mouse_10um_v1.2'
-DC_PATH = '/Users/harryclark/Downloads/device_contact_id_annotations.csv'
+DC_PATH = '/Users/harryclark/Documents/spatial-manifolds/data/device_contact_id_annotations.csv'  # build_device_contacts.py, from clark2025
 
-COL_HIPPO, COL_PREPARA = '#9C6A38', '#ABDBD2'
-COL_MEC, COL_VIS = '#2E7D6C', '#8C6BB1'
+# Region shading. The previous palette gave MEC a teal-green and visual cortex
+# a purple, which read as the non-anchored teal and the anchored magenta on the
+# rasters in H and I. These avoid both state colours, the red and blue that
+# Figure 2 reserves for cell types, the interneuron orange and the contact
+# orange. MEC is split into superficial (L1-3) and deep (L5-6), the paper's own
+# layer split; there are no layer-4 cells in the data.
+COL_HIPPO, COL_PREPARA = '#BDBDBD', '#A3A85E'
+COL_MEC_SUP, COL_MEC_DEEP = '#E3BC4F', '#8C5A2B'
+COL_VIS, COL_REGION_OTHER = '#7F8C99', '#E8E8E8'
+COL_MEC = COL_MEC_SUP                     # kept for any older reference
+# GREY KEY, as Figure S7: the cells carry the colour, the tissue only says where
+# it is. One grey per class, used for the slices, the raster strips, the legend
+# and the 3D renders alike. S7's own levels put visual cortex and pre/para at
+# 0.90 and 0.87, indistinguishable on a strip, so these are spread a little
+# further; deep MEC is a step darker than superficial to keep the layer split.
+REGION_GREY = {1: .96, 2: .86, 3: .80, 4: .69, 5: .91}     # by region class
+GREY_OTHER = .975
+REGION_ALPHA = .55
+REGION_COLS = (COL_HIPPO, COL_PREPARA, COL_MEC_SUP, COL_MEC_DEEP, COL_VIS)
+REGION_NAMES = ('Hippocampus', 'Pre/parasubiculum', 'MEC superficial (L1–3)',
+                'MEC deep (L5–6)', 'Visual cortex')
+
+
+def _blend(hexcol, a=REGION_ALPHA):
+    """The colour a region patch shows on white paper at alpha a."""
+    rgb = np.array([int(hexcol.lstrip('#')[i:i + 2], 16) / 255 for i in (0, 2, 4)])
+    return tuple(a * rgb + (1 - a))
 COL_GC, COL_NGS, COL_OTHER = '#c04744', '#3171ae', '#888888'
 COL_CONTACT = '#ff6500'
 CELL_ALPHA = .75
 ML_JITTER_STD = 40.0
+ML_JITTER_FIG4 = 15.0         # um, display jitter on the Figure 4 slices
 # a session must span two shank pitches before a within-session correlation
 # along the mediolateral axis means anything -- see the module docstring
 MIN_SPAN_UM = 200.0
@@ -158,7 +184,16 @@ def _dc_to_ccf(d):
 
 
 _RE = {1: re.compile(r'^(CA[1-4]?|DG)(-|$)'), 2: re.compile(r'^(PRE|PAR)\d*$'),
-       3: re.compile(r'^ENTm'), 4: re.compile(r'^VIS')}
+       3: re.compile(r'^ENTm[123]'), 4: re.compile(r'^ENTm[456]'),
+       5: re.compile(r'^VIS')}
+
+
+def region_class(acr):
+    """0 other, 1 hippocampus, 2 pre/para, 3 MEC sup, 4 MEC deep, 5 visual."""
+    for k, rx in _RE.items():
+        if rx.match(str(acr)):
+            return k
+    return 0
 
 
 def _ids_to_numeric(aid_flat):
@@ -174,10 +209,7 @@ def _ids_to_numeric(aid_flat):
     return numeric
 
 
-cmap_list = [(1, 1, 1, 0)]
-for hexcol in (COL_HIPPO, COL_PREPARA, COL_MEC, COL_VIS):
-    r, g, b = (int(hexcol.lstrip('#')[i:i + 2], 16) / 255 for i in (0, 2, 4))
-    cmap_list.append((r, g, b, .55))
+cmap_list = [(1, 1, 1, 0)] + [(REGION_GREY[k],) * 3 + (1.0,) for k in (1, 2, 3, 4, 5)]
 region_cmap = ListedColormap(cmap_list)
 region_norm = BoundaryNorm(np.arange(len(cmap_list) + 1) - .5, region_cmap.N)
 
@@ -287,7 +319,9 @@ dc = pd.read_csv({DC_PATH!r}); dc = dc[dc.mouse != 22]
 {'dc = dc[dc.mouse == %d]' % mouse if mouse is not None else ''}
 pts = np.array([t(r) for r in dc[['coord_SCs_z','coord_SCs_y','coord_SCs_x']].values])
 sc = Scene(root=True, atlas_name='allen_mouse_10um', title='')
-for nm, col, al in (('ENTm', {COL_MEC!r}, .5), ('HPF', {COL_HIPPO!r}, .18)):
+for nm, col, al in ([(f'ENTm{{k}}', {str(REGION_GREY[3])!r}, .6) for k in (1, 2, 3)]
+                   + [(f'ENTm{{k}}', {str(REGION_GREY[4])!r}, .6) for k in (5, 6)]
+                   + [('HPF', {str(REGION_GREY[1])!r}, .25)]):
     try: sc.add_brain_region(nm, alpha=al, color=col)
     except Exception: pass
 sc.add(Points(pts, name='c', colors={COL_CONTACT!r}, radius=45, alpha=.9))
@@ -429,8 +463,11 @@ def pick_cells(day):
 
 
 # ── figure ──────────────────────────────────────────────────────────────────
-fig = plt.figure(figsize=(14.2, 13.4))
-G = fig.add_gridspec(4, 1, height_ratios=[2.45, 1, 1.25, 1], hspace=.38)
+fig = plt.figure(figsize=(14.2, 10.0))
+# row 1 is empty and holds only the legend: with the region key split by MEC
+# layer the legend is too wide for the gap under the slices, whose x labels hang
+# below their axes and collided with it wherever it was centred.
+G = fig.add_gridspec(3, 1, height_ratios=[2.45, .16, 1], hspace=.38)
 # the rate-map block and the equal-aspect slices are both TALL, so they sit
 # side by side rather than stacked -- stacked, each wastes the other's width
 # No legend column. A vertical key down the right-hand side cost ~10% of the
@@ -546,9 +583,10 @@ for k, (letter, name, mouse) in enumerate(SLICES):
     ax.set_title(f'{n_gc} grid, {n_ngs} non-grid\n{fit["tilt_deg"]:+.1f}° from coronal',
                  fontsize=6.4, loc='left')
 
-_handles = ([Patch(facecolor=c, label=l) for l, c in
-             (('Hippocampus', COL_HIPPO), ('Pre/parasubiculum', COL_PREPARA),
-              ('MEC', COL_MEC), ('Visual cortex', COL_VIS))]
+_handles = ([Patch(facecolor=str(REGION_GREY[k]), edgecolor='0.6', lw=.4, label=l)
+              for k, l in zip((1, 2, 3, 4, 5), REGION_NAMES)]
+            + [Patch(facecolor=str(GREY_OTHER), edgecolor='0.6', lw=.4,
+                     label='other / unassigned')]
             + [Patch(facecolor=c, label=l) for l, c in
                (('grid cell', COL_GC), ('non-grid spatial', COL_NGS),
                 ('other', COL_OTHER))]
@@ -556,13 +594,13 @@ _handles = ([Patch(facecolor=c, label=l) for l, c in
 # Centred in the GAP between the first and second rows, not hung directly under
 # row 0: the slice panels' x tick labels and axis title extend below their axes
 # box, and anchoring to G[0].y0 printed the legend straight through them.
-_y_mid = (G[0].get_position(fig).y0 + G[1].get_position(fig).y1) / 2
+_y_mid = (G[1].get_position(fig).y0 + G[1].get_position(fig).y1) / 2
 fig.legend(handles=_handles, loc='center', bbox_to_anchor=(.56, _y_mid),
-           ncol=8, fontsize=6.8, frameon=False, handlelength=1.1,
+           ncol=10, fontsize=6.6, frameon=False, handlelength=1.0,
            handleheight=1.1, columnspacing=1.3, borderpad=0)
 
 # C-E: identity across the axes
-g2 = G[1].subgridspec(1, 3, wspace=.42)
+g2 = G[2].subgridspec(1, 3, wspace=.42)
 for k, (axis, lab, letter) in enumerate((('ml', 'medial–lateral (µm)', 'E'),
                                          ('dv', 'dorsal–ventral (µm)', 'F'))):
     ax = fig.add_subplot(g2[k])
@@ -602,174 +640,396 @@ ax.set_title(f'higher in {int((R[:, 0] > R[:, 1]).sum())}/{len(R)} sessions\n'
              f'p = {pl:.3g}', fontsize=7, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-# ── G: the raster itself, ordered mediolaterally ─────────────────────────────
-# Panels H and I report the mediolateral gradient in following as a correlation.
-# This shows the thing the correlation is computed on. Cells are ordered by
-# mediolateral position rather than by PC1 loading, so if position organises
-# following at all, the left of the raster should track the population state
-# more tightly than the right.
+# ── H, I: two example sessions, each as slice + raster + PC1 + agreement ─────
+# J and L report the mediolateral gradient in following as a correlation. These
+# rows show the thing the correlation is computed on, in two sessions. Cells are
+# ordered by mediolateral position rather than by PC1 loading, so if position
+# organises following at all, the medial (left) end of each raster should track
+# the population state more tightly than the lateral end.
 #
-# M25 D25, chosen for continuity with the rate maps in panel A, which are all
-# M25. READ THE ANCHORED FRACTION IN THE TITLE BEFORE READING THE RASTER: this
-# session is anchored on most of its trials, so most of the raster is one colour
-# and the panel shows how the cells are sampled across shanks rather than a
-# strong state alternation. M28 D25 is the best-balanced multi-shank session in
-# the dataset (49% anchored, 480 um, 4 shanks) and is the one to switch to if
-# the panel is meant to carry the state dynamics as well as the sampling.
-RAST_MO, RAST_DY = 25, 25
-from scipy.ndimage import median_filter
+# M25 D25 is kept for continuity with the rate maps in panel A, which are all
+# M25; it is anchored on most trials, so its raster is mostly one colour. M26 D19
+# was added because it has what M25 D25 lacks: balanced states (PC1 positive on
+# half the trials), 13 sustained transitions, and four times the cells -- with
+# the following concentrated on the medial shank (mean agreement 0.44 medial
+# against 0.08 lateral, rho = -0.55). It was chosen by ranking every clean
+# per-shank session (>= 3 shanks; M20/M21 positions carry per-cell jitter and
+# were excluded) on sustained transitions, state balance and the within-session
+# mediolateral rho; it is the second session of M26, the day after the Figure 1
+# example. M28 D25 was added as a third because, with every region counted, its
+# most medial shank looks unresponsive -- the region strip shows why.
+#
+# TRANSITIONS are where z-scored PC1 changes sign and holds the new sign for at
+# least three trials, as in Figure 8A-D. They used to come from a 9-trial median
+# filter on the fraction of cells called anchored, which is a different quantity
+# from the PC1 strip the dashed lines are drawn across.
+from scipy.ndimage import median_filter  # noqa: F401  (kept for other callers)
 from spatial_manifolds.anchoring import (ANCH_COLOR as ANCH_C,
                                          NONANCH_COLOR as NONANCH_C,
                                          load_session_labels)
 
-# wspace is wider than the rows above because this one now carries a colorbar
-# on the slice panel: the bar's tick labels and the raster's rotated y-label
-# both float outward by a fixed point padding that no gridspec setting accounts
-# for, so a gap that looks ample between the axes boxes still collides in ink.
-gR = G[2].subgridspec(1, 5, width_ratios=[.88, 2.25, .30, .18, 1.55],
-                      wspace=.46)
-_z = load_session_labels(RAST_MO, RAST_DY)
-_ids = [int(c) for c in _z['cluster_id']]
-_co = (C[(C.mouse == RAST_MO) & (C.day == RAST_DY)]
-       .assign(ml=lambda d: d.coord_SCs_x.abs())
-       .dropna(subset=['ml']).set_index('cluster_id').ml.to_dict())
-_keep = [(i, c) for i, c in enumerate(_ids) if c in _co]
-_keep.sort(key=lambda t: _co[t[1]])              # medial -> lateral
-_rows = [i for i, _ in _keep]
-_mls = np.array([_co[c] for _, c in _keep])
-_L = _z['labels'][_rows]
-_frac = np.asarray(_z['frac_anch'], float)
-_n_tr = _L.shape[1]
-_st = median_filter((_frac > .5).astype(float), size=9, mode='nearest') > .5
-_tr = list(np.where(np.diff(_st.astype(int)) != 0)[0] + 1)
-
-# ---- H: the same session on its own best-fit slice -----------------------
-# The raster beside this orders cells medial -> lateral as a number; this shows
-# where those cells actually sit, in the style of the region-example rows, so
-# the gradient can be read off the tissue rather than off an axis label.
-_rr0 = (pd.read_csv(f'{PS}/pc1_by_region.csv')
-        .query('mouse == @RAST_MO and day == @RAST_DY')
-        .set_index('cluster_id'))
-axsl = fig.add_subplot(gR[0])
-_cells = (C[(C.mouse == RAST_MO) & (C.day == RAST_DY)]
-          .dropna(subset=['coord_SCs_x', 'coord_SCs_y', 'coord_SCs_z']))
-_cpts = np.array([stereo_to_ccf(r) for r in
-                  _cells[['coord_SCs_z', 'coord_SCs_y',
-                          'coord_SCs_x']].values])
-_contacts = get_mouse_contacts(RAST_MO)
-_fitH = fit_best_slice(_contacts, extent_pts=_cpts)
-_uv, _vv, _grid = sample_region_grid(_fitH)
-axsl.imshow(_grid, origin='lower', aspect='equal', cmap=region_cmap,
-            norm=region_norm, zorder=1,
-            extent=[_uv[0], _uv[-1], _vv[0], _vv[-1]])
-_pu, _pv = _fitH['project'](_cpts)
-_cr = np.array([_rr0.r.get(c, np.nan) for c in _cells.cluster_id])
-_okc = np.isfinite(_cr)
-axsl.scatter(_pu[~_okc], _pv[~_okc], s=2.0, color='0.80', alpha=.5, lw=0, zorder=2)
-_sc = axsl.scatter(_pu[_okc], _pv[_okc], c=_cr[_okc], s=7.0, cmap='viridis',
-                   vmin=np.nanpercentile(_cr, 5), vmax=np.nanpercentile(_cr, 95),
-                   alpha=.9, lw=0, zorder=3)
-axsl.set_aspect('equal', adjustable='box')
-axsl.invert_yaxis()
-axsl.set_xlabel('medial–lateral (µm)', fontsize=7)
-axsl.set_ylabel('dorsal–ventral (µm)', fontsize=7)
-axsl.xaxis.set_major_locator(plt.MaxNLocator(2))
-axsl.yaxis.set_major_locator(plt.MaxNLocator(3))
-axsl.tick_params(labelsize=6)
-axsl.spines[['top', 'right']].set_visible(False)
-_cb = fig.colorbar(_sc, ax=axsl, fraction=.045, pad=.03)
-# label ABOVE the bar, not rotated beside it: the rotated label floats outward
-# by a fixed point padding and ran into the raster's y-axis label next door
-_cb.ax.set_title('agreement\n(r)', fontsize=5.5, pad=3, linespacing=1.15)
-_cb.ax.tick_params(labelsize=5.5); _cb.outline.set_visible(False)
-_lp(axsl, 'H', dx=-.42, dy=1.02)
-axsl.set_title('where these cells sit', fontsize=7.4, loc='left')
-
+# Two per row. D is M29 D23, chosen to add a fourth animal (rank 8 of 27 by
+# MEC-only rho, -0.19). The stronger within-MEC alternative was M25 D18 (all four
+# shanks in MEC, rank 5). M29's other sessions are flat or reversed, which the
+# caption says.
+EXAMPLES = [('A', 25, 25), ('B', 26, 19), ('C', 28, 25), ('D', 29, 25)]
 TA_ = ListedColormap([NONANCH_C, ANCH_C])
 NORM_ = BoundaryNorm([-.5, .5, 1.5], TA_.N)
-ax = fig.add_subplot(gR[1])
-ax.imshow(_L.T, aspect='auto', cmap=TA_, norm=NORM_, interpolation='nearest',
-          extent=[0, len(_rows), _n_tr, 1])
-for tb in _tr:
-    ax.axhline(tb, color='0.1', lw=.8, ls='--', zorder=4)
-# shank boundaries: ML is assigned per shank, so these are the sampling units
-for b in np.where(np.diff(_mls) > 1)[0]:
-    ax.axvline(b + 1, color='k', lw=1.1, zorder=5)
-for u in np.unique(_mls):
-    m = _mls == u
-    ax.annotate(f'{u:.0f}', ((np.where(m)[0].mean()), 1.012),
-                xycoords=('data', 'axes fraction'), ha='center', va='bottom',
-                fontsize=6, color='0.25')
-ax.set_xlabel('MEC cells, ordered medial → lateral  (µm, per shank)', fontsize=8)
-ax.set_ylabel('Trial', fontsize=8)
-ax.set_title(f'M{RAST_MO} D{RAST_DY} — the raster behind I, ordered by position '
-             f'rather than by PC1\n{len(_rows)} MEC cells across '
-             f'{len(np.unique(_mls))} shanks, {(_frac > .5).mean() * 100:.0f}% of '
-             f'trials anchored', fontsize=7.4, loc='left', pad=14)
-ax.tick_params(labelsize=7)
-for sp_ in ax.spines.values():
-    sp_.set_visible(False)
+_rr_all = pd.read_csv(f'{PS}/pc1_by_region.csv')
 
-axp = fig.add_subplot(gR[2])
-_pc = np.nan_to_num(np.asarray(_z['pc1'], float))
-_y = np.arange(1, len(_pc) + 1)
-axp.fill_betweenx(_y, 0, _pc, where=_pc >= 0, color=ANCH_C, lw=0, edgecolor='none',
-                  interpolate=True)
-axp.fill_betweenx(_y, 0, _pc, where=_pc < 0, color=NONANCH_C, lw=0, edgecolor='none',
-                  interpolate=True)
-axp.axvline(0, color='0.4', lw=.7)
-for tb in _tr:
-    axp.axhline(tb, color='0.1', lw=.8, ls='--', zorder=4)
-axp.set_ylim(_n_tr, 1); axp.set_xticks([]); axp.tick_params(labelleft=False, left=False)
-axp.set_title('PC1', fontsize=7.5, pad=4)
-for sp_ in axp.spines.values():
-    sp_.set_visible(False)
 
-# the same cells' agreement, on the same ordering -- the link to panel H
-axa = fig.add_subplot(gR[4])
-_rr = (pd.read_csv(f'{PS}/pc1_by_region.csv')
-       .query('mouse == @RAST_MO and day == @RAST_DY')
-       .set_index('cluster_id'))
-_cid = [c for _, c in _keep]
-_rv = np.array([_rr.r.get(c, np.nan) for c in _cid])
-_ok = np.isfinite(_rv)
-axa.scatter(_mls[_ok], _rv[_ok], s=14, color='0.45', alpha=.8, lw=0, zorder=3)
-for u in np.unique(_mls):
-    m = (_mls == u) & _ok
-    if m.sum() >= 3:
-        axa.errorbar(u, _rv[m].mean(), yerr=_rv[m].std(ddof=1) / np.sqrt(m.sum()),
-                     color='k', marker='o', ms=6, lw=1.6, capsize=4, zorder=4)
-_rho = spearmanr(_mls[_ok], _rv[_ok])
-axa.set_xlabel('medial–lateral (µm)', fontsize=8)
-axa.set_ylabel('agreement with\npopulation axis (r)', fontsize=8)
-axa.set_title(f'this session: rho = {_rho[0]:+.3f}, p = {_rho[1]:.3g}\n'
-              f'(one point of the 27 in panel J)', fontsize=7, loc='left')
-axa.tick_params(labelsize=7); axa.spines[['top', 'right']].set_visible(False)
-print(f'  raster M{RAST_MO}D{RAST_DY}: {len(_rows)} cells, '
-      f'{len(np.unique(_mls))} shanks, rho={_rho[0]:+.3f} p={_rho[1]:.3g}')
+def pc1_transitions(pc1, min_run=3):
+    """z-scored PC1 and the trials (1-based) where it changes sign for >= min_run."""
+    z = (pc1 - np.nanmean(pc1)) / np.nanstd(pc1)
+    s = np.where(np.nan_to_num(z) >= 0, 1, -1)
+    runs = []
+    for k, v in enumerate(s):
+        if runs and runs[-1][0] == v:
+            runs[-1][2] = k
+        else:
+            runs.append([v, k, k])
+    merged = []
+    for v, a_, b_ in runs:
+        if merged and (b_ - a_ + 1 < min_run or merged[-1][0] == v):
+            merged[-1][2] = b_
+        else:
+            merged.append([v, a_, b_])
+    return z, [m[1] + 1 for m in merged[1:]]
 
-# H-J: the same axes against FOLLOWING
-g3 = G[3].subgridspec(1, 3, wspace=.42)
+
+def example_row(cell, letter, mo, dy):
+    # wspace is wider than the rows above because this one carries a colorbar
+    # on the slice panel: the bar's tick labels and the raster's rotated y-label
+    # both float outward by a fixed point padding that no gridspec setting
+    # accounts for, so a gap that looks ample between the boxes collides in ink.
+    # [raster | PC1] tight together on the left, the slice (+ boxplot strip) on
+    # the right. The slice is drawn at equal aspect, so it is height-limited
+    # and would float in the middle of its slot; it is anchored to the right
+    # edge instead, which closes the gap that otherwise opens after PC1.
+    gR = cell.subgridspec(1, 2, width_ratios=[2.55, 1.15], wspace=.30)
+    gLft = gR[0].subgridspec(1, 2, width_ratios=[2.25, .30], wspace=.05)
+    z = load_session_labels(mo, dy)
+    ids = [int(c) for c in z['cluster_id']]
+    cs = (C[(C.mouse == mo) & (C.day == dy)].dropna(subset=['coord_SCs_x'])
+          .assign(ml=lambda d: d.coord_SCs_x.abs()).set_index('cluster_id'))
+    # medial -> lateral by shank, then DORSAL -> VENTRAL within the shank
+    # (coord_SCs_y grows ventrally: visual cortex sits near 2240, MEC 2550-2815),
+    # so each shank's region strip reads like the shank itself
+    # cells whose labels are NaN on every trial carry no anchoring call at all;
+    # they are dropped from every panel of the row (raster, strip, slice, boxes)
+    _all_nan = np.isnan(z['labels']).all(axis=1)
+    nolab = {c for i, c in enumerate(ids) if _all_nan[i]}
+    keep = sorted([(i, c) for i, c in enumerate(ids)
+                   if c in cs.index and not _all_nan[i]],
+                  key=lambda t: (cs.ml[t[1]], cs.coord_SCs_y[t[1]]))
+    rows = [i for i, _ in keep]
+    cid = [c for _, c in keep]
+    mls = np.array([cs.ml[c] for c in cid])
+    rcls = np.array([region_class(cs.brain_region[c]) for c in cid])
+    L = z['labels'][rows]
+    frac = np.asarray(z['frac_anch'], float)
+    n_tr = L.shape[1]
+    pcz, tr = pc1_transitions(np.asarray(z['pc1'], float))
+    rr = _rr_all.query('mouse == @mo and day == @dy').set_index('cluster_id')
+
+    # slice: where these cells sit, coloured by agreement ABOVE CHANCE -- the
+    # same quantity as Figure 2D: |r| minus the mean |r| of the cell's own
+    # circular-shift null, so absolute is compared with absolute (subtracting
+    # an absolute null from a signed r is the error that retired two earlier
+    # claims). Centred on chance, so cells below their own null show too.
+    # the slice under a strip of per-shank boxplots that shares its mediolateral
+    # axis, so each shank's distribution sits directly over the shank
+    gSl = gR[1].subgridspec(2, 1, height_ratios=[.45, 1], hspace=.10)
+    axbx = fig.add_subplot(gSl[0])
+    axsl = fig.add_subplot(gSl[1])
+    cells = (C[(C.mouse == mo) & (C.day == dy)]
+             .dropna(subset=['coord_SCs_x', 'coord_SCs_y', 'coord_SCs_z']))
+    cells = cells[~cells.cluster_id.isin(nolab)]
+    cpts = np.array([stereo_to_ccf(r) for r in
+                     cells[['coord_SCs_z', 'coord_SCs_y', 'coord_SCs_x']].values])
+    fitH = fit_best_slice(get_mouse_contacts(mo), extent_pts=cpts)
+    uv, vv, grid = sample_region_grid(fitH)
+    axsl.imshow(grid, origin='lower', aspect='equal', cmap=region_cmap,
+                norm=region_norm, zorder=1, extent=[uv[0], uv[-1], vv[0], vv[-1]])
+    pu, pv = fitH['project'](cpts)
+    # a little Gaussian jitter on the mediolateral coordinate, for display only:
+    # every cell on a shank is assigned the shank's one nominal position, so
+    # unjittered they stack into a single column. SD 15 um against shank
+    # spacings of 210-270 um keeps the shanks distinct. Shank positions for
+    # labels and boxes use the unjittered values.
+    pu_true = pu.copy()
+    pu = pu + np.random.default_rng(mo * 100 + dy).normal(0, ML_JITTER_FIG4, len(pu))
+    ex = np.array([rr.excess.get(c, np.nan) for c in cells.cluster_id])
+    okc = np.isfinite(ex)
+    axsl.scatter(pu[~okc], pv[~okc], s=2.0, color='0.80', alpha=.5, lw=0, zorder=2)
+    hi = max(abs(np.nanpercentile(ex, 2)), abs(np.nanpercentile(ex, 98)))
+    # DIVERGING, white at chance. PRGn because the obvious alternatives each
+    # collide with a colour this figure already uses: BrBG ends in the
+    # non-anchored teal, PiYG in near-magenta, RdBu in the grid/non-grid red
+    # and blue of B-D, and PuOr's orange vanishes on the gold MEC shading
+    # where the above-chance cells sit.
+    sc = axsl.scatter(pu[okc], pv[okc], c=ex[okc], s=8.0, cmap='PRGn',
+                      norm=TwoSlopeNorm(vcenter=0.0, vmin=-hi, vmax=hi),
+                      alpha=.95, lw=0, edgecolors='none', zorder=3)
+    axsl.set_aspect('equal', adjustable='box')
+    axsl.set_anchor('E')
+    axsl.invert_yaxis()
+    axsl.set_xlabel('medial–lateral (µm)', fontsize=7)
+    axsl.set_ylabel('dorsal–ventral (µm)', fontsize=7)
+    axsl.xaxis.set_major_locator(plt.MaxNLocator(2))
+    axsl.yaxis.set_major_locator(plt.MaxNLocator(3))
+    axsl.tick_params(labelsize=6)
+    axsl.spines[['top', 'right']].set_visible(False)
+    cb = fig.colorbar(sc, ax=axsl, fraction=.045, pad=.03)
+    # label ABOVE the bar, not rotated beside it: the rotated label floats
+    # outward by a fixed point padding and ran into the raster's y-label
+    # loc='left' so the title grows rightwards, away from the S labels that
+    # now sit over the most lateral shank
+    cb.ax.tick_params(labelsize=5.5); cb.outline.set_visible(False)
+    # shanks are numbered medial -> lateral (S1 most medial): the cell table
+    # carries each cell's per-shank mediolateral position but not the device's
+    # own shank id, so this is the order the raster beside it uses
+    _cml = cells.coord_SCs_x.abs().round(0).values
+    bx_vals, bx_pos = [], []
+    for j_, u_ in enumerate(np.sort(np.unique(_cml))):
+        m_ = _cml == u_
+        top = np.argmin(pv[m_])                      # most dorsal cell
+        xs_ = float(np.median(pu_true[m_]))
+        axsl.annotate(f'S{j_ + 1}', (xs_, pv[m_][top]),
+                      xytext=(0, 3), textcoords='offset points', ha='center',
+                      va='bottom', fontsize=6.5, weight='bold', color='0.15',
+                      annotation_clip=False, zorder=6)
+        bx_vals.append(ex[m_ & okc]); bx_pos.append(xs_)
+
+    # agreement above chance, one box per shank at the shank's own position
+    xl = axsl.get_xlim()
+    w_ = .28 * (np.min(np.diff(bx_pos)) if len(bx_pos) > 1 else 200.0)
+    bp = axbx.boxplot(bx_vals, positions=bx_pos, widths=w_, showfliers=False,
+                      patch_artist=True, manage_ticks=False,
+                      medianprops=dict(color='k', lw=1.3),
+                      boxprops=dict(facecolor='0.85', edgecolor='0.35', lw=.7),
+                      whiskerprops=dict(color='0.35', lw=.7),
+                      capprops=dict(color='0.35', lw=.7))
+    axbx.axhline(0, color='0.5', lw=.7, ls=':', zorder=1)
+    axbx.set_xlim(xl)
+    axbx.set_xticks([])
+    axbx.set_ylabel('above\nchance', fontsize=6, labelpad=1)
+    axbx.tick_params(labelsize=5.5)
+    axbx.spines[['top', 'right', 'bottom']].set_visible(False)
+    # the slice is drawn at equal aspect, so its box shrinks inside its slot;
+    # match the strip above to the slice's DRAWN width so the shanks line up
+    axsl.apply_aspect()
+    _ps, _pb = axsl.get_position(), axbx.get_position()
+    axbx.set_position([_ps.x0, _pb.y0, _ps.width, _pb.height])
+
+    # raster, one block per shank, each under a strip giving the cell's region
+    shanks = np.unique(mls)
+    counts = [int((mls == u).sum()) for u in shanks]
+    HR = [.055, 1]
+    gS = gLft[0].subgridspec(2, len(shanks), height_ratios=HR,
+                           width_ratios=counts, wspace=.035, hspace=.025)
+    strip_rgb = np.array([(GREY_OTHER,) * 3] +
+                         [(REGION_GREY[k],) * 3 for k in (1, 2, 3, 4, 5)])
+    for j, u in enumerate(shanks):
+        m = mls == u
+        axs = fig.add_subplot(gS[0, j])
+        axs.imshow(strip_rgb[rcls[m]][None, :, :], aspect='auto',
+                   interpolation='nearest')
+        axs.set_xticks([]); axs.set_yticks([])
+        for sp_ in axs.spines.values():
+            sp_.set_visible(False)
+        # a shank with very few cells is too narrow for its label, which then
+        # runs into the next one; the S label below still identifies it
+        if m.sum() >= .06 * len(mls):
+            axs.set_title(f'{u:.0f} µm', fontsize=6, color='0.25', pad=2)
+        if j == 0:
+            axs.set_ylabel('region', fontsize=6, rotation=0, ha='right',
+                           va='center', labelpad=2)
+            axs.annotate(f'M{mo} D{dy}, {len(rows)} cells',
+                         (0, 1), xycoords='axes fraction', xytext=(0, 13),
+                         textcoords='offset points', fontsize=7.4, ha='left',
+                         va='bottom')
+        ax = fig.add_subplot(gS[1, j])
+        ax.imshow(L[m].T, aspect='auto', cmap=TA_, norm=NORM_,
+                  interpolation='nearest', extent=[0, m.sum(), n_tr, 1])
+        for tb in tr:
+            ax.axhline(tb, color='0.1', lw=.7, ls='--', zorder=4)
+        ax.set_xticks([])
+        ax.set_xlabel(f'S{j + 1}', fontsize=7, weight='bold', labelpad=2)
+        if j == 0:
+            ax.set_ylabel('Trial', fontsize=8)
+            ax.tick_params(labelsize=7)
+        else:
+            ax.set_yticks([])
+        for sp_ in ax.spines.values():
+            sp_.set_visible(False)
+
+    # z-scored PC1, on the same rows as the raster (same height split)
+    # the row letter, at the raster's top-left now that the raster leads
+    _pos = gLft[0].get_position(fig)
+    fig.text(_pos.x0 - .045, _pos.y1 + .012, letter, fontsize=10, weight='bold',
+             va='bottom', ha='right')
+    gP = gLft[1].subgridspec(2, 1, height_ratios=HR, hspace=.025)
+    axp = fig.add_subplot(gP[1])
+    pc = np.nan_to_num(pcz)
+    y = np.arange(1, len(pc) + 1)
+    axp.fill_betweenx(y, 0, pc, where=pc >= 0, color=ANCH_C, lw=0,
+                      edgecolor='none', interpolate=True)
+    axp.fill_betweenx(y, 0, pc, where=pc < 0, color=NONANCH_C, lw=0,
+                      edgecolor='none', interpolate=True)
+    axp.axvline(0, color='0.4', lw=.7)
+    for tb in tr:
+        axp.axhline(tb, color='0.1', lw=.8, ls='--', zorder=4)
+    axp.set_ylim(n_tr, 1); axp.set_xticks([])
+    axp.tick_params(labelleft=False, left=False)
+    # labelled underneath: above, it collides with the last shank's µm label
+    # now that PC1 sits tight against the raster
+    axp.set_xlabel('PC1\n(z)', fontsize=7, labelpad=2)
+    for sp_ in axp.spines.values():
+        sp_.set_visible(False)
+
+    # The per-session statistics the caption quotes. The panel that drew them
+    # (agreement against position) was removed once the boxplot strip above
+    # the slice showed the same per-shank distributions on the slice's own axis.
+    rv = np.array([rr.r.get(c, np.nan) for c in cid])
+    ok = np.isfinite(rv)
+    per_shank = []
+    for u in shanks:
+        m = (mls == u) & ok
+        if m.sum() >= 3:
+            per_shank.append((u, rv[m].mean(), int(m.sum())))
+    rho = spearmanr(mls[ok], rv[ok])
+    mec_ = ok & np.isin(rcls, (3, 4))
+    rho_m = spearmanr(mls[mec_], rv[mec_])
+    print(f'  example {letter} M{mo}D{dy}: {len(rows)} cells in raster, '
+          f'{int(ok.sum())} with agreement, {len(shanks)} shanks, '
+          f'span {mls.max() - mls.min():.0f} um, {(frac > .5).mean() * 100:.0f}% '
+          f'anchored, {len(tr)} PC1 transitions, rho={rho[0]:+.3f} p={rho[1]:.3g}; '
+          'per-shank agreement medial->lateral: '
+          + ', '.join(f'{v:.2f} (n={n})' for _, v, n in per_shank)
+          + f' | MEC only: rho={rho_m[0]:+.3f} p={rho_m[1]:.3g}')
+    print('     region classes by shank: ' + '; '.join(
+        f'{u:.0f}:' + ','.join(f'{k}={int(((mls == u) & (rcls == k)).sum())}'
+                               for k in range(6) if ((mls == u) & (rcls == k)).any())
+        for u in shanks))
+
+
+# ══ FIGURE 3 ENDS HERE. Everything below is the following figure (Figure 5):
+# the mediolateral organisation of FOLLOWING, split out of what was Figure 3H-L (now Figure 4A-E).
+out3 = f'{FIG}/fig3_anatomy.pdf'
+plt.savefig(out3, dpi=200, bbox_inches='tight')
+print(f'\nsaved {out3}')
+plt.close(fig)
+
+fig = plt.figure(figsize=(14.2, 16.2))
+G = fig.add_gridspec(6, 1, height_ratios=[.13, 1.30, 1.30, 1, 1.05, 1.25], hspace=.42)
+_rh = ([Patch(facecolor=str(REGION_GREY[k]), edgecolor='0.6', lw=.4, label=l)
+        for k, l in zip((1, 2, 3, 4, 5), REGION_NAMES)]
+       + [Patch(facecolor=str(GREY_OTHER), edgecolor='0.6', lw=.4,
+                label='other / unassigned')])
+_yl = (G[0].get_position(fig).y0 + G[0].get_position(fig).y1) / 2
+fig.legend(handles=_rh, loc='center', bbox_to_anchor=(.5, _yl), ncol=6,
+           fontsize=6.8, frameon=False, handlelength=1.1,
+           title='region (slices, raster strips and points)', title_fontsize=6.8)
+# E, F on one row; G (within-session summary) joins the controls H, I below
+g3 = G[3].subgridspec(1, 2, wspace=.30)
 foll = mec.dropna(subset=['r'])
-for k, (axis, lab, letter) in enumerate((('ml', 'medial–lateral (µm)', 'I'),
-                                         ('dv', 'dorsal–ventral (µm)', 'J'))):
-    ax = fig.add_subplot(g3[k])
-    x, y, e = binned(foll, axis, 'r')
-    ax.fill_between(x, y - e, y + e, color='0.35', alpha=.28, lw=0, edgecolor='none')
-    ax.plot(x, y, color='k', lw=1.8)
-    rho_p = spearmanr(foll[axis], foll.r)
-    ws, p = within_session(foll, axis, 'r')
-    ax.set_xlabel(lab, fontsize=8)
-    if k == 0:
-        ax.set_ylabel('agreement with\npopulation axis (r)', fontsize=8)
-    _lp(ax, letter)
-    ax.set_title(f'pooled rho = {rho_p[0]:+.2f} (p = {rho_p[1]:.0e})\n'
-                 f'WITHIN SESSION rho = {np.median(ws):+.3f}, p = {p:.3g} '
-                 f'({len(ws)} sess.)', fontsize=6.6, loc='left')
-    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+N_ML_SESS = len(within_session(foll, 'ml', 'r')[0])
+for (_letter, _mo, _dy), _cell in zip(EXAMPLES, [c for r_ in (G[1], G[2]) for c in r_.subgridspec(1, 2, wspace=.24)]):
+    example_row(_cell, _letter, _mo, _dy)
+# E: the pooled mediolateral gradient, as agreement ABOVE CHANCE (the quantity
+# the example slices and boxplots show), not raw agreement with the axis
+_EX = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id', 'excess']]
+follx = foll.merge(_EX, on=['mouse', 'day', 'cluster_id'], how='left')
+ax = fig.add_subplot(g3[0])
+x, y, e = binned(follx, 'ml', 'excess')
+ax.fill_between(x, y - e, y + e, color='0.35', alpha=.28, lw=0, edgecolor='none')
+ax.plot(x, y, color='k', lw=1.8)
+ax.axhline(0, color='0.6', lw=.7, ls=':')
+_rp = spearmanr(follx.dropna(subset=['excess']).ml, follx.dropna(subset=['excess']).excess)
+_ws, _p = within_session(follx, 'ml', 'excess')
+ax.set_xlabel('medial–lateral (µm)', fontsize=8)
+ax.set_ylabel('agreement above chance', fontsize=8)
+_lp(ax, 'E')
+ax.set_title(f'MEC cells, all sessions: pooled rho = {_rp[0]:+.2f} (p = {_rp[1]:.0e})\n'
+             f'WITHIN SESSION rho = {np.median(_ws):+.3f}, p = {_p:.3g} ({len(_ws)} sess.)',
+             fontsize=6.6, loc='left')
+ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+print(f'  E: pooled rho {_rp[0]:+.3f} p {_rp[1]:.2g}; within {np.median(_ws):+.3f} p {_p:.3g} n {len(_ws)}')
 
-# H: the within-session distributions side by side, which is the actual test
-ax = fig.add_subplot(g3[2])
+# F: distance from the MEC-parasubiculum border. Probe placement differs a lot
+# between animals, which is why the pooled mediolateral coordinate is unsafe;
+# distance from an anatomical landmark aligns every session to the same one.
+# The border is taken from each animal's best-fit slice through the atlas: every
+# parasubiculum pixel with an MEC neighbour is a border point, and a cell's
+# distance is the SHORTEST distance from its projected position to any border
+# point, signed by the cell's own atlas label (MEC +, parasubiculum -). Cells
+# are at per-shank nominal mediolateral positions, so this is no finer than the
+# shank pitch.
+from scipy.spatial import cKDTree
+CB = (C.merge(_EX, on=['mouse', 'day', 'cluster_id'], how='left')
+      .dropna(subset=['coord_SCs_x', 'coord_SCs_y', 'coord_SCs_z']))
+CB = CB[CB.brain_region.astype(str).str.match(r'^(ENTm|PAR|PRE)')].copy()
+CB['dist'] = np.nan
+for _mo, _g in CB.groupby('mouse'):
+    try:
+        _pts = np.array([stereo_to_ccf(r_) for r_ in
+                         _g[['coord_SCs_z', 'coord_SCs_y', 'coord_SCs_x']].values])
+        _fit = fit_best_slice(get_mouse_contacts(_mo), extent_pts=_pts)
+        _uv, _vv, _grid = sample_region_grid(_fit)
+    except Exception as _e:
+        print(f'  border: M{_mo} skipped ({type(_e).__name__})'); continue
+    _uv, _vv = np.asarray(_uv), np.asarray(_vv)
+    assert _grid.shape == (len(_vv), len(_uv)), (_grid.shape, len(_vv), len(_uv))
+    _par, _mc = _grid == 2, np.isin(_grid, (3, 4))
+    _nb = np.zeros_like(_par)
+    _nb[1:, :] |= _mc[:-1, :]; _nb[:-1, :] |= _mc[1:, :]
+    _nb[:, 1:] |= _mc[:, :-1]; _nb[:, :-1] |= _mc[:, 1:]
+    _bi, _bj = np.where(_par & _nb)
+    # fewer than ~20 border pixels means the slice only grazes the boundary
+    # (M20 gives 4), which is too little to measure distance from
+    if len(_bi) < 20:
+        print(f'  border: M{_mo} has too little MEC-parasubiculum border in its slice '
+              f'({len(_bi)} points), skipped'); continue
+    _tree = cKDTree(np.c_[_uv[_bj], _vv[_bi]])
+    _pu, _pv = _fit['project'](_pts)
+    _d, _ = _tree.query(np.c_[_pu, _pv])
+    _sg = np.where(_g.brain_region.astype(str).str.startswith('ENTm'), 1.0, -1.0)
+    CB.loc[_g.index, 'dist'] = _sg * _d
+    print(f'  border: M{_mo} {len(_bi)} border points, {len(_g)} cells')
+CBv = CB.dropna(subset=['dist', 'excess'])
+ax = fig.add_subplot(g3[1])
+for side, col in ((CBv.dist < 0, '0.55'), (CBv.dist >= 0, 'k')):
+    x, y, e = binned(CBv[side], 'dist', 'excess', nbin=6 if col == '0.55' else 8)
+    ax.fill_between(x, y - e, y + e, color=col, alpha=.25, lw=0, edgecolor='none')
+    ax.plot(x, y, color=col, lw=1.8)
+ax.axvline(0, color='0.3', lw=.8, ls='--')
+ax.axhline(0, color='0.6', lw=.7, ls=':')
+ax.annotate('parasubiculum', (.02, .97), xycoords='axes fraction', fontsize=6.5,
+            color='0.45', va='top')
+ax.annotate('MEC', (.98, .97), xycoords='axes fraction', fontsize=6.5, ha='right', va='top')
+_m = CBv[CBv.dist >= 0]
+_rb = spearmanr(_m.dist, _m.excess)
+_wb, _pb = within_session(_m.assign(ml=_m.dist), 'ml', 'excess')
+_near = CBv[CBv.dist.abs() <= 250]
+_pn = mannwhitneyu(_near[_near.dist < 0].excess, _near[_near.dist >= 0].excess).pvalue
+ax.set_xlabel('distance from the MEC–parasubiculum border (µm)', fontsize=8)
+ax.set_ylabel('agreement above chance', fontsize=8)
+_lp(ax, 'F')
+ax.set_title(f'MEC side, pooled: rho = {_rb[0]:+.2f} (p = {_rb[1]:.0e}); within session '
+             f'{np.median(_wb):+.3f}, p = {_pb:.3g}\nwithin 250 µm of the border: '
+             f'parasubiculum {_near[_near.dist < 0].excess.mean():.3f} vs MEC '
+             f'{_near[_near.dist >= 0].excess.mean():.3f} (p = {_pn:.2g})',
+             fontsize=6.4, loc='left')
+ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+print(f'  F: MEC side pooled rho {_rb[0]:+.3f} p {_rb[1]:.2g}; within {np.median(_wb):+.3f} '
+      f'p {_pb:.3g} n {len(_wb)}; near border PAR {_near[_near.dist < 0].excess.mean():.3f} '
+      f'(n={int((_near.dist < 0).sum())}) MEC {_near[_near.dist >= 0].excess.mean():.3f} '
+      f'(n={int((_near.dist >= 0).sum())}) p {_pn:.3g}; cells with distance: {len(CBv)}')
+
+# G: the within-session distributions side by side, which is the actual test
+gC = G[4].subgridspec(1, 3, wspace=.48, width_ratios=[1.1, .8, 1.25])
+ax = fig.add_subplot(gC[0])
 rng = np.random.default_rng(0)
 SUMM = [('M–L', 'ml', foll, 'r', True), ('D–V', 'dv', foll, 'r', True),
         ('depth', 'depth', foll, 'r', True)]
@@ -786,12 +1046,129 @@ ax.set_xticks(range(len(SUMM)))
 ax.set_xticklabels([s[0] for s in SUMM], fontsize=7.5)
 ax.set_xlim(-.5, len(SUMM) - .5)
 ax.set_ylabel('within-session rho', fontsize=8)
-_lp(ax, 'K')
+_lp(ax, 'G')
 ax.set_title(f'only M–L survives\n(M–L: {len(within_session(foll, "ml", "r")[0])} '
              f'multi-shank sessions)', fontsize=7, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
 
-out = f'{FIG}/fig3_anatomy.pdf'
+# ── H-K: controls and extensions, computed by fig4_controls.py ────────────────
+import json as _json
+CTL = pd.read_csv(f'{PS}/fig4_controls_cells.csv')
+SUMM_ = _json.load(open(f'{PS}/fig4_controls_summary.json'))
+CM = CTL[CTL.mec]
+
+
+def _ws(df, y, min_cells=20):
+    out = {}
+    for k, g in df.dropna(subset=['ml', y]).groupby(['mouse', 'day']):
+        if len(g) >= min_cells and g.ml.nunique() > 1 and g[y].nunique() > 1:
+            out[k] = spearmanr(g.ml, g[y])[0]
+    return pd.Series(out)
+
+
+# H: the gradient against an axis built without the cell's own shank
+ax = fig.add_subplot(gC[1]); _lp(ax, 'H')
+a_, b_ = _ws(CM, 'r'), _ws(CM, 'r_lso')
+k_ = a_.index.intersection(b_.index)
+for kk in k_:
+    ax.plot([0, 1], [a_[kk], b_[kk]], color='0.75', lw=.6, zorder=1)
+for i, v in enumerate((a_[k_], b_[k_])):
+    ax.scatter(np.full(len(v), i), v, s=9, color='0.35', lw=0, zorder=2)
+    ax.plot([i - .22, i + .22], [np.median(v)] * 2, color='k', lw=2, zorder=3)
+    pv_ = wilcoxon(v).pvalue
+    ax.annotate(f'p = {pv_:.3f}', (i, .98), xycoords=('data', 'axes fraction'),
+                ha='center', va='top', fontsize=6.2, color='#a33' if pv_ < .05 else '0.35')
+ax.axhline(0, color='0.6', lw=.8, ls=':')
+ax.set_xticks([0, 1]); ax.set_xticklabels(['all\nshanks', 'other\nshanks'], fontsize=7)
+ax.set_xlim(-.5, 1.5)
+ax.set_ylabel('within-session rho\n(position vs agreement)', fontsize=8)
+ax.set_title('PC1 built without the\ncell\'s own shank', fontsize=7, loc='left')
+ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+# I: how much of the position effect survives the factors it covaries with
+# (fig4_factors.py). Lateral cells are less theta-modulated and carry less
+# spatial information, so part of the gradient is shared with those.
+FAC = _json.load(open(f'{PS}/fig4_factors.json'))
+ax = fig.add_subplot(gC[2]); _lp(ax, 'I')
+_st = list(FAC['ml_steps'].items())
+for i, (nm, v) in enumerate(_st):
+    ax.errorbar(v['b'], i, xerr=1.96 * v['se'], fmt='o', color='k' if v['p'] < .05 else '0.55',
+                ms=4, lw=1, capsize=0)
+    ax.annotate(f'p = {v["p"]:.2g}', (1.0, i), xycoords=('axes fraction', 'data'),
+                ha='right', va='center', fontsize=6.2, color='#a33' if v['p'] < .05 else '0.35')
+ax.axvline(0, color='0.6', lw=.8, ls=':')
+ax.set_yticks(range(len(_st))); ax.set_yticklabels([k for k, _ in _st], fontsize=6.5)
+ax.invert_yaxis()
+ax.set_xlabel('mediolateral coefficient\n(per SD lateral, 95% CI)', fontsize=7.5)
+ax.set_title(f"position in a mixed model, {FAC['n_cells']} MEC cells on shanks\n"
+             f"nested in {FAC['n_sess']} sessions, as more factors are added", fontsize=7, loc='left')
+ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+_xl = ax.get_xlim(); ax.set_xlim(_xl[0], _xl[1] + .55 * (_xl[1] - _xl[0]))
+
+# J, K: every factor in one model (fig4_factors.py)
+gD = G[5].subgridspec(1, 2, wspace=.62, width_ratios=[1.0, 1.25])
+ax = fig.add_subplot(gD[0]); _lp(ax, 'J', dx=-.42)
+_lab = {r['factor']: r['label'] for r in FAC['factors']}
+_grp = {r['factor']: r['group'] for r in FAC['factors']}
+_ph = {r['factor']: r['p_holm'] for r in FAC['factors']}
+_TERMS = [('ml_z', 'ml', 'mediolateral'), ('dv_z', 'dv', 'dorsoventral'),
+          ('sup', 'layer', 'superficial (vs deep)'),
+          ('C(identity, Treatment("non-grid spatial"))[T.grid]', 'type', 'grid (vs non-grid spatial)'),
+          ('C(identity, Treatment("non-grid spatial"))[T.non-spatial]', 'type', 'non-spatial'),
+          ('C(identity, Treatment("non-grid spatial"))[T.putative interneuron]', 'type', 'interneuron'),
+          ('rate_z', 'rate', 'firing rate (log)'), ('wave_z', 'wave', 'waveform width'),
+          ('si_z', 'si', 'spatial information'), ('th_z', 'theta', 'theta modulation'),
+          ('gs_z', 'grid', 'grid score'), ('bs_z', 'border', 'border score'),
+          ('hd_z', 'hd', 'head-direction tuning'), ('spd_z', 'speed', 'speed tuning |r|')]
+_y, _ticks, _prev = 0, [], None
+for t, f_, lab in _TERMS:
+    if _prev is not None and _grp[f_] != _prev:
+        _y += .6
+    c = FAC['coef'][t]
+    col = 'k' if _ph[f_] < .05 else '0.55'
+    ax.errorbar(c['b'], _y, xerr=1.96 * c['se'], fmt='o', color=col, ms=3.8, lw=1, capsize=0)
+    _ticks.append((_y, lab)); _prev = _grp[f_]; _y += 1
+ax.axvline(0, color='0.6', lw=.8, ls=':')
+ax.set_yticks([a for a, _ in _ticks]); ax.set_yticklabels([b for _, b in _ticks], fontsize=6.5)
+ax.invert_yaxis()
+_g0 = {}
+for (yy, _), (t, f_, _) in zip(_ticks, _TERMS):
+    _g0.setdefault(_grp[f_], []).append(yy)
+for g_, ys in _g0.items():
+    ax.annotate(g_, (1.02, np.mean(ys)), xycoords=('axes fraction', 'data'), fontsize=6.5,
+                color='0.35', va='center', rotation=-90)
+ax.set_xlabel('coefficient on agreement above chance\n(per SD, or vs reference; 95% CI)', fontsize=7.5)
+ax.set_title('all factors in one model; black = factor significant\n(likelihood ratio, Holm)',
+             fontsize=7, loc='left')
+ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+
+ax = fig.add_subplot(gD[1]); _lp(ax, 'K', dx=-.36)
+# Ranked by dominance: each factor's added R^2 averaged over every subset of
+# the others, so variance that overlapping factors share (interneurons are
+# classed on rate and waveform, grid cells on grid score) is divided between
+# them rather than dropped, as a drop-one share would.
+_F = pd.DataFrame(FAC['factors']).sort_values('dominance', ascending=False).reset_index(drop=True)
+_tot = FAC['r2_within']
+_yy = np.arange(len(_F))
+ax.barh(_yy, 100 * _F.dominance / _tot, height=.62, color='0.3', lw=0)
+for i, r_ in _F.iterrows():
+    ax.annotate(('p < 1e-4' if r_.p_holm < 1e-4 else f'p = {r_.p_holm:.2g}'),
+                (100 * r_.dominance / _tot, i), xytext=(4, 0), textcoords='offset points',
+                va='center', fontsize=6, color='#a33' if r_.p_holm < .05 else '0.45')
+ax.set_yticks(_yy); ax.set_yticklabels(_F.label, fontsize=6.5); ax.invert_yaxis()
+ax.set_xlabel('share of explained variance (%, dominance analysis)', fontsize=7.5)
+_r2 = FAC['r2']
+ax.set_title(f"which factor matters (all {len(_F)}: {100 * _tot:.1f}% of within-session variance)",
+             fontsize=7, loc='left')
+ax.text(.98, .04, 'p: unique effect\n(likelihood ratio, Holm)', transform=ax.transAxes,
+        ha='right', va='bottom', fontsize=6, color='0.4')
+ax.set_xlim(0, 100 * _F.dominance.max() / _tot * 1.3)
+ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+
+# Switch timing against position and agreement by region (former J, K) were
+# removed from the figure; both are still computed by fig4_controls.py.
+
+out = f'{FIG}/fig4_ml_following.pdf'
 plt.savefig(out, dpi=200, bbox_inches='tight')
 print(f'\nsaved {out}')

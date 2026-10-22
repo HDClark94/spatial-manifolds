@@ -1,6 +1,6 @@
-"""Figure 7 supplement — where in the theta cycle each frequency peaks.
+"""Figure 8 supplement — where in the theta cycle each frequency peaks.
 
-The band analysis in Figure 7 fixes two gamma bands in advance and asks how
+The band analysis in Figure 8 fixes two gamma bands in advance and asks how
 strongly each is nested in theta. It cannot ask WHERE in the cycle they peak,
 because the modulation index discards phase. This does, as a continuous
 function of frequency, for both anchoring states.

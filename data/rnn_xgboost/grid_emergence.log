@@ -1,0 +1,9 @@
+snapshots: ['snap_50000.pth', 'snap_60000.pth', 'snap_70000.pth', 'snap_80000.pth', 'snap_90000.pth', 'snap_100000.pth']
+step 50000: med=-0.09 frac>0.3=0.04 max=0.76
+step 60000: med=-0.09 frac>0.3=0.04 max=0.79
+step 70000: med=-0.09 frac>0.3=0.04 max=0.82
+step 80000: med=-0.09 frac>0.3=0.04 max=0.80
+step 90000: med=-0.10 frac>0.3=0.04 max=0.81
+step 100000: med=-0.09 frac>0.3=0.04 max=0.79
+saved grid_emergence_net3.png/pdf
+EMERGENCE_DONE

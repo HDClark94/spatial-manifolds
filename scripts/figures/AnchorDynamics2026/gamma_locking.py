@@ -1,6 +1,6 @@
 """Do fast-spiking interneurons lock to gamma, and does it move with the state?
 
-The model in Figure 8 has interneurons generating the gamma rhythm that nests
+The model in Figure 9 has interneurons generating the gamma rhythm that nests
 in theta, and Figure 2 has interneurons among the cells that follow the
 anchoring state. Those two claims only meet if the interneurons in THIS dataset
 are actually coupled to the gamma in this LFP. That is what this measures.
@@ -21,7 +21,7 @@ here uses an LFP channel group at least MIN_SEP groups away from the cell's own.
 The own-channel value is computed as well, purely to show the size of the
 artifact that would otherwise be reported.
 
-Bands are Figure 7's: slow gamma 30-48 Hz and 60-100 Hz, which the CA1
+Bands are Figure 8's: slow gamma 30-48 Hz and 60-100 Hz, which the CA1
 literature would call mid gamma. Trials are speed-matched between states as
 everywhere else, and running samples only.
 
@@ -50,9 +50,9 @@ The coupling does not change with the anchoring state. Four comparisons --
 two bands by two cell classes -- give Holm-corrected p >= 0.17, the smallest
 being principal cells locking slightly less to fast gamma when anchored
 (0.0028 against 0.0042, raw p = 0.043), which is the same direction as the
-theta-fast-gamma uncoupling in Figure 7G but does not survive correction.
+theta-fast-gamma uncoupling in Figure 8G but does not survive correction.
 
-So the interneuron-gamma link in the Figure 8 model is partly supported --
+So the interneuron-gamma link in the Figure 9 model is partly supported --
 the phase lag is there -- but the privileged coupling it assumes is not, and
 nothing here ties that coupling to the anchoring state.
 

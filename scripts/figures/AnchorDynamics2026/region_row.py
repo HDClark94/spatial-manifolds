@@ -1,6 +1,6 @@
 """One session, drawn as a row: slice, then per structure a raster and two cells.
 
-Figure 6's region examples and its supplement use the same row, so the row lives
+Figure 7's region examples and its supplement use the same row, so the row lives
 here rather than in both -- two copies drift, and a reader comparing the main
 figure against the supplement has to be able to trust that "the same layout"
 means the same layout.

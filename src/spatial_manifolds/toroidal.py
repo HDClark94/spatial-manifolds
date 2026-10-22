@@ -122,6 +122,7 @@ def spectral_analysis(tcs, tl, bs, windowsize=8, nperseg=1600, noverlap=1400):
     #print("Identified {} candidate modules".format(len(module_idxs)))
 
     f_modules, phi_modules, grid_cell_idxs_modules = [], [], []
+    cons_modules = []
     for mi in module_idxs:
         grid_cell_idxs = np.where(kmeans.labels_ == mi)[0]
         grid_cell_idxs_modules.append(grid_cell_idxs)
@@ -171,9 +172,10 @@ def spectral_analysis(tcs, tl, bs, windowsize=8, nperseg=1600, noverlap=1400):
                 f1s.append(np.nan)
                 f2s.append(np.nan)
                 f3s.append(np.nan)
-                phi1s.append(np.nan)
-                phi2s.append(np.nan)
-                phi3s.append(np.nan)
+                nanrow = np.full(phase_gram.shape[-1], np.nan)
+                phi1s.append(nanrow)
+                phi2s.append(nanrow.copy())
+                phi3s.append(nanrow.copy())
                 colinearity_scores.append(np.nan)
         f1s = np.stack(f1s)
         f2s = np.stack(f2s)
@@ -182,15 +184,22 @@ def spectral_analysis(tcs, tl, bs, windowsize=8, nperseg=1600, noverlap=1400):
         phi2s = np.stack(phi2s)
         phi3s = np.stack(phi3s)
 
-        phi1_dark = phi1s[dark_idxs][:, grid_cell_idxs]
+        # A window whose spectrum has no interior peak in the valid band --
+        # the first and last, where the signal is half zero padding -- yields
+        # no phase. Those windows are dropped rather than carried as NaN,
+        # which KMeans below cannot take.
+        good = np.isfinite(phi1s).all(-1) & np.isfinite(f1s)
+        win_idxs = dark_idxs[good[dark_idxs]]
+
+        phi1_dark = phi1s[win_idxs][:, grid_cell_idxs]
         phi1_dark = (phi1_dark - circ_mean(phi1_dark, axis=-1, keepdims=True)) % (
             2 * np.pi
         )
-        phi2_dark = phi2s[dark_idxs][:, grid_cell_idxs]
+        phi2_dark = phi2s[win_idxs][:, grid_cell_idxs]
         phi2_dark = (phi2_dark - circ_mean(phi2_dark, axis=-1, keepdims=True)) % (
             2 * np.pi
         )
-        phi3_dark = phi3s[dark_idxs][:, grid_cell_idxs]
+        phi3_dark = phi3s[win_idxs][:, grid_cell_idxs]
         phi3_dark = (phi3_dark - circ_mean(phi3_dark, axis=-1, keepdims=True)) % (
             2 * np.pi
         )
@@ -212,7 +221,7 @@ def spectral_analysis(tcs, tl, bs, windowsize=8, nperseg=1600, noverlap=1400):
         for j in range(3):
             phis[j] = []
             fs[j] = []
-        for i in range(len(dark_idxs)):
+        for i in range(len(win_idxs)):
             for j in range(3):
                 label = np.where(labels[i] == j)[0]
                 if len(label) > 0:
@@ -232,12 +241,19 @@ def spectral_analysis(tcs, tl, bs, windowsize=8, nperseg=1600, noverlap=1400):
             fs[j] = np.stack(fs[j])
         f_modules.append(fs)
 
-        phases_all = []
+        phases_all, cons_all = [], []
         for j in range(3):
             r = np.corrcoef(np.sin(phis[j]))
             np.fill_diagonal(r, 0)
-            phases_all.append(circ_mean(phis[j][r.max(0) > 0.5], axis=0))
+            keep = r.max(0) > 0.5
+            phases_all.append(circ_mean(phis[j][keep], axis=0))
+            # how consistent this axis is across windows: the share of
+            # windows whose phase pattern agrees with some other window.
+            # Only two of the three axes are independent, so a caller that
+            # wants a 2D sheet uses this to pick the better two.
+            cons_all.append(float(keep.mean()))
         phi_modules.append(phases_all)
+        cons_modules.append(cons_all)
 
         scales = []
         for fs in f_modules:
@@ -247,6 +263,7 @@ def spectral_analysis(tcs, tl, bs, windowsize=8, nperseg=1600, noverlap=1400):
         scale_sort = np.argsort(scales)
         f_modules = [f_modules[i] for i in scale_sort]
         phi_modules = [phi_modules[i] for i in scale_sort]
+        cons_modules = [cons_modules[i] for i in scale_sort]
         grid_cell_idxs_modules = [grid_cell_idxs_modules[i] for i in scale_sort]
 
     return [f_modules, 
@@ -255,4 +272,5 @@ def spectral_analysis(tcs, tl, bs, windowsize=8, nperseg=1600, noverlap=1400):
             Sxs,
             t,
             fvalid,
-            trial_starts]
+            trial_starts,
+            cons_modules]

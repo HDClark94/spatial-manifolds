@@ -34,7 +34,7 @@ whether a population state built from another region predicts the animal's
 performance as well as the entorhinal one does, which needs no null: hit rate
 and AUC are scored against the behaviour, not against a chance correlation. The
 separate question -- whether cells in each region FOLLOW the entorhinal axis
-above their own chance level -- is answered in Figure 3I, and it has to be
+above their own chance level -- is answered in Figure 4B, and it has to be
 scored against each cell's own circular-shift null, because chance differs
 between regions (+0.130 to +0.157) and raw correlations therefore rank regions
 partly on how often their cells happen to be anchored.

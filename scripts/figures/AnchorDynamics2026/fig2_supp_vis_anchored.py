@@ -101,6 +101,7 @@ globals().update({k: v for k, v in _g.items() if not k.startswith('__')})
 # grey, and the cells that build the rasters coloured by structure
 RCOL = {'MEC': '#7b4173', 'VIS': '#3f9b4f'}
 SLICE_STEP = 12
+ML_JITTER = 15.0          # um, display jitter on the slice (as Figure 4)
 
 
 def _macro(r):
@@ -134,6 +135,11 @@ def draw_slice(ax, mo, dy):
             continue
         pts = ANA.to_ccf(k, ('coord_SCs_z', 'coord_SCs_y', 'coord_SCs_x'))
         pu, pv = fit['project'](pts)
+        # display-only Gaussian jitter on the mediolateral coordinate, as in
+        # Figure 4: cells on one shank share a nominal position and otherwise
+        # stack into a single column
+        pu = pu + np.random.default_rng(mo * 1000 + dy * 10 + len(r_)).normal(
+            0, ML_JITTER, len(pu))
         ax.scatter(pu, pv, s=4.0, color=c_, alpha=.85, lw=0, zorder=3)
     # v increases with depth, so plotting it upward would put MEC above visual
     # cortex; invert so the slice reads the way the brain does
@@ -315,8 +321,12 @@ def mec_state(mo, dy, prefix='ENTm'):
     mec_ids = set(reg[reg.brain_region.astype(str).str.startswith(prefix)]
                   .cluster_id.astype(int))
     ids = [int(c) for c in z['cluster_id']]
-    rows = [i for i, c in enumerate(ids) if c in mec_ids]
-    L = np.asarray(z['labels'])[rows].astype(float)
+    # cells with no usable label on any trial are dropped, as in Figure 4:
+    # they would otherwise sit in the locked block as empty columns
+    _lab = np.asarray(z['labels'], float)
+    rows = [i for i, c in enumerate(ids)
+            if c in mec_ids and not np.isnan(_lab[i]).all()]
+    L = _lab[rows]
     load = np.asarray(z['pc1_load'], float)[rows]
     # Cells that never vary carry no PC1 loading and would sort arbitrarily
     # among the ones that do, so they are separated to the right of a gap as in
@@ -335,7 +345,7 @@ def mec_state(mo, dy, prefix='ENTm'):
     pc1 = np.nan_to_num(np.asarray(z['pc1'], float))
     # Transitions are sign changes of PC1, with epochs shorter than three
     # trials absorbed; the rule lives in the anchoring module so that this
-    # figure, Figure 7 and the Figure 1 supplement cannot drift apart on it.
+    # figure, Figure 8 and the Figure 1 supplement cannot drift apart on it.
     tr = major_transitions(pc1)
     return L, pc1, tr, n_var, n_lock, gap, ids_var
 
@@ -387,7 +397,7 @@ if __name__ == '__main__':
     # Pooled over 23 sessions it is most constricted at 106 cm -- inside the
     # reward zone -- and most dilated near 22 cm, a swing of 2.2 z. The
     # position-locked component is the part that can reflect the scene; the
-    # state-related component is tonic across position (Figure 7I).
+    # state-related component is tonic across position (Figure 8I).
     _pz = np.load(f'{ROOT}/data/eye_anchoring/eye_position_profiles_gated.npz')
     _pup = np.nanmean(np.concatenate([_pz['anch'], _pz['non']]), axis=0)
     _px = (np.arange(len(_pup)) + .5) * (TL / len(_pup))
@@ -404,19 +414,18 @@ if __name__ == '__main__':
     # A and B each take a full row. Side by side there was no width for a
     # probe map and a second population raster, and the two examples are read
     # one after the other rather than against each other anyway.
-    fig = plt.figure(figsize=(11.6, 10.4))
+    fig = plt.figure(figsize=(11.6, 7.6))
     # Five rows. F and G are pinned to the x-extent of the C and D heatmaps,
     # which leaves only about 2.4 in of their row free -- not enough for two
     # more panels -- so the census and the variance-explained panel take a row
     # of their own. Dropping the mean-rate strip from A and B paid for it:
     # the example rasters are no shorter than before.
-    outer = fig.add_gridspec(4, 1, height_ratios=[1.0, 1.0, 1.22, .92],
+    outer = fig.add_gridspec(3, 1, height_ratios=[1.0, 1.0, .92],
                              hspace=.62, left=.065, right=.975, top=.965,
                              bottom=.050)
     # E sits with C and D: it is the same peak-position information those two
     # heatmaps show, summarised, so it belongs beside them rather than opening
     # a row of its own
-    gclu = outer[2].subgridspec(1, 2, wspace=.30)
     # only the row's vertical extent is taken from this: F and G are moved
     # under the C and D heatmaps after those exist, and H and I then fill
     # whatever is left to the right
@@ -425,7 +434,7 @@ if __name__ == '__main__':
     # them made the reader rebuild the correspondence by eye. The census goes
     # on top because it is the finding -- which cells never let go -- and the
     # test below it says what those cells follow.
-    grow = outer[3].subgridspec(1, 2, width_ratios=[1.45, 1.0], wspace=.52)
+    grow = outer[2].subgridspec(1, 2, width_ratios=[1.45, 1.0], wspace=.52)
     gstack = grow[0].subgridspec(2, 1, height_ratios=[.72, 1.0], hspace=.12)
 
     # ---- A, B: one session per row -----------------------------------------
@@ -583,111 +592,8 @@ if __name__ == '__main__':
                             linespacing=1.1)
             cb.ax.tick_params(labelsize=5.4); cb.outline.set_visible(False)
 
-    # ---- C, D: each population clustered on its profile shape ---------------
-    # Sorting by peak position imposes a diagonal whether or not the population
-    # has structure. Clustering on profile SHAPE lets the groups declare
-    # themselves: the dendrogram shows how separable they are, and each
-    # cluster's mean gets its own axes on the right so a flat cluster reads as
-    # flat instead of being stretched to fill a band.
-    _cpal = ['#c0553a', '#d4a017', '#2f8f7a', '#2b4a7a', '#b5485c']
-    # One panel per structure. The entorhinal cells that are speed-modulated in
-    # the open field used to have a panel of their own; they are pooled here
-    # because the split belongs in the test panel below, where it is measured,
-    # rather than in the selection.
-    _sets = ((PV, 'VIS', 'visual cortex'),
-             (PE, 'ENT', 'entorhinal cortex'))
-    for _k, (_P, _nm, _desc) in enumerate(_sets):
-        # the inner gaps have to clear the heatmap's tick labels on both
-        # sides: the cell numbers sit left of it over the dendrogram, and its
-        # '200' sits right of it under the cluster means' '0'
-        gg = gclu[_k].subgridspec(1, 3, width_ratios=[.28, 1.0, .58],
-                                  wspace=.20)
-        # correlation distance: cells with the same field shape at different
-        # rates should group together, and the profiles are normalised per cell
-        Zl = linkage(pdist(_P, metric='correlation'), method='average')
-        lab_ = fcluster(Zl, N_CLUST, criterion='maxclust')
-        n_ = len(_P)
-
-        # colour each link by the cluster of its descendants, grey above the
-        # cut -- done explicitly rather than via color_threshold so the branch
-        # colours and the cluster means are guaranteed to be the same mapping
-        _lc = {}
-        for _i, (_a, _b, _d, _c) in enumerate(Zl):
-            _a, _b = int(_a), int(_b)
-            _ca = lab_[_a] if _a < n_ else _lc.get(_a)
-            _cb = lab_[_b] if _b < n_ else _lc.get(_b)
-            _lc[n_ + _i] = _ca if (_ca is not None and _ca == _cb) else None
-
-        axd = fig.add_subplot(gg[0])
-        dn = dendrogram(Zl, orientation='left', ax=axd, no_labels=True,
-                        link_color_func=lambda i: '0.45')
-        order = dn['leaves']
-        axd.invert_yaxis()           # leaf order now reads top-down
-        ordered = lab_[order]
-        # map cluster id -> palette entry by where it first appears, top-down,
-        # so the top block is cluster 1
-        seen, cmap_ = [], {}
-        for c_ in ordered:
-            if c_ not in seen:
-                seen.append(c_); cmap_[c_] = _cpal[(len(seen) - 1) % len(_cpal)]
-        for _coll, _link in zip(axd.collections, [None]):
-            pass
-        # recolour the drawn links
-        axd.clear()
-        dn = dendrogram(Zl, orientation='left', ax=axd, no_labels=True,
-                        link_color_func=lambda i: cmap_.get(_lc.get(i), '0.45'))
-        axd.invert_yaxis()
-        axd.set_xticks([]); axd.set_yticks([])
-        axd.set_ylabel('Cells', fontsize=8, labelpad=2)
-        for sp in axd.spines.values():
-            sp.set_visible(False)
-        _lp(axd, 'CD'[_k], dx=-.22, dy=1.0)
-
-        axh = fig.add_subplot(gg[1])
-        axh.imshow(_P[order], aspect='auto', cmap=CMAP, origin='upper',
-                   interpolation='nearest', extent=[0, TL, 10 * n_, 0])
-        for b in RZ:
-            axh.axvline(b, color='w', lw=1.0, ls='--')
-        bounds = np.where(np.diff(ordered) != 0)[0] + 1
-        for b_ in bounds:
-            axh.axhline(10 * b_, color='w', lw=1.1)
-        axh.set_ylim(10 * n_, 0)
-        axh.set_yticks([5, 10 * n_ - 5]); axh.set_yticklabels(['1', str(n_)],
-                                                              fontsize=6.5)
-        axh.set_xlabel('Position (cm)', fontsize=8)
-        axh.tick_params(labelsize=7)
-        # each panel says exactly which cells it contains: all three are
-        # locked anchored in switching sessions and differ only in region and
-        # in whether they are speed-modulated
-        axh.set_title(f'{_desc}\n{n_} cells, locked anchored',
-                      fontsize=7.6, loc='left')
-
-        # one axes per cluster, stacked, each with its own mean +/- SEM
-        edges = np.r_[0, bounds, n_]
-        gp = gg[2].subgridspec(len(edges) - 1, 1, hspace=.46)
-        for ci, (a_, b_) in enumerate(zip(edges[:-1], edges[1:])):
-            memb = _P[np.array(order)[a_:b_]]
-            mu = memb.mean(0); se = memb.std(0) / np.sqrt(len(memb))
-            c_ = cmap_[ordered[a_]]
-            axc2 = fig.add_subplot(gp[ci])
-            axc2.fill_between(x, mu - se, mu + se, color=c_, alpha=.30, lw=0)
-            axc2.plot(x, mu, color=c_, lw=1.2)
-            axc2.axvspan(*RZ, color='#d8e4d0', alpha=.55, lw=0, zorder=0)
-            axc2.set_xlim(0, TL)
-            axc2.text(1.0, 1.01, f'cluster {ci + 1} (n={b_ - a_})', color=c_,
-                      fontsize=5.8, ha='right', va='bottom',
-                      transform=axc2.transAxes, clip_on=False)
-            axc2.set_yticks([]); axc2.tick_params(labelsize=6.2)
-            if ci == len(edges) - 2:
-                axc2.set_xticks([0, 100, 200])
-                axc2.set_xlabel('Position (cm)', fontsize=7.5)
-            else:
-                axc2.set_xticks([])
-            if ci == 0:
-                axc2.set_title('cluster means', fontsize=6.8, loc='left',
-                               pad=10)
-            for sp in ('top', 'right', 'left'):
-                axc2.spines[sp].set_visible(False)
+    # The clustered C and D panels (every locked-anchored cell of each
+    # structure, clustered on profile shape) were removed from the figure.
 
     # The cued/uncued example panel was removed; the population statistic it
     # carried is still computed here and quoted in the caption, since it is one
@@ -817,7 +723,7 @@ if __name__ == '__main__':
             f"{int((_par.cell_frac_anch == 0).sum())}")
 
     axc = fig.add_subplot(gstack[0])
-    _lp(axc, 'E', dx=-.24)
+    _lp(axc, 'C', dx=-.24)
     _gx0 = np.arange(4)
     _ons = [_CENS[k][0] for k in ('VIS-', 'VIS+', 'ENT-', 'ENT+')]
     _offs = [_CENS[k][1] for k in ('VIS-', 'VIS+', 'ENT-', 'ENT+')]
@@ -839,7 +745,7 @@ if __name__ == '__main__':
     axc.spines[['top', 'right']].set_visible(False)
 
     ax = fig.add_subplot(gstack[1])
-    _lp(ax, 'F', dx=-.24)
+    _lp(ax, 'D', dx=-.24)
     # The null is drawn as what it is -- the spread of 500 random curves --
     # rather than as a band behind a bar, which reads as an error bar on the
     # bar and means the opposite of what it is.
@@ -881,7 +787,7 @@ if __name__ == '__main__':
     # subtraction the panel above does not license.
     BB = 30.0                    # black box at each end of the 200 cm track
     ax = fig.add_subplot(grow[1])
-    _lp(ax, 'G', dx=-.26)
+    _lp(ax, 'E', dx=-.26)
     _bbs = {}
     for _gn, _lab, _c in (('VIS', 'visual cortex', '#3f9b4f'),
                          ('ENT', 'entorhinal cortex', '#7b4173')):

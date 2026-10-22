@@ -1,0 +1,9 @@
+seed=9601 pc_rf=0.12 -> decode err = 21.8 cm, 46/1024 units grid_score>0.3
+seed=9602 pc_rf=0.12 -> decode err = 20.9 cm, 39/1024 units grid_score>0.3
+seed=9603 pc_rf=0.12 -> decode err = 17.7 cm, 157/1024 units grid_score>0.3
+seed=9604 pc_rf=0.12 -> decode err = 19.6 cm, 40/1024 units grid_score>0.3
+seed=9701 pc_rf=0.1944 -> decode err = 5.4 cm, 401/1024 units grid_score>0.3
+seed=9702 pc_rf=0.1944 -> decode err = 5.3 cm, 415/1024 units grid_score>0.3
+seed=9703 pc_rf=0.1944 -> decode err = 5.3 cm, 431/1024 units grid_score>0.3
+seed=9704 pc_rf=0.1944 -> decode err = 5.4 cm, 452/1024 units grid_score>0.3
+SEED_SCREEN_DONE

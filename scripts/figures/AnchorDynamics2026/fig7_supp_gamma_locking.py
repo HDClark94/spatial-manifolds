@@ -1,6 +1,6 @@
-"""Figure 7 supplement: what spikes do to gamma, and what gamma does to them.
+"""Figure 8 supplement: what spikes do to gamma, and what gamma does to them.
 
-Figure 8's model has fast-spiking interneurons generating the gamma that nests
+Figure 9's model has fast-spiking interneurons generating the gamma that nests
 in theta, and Figure 2 has interneurons among the cells that follow the
 anchoring state. Those meet only if the interneurons here are coupled to the
 gamma in this field potential. Computed by gamma_locking.py.

@@ -135,7 +135,7 @@ for a in axes.ravel():
     a.spines[['top', 'right']].set_visible(False)
     a.tick_params(labelsize=7.5)
 # named for the figure it supports; the old fig6_ name dates from when
-# the field-potential figure was Figure 6
+# the field-potential figure was Figure 7
 out = f'{FIG}/fig7_supp_speed_tuning.pdf'
 # panel letters and a headline, so the figure can stand in the supplement
 for _i, _ax in enumerate(axes.ravel()):

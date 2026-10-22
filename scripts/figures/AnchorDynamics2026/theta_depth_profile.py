@@ -32,7 +32,7 @@ layer 2 and increases with distance into the deep layers. Sessions are
 aligned by LAYER rather than by raw probe depth before averaging, since the
 probe sits at a different absolute depth in each.
 
-Trials are speed-matched between states as everywhere else in Figure 7.
+Trials are speed-matched between states as everywhere else in Figure 8.
 
 Writes data/lfp/theta_depth_profile.npz
 """

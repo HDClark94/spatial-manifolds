@@ -10,7 +10,7 @@ predictions and the task separates them:
     long runs of uncued trials should precede exits.
 
   ENDOGENOUS -- the state is set by something the task does not control (an
-    arousal-linked input, per Figure 5), so trial type should carry no
+    arousal-linked input, per Figure 6), so trial type should carry no
     information about when it switches.
 
 Behaviour gives a third possibility worth separating from both: the state may

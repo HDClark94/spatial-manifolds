@@ -1,0 +1,9 @@
+place-cell width groups: [0.1944], counts=[512]
+/Users/harryclark/Documents/spatial-manifolds/GRID-PATTERN-FORMATION/scores.py:137: RuntimeWarning: invalid value encountered in divide
+  x_coef = np.divide(covar, np.multiply(std_seq1, std_seq2))
+
+decode err = 5.4 cm, 401/1024 units grid_score>0.3
+spacing (grid cells only, n=396): median=142.1cm range=[107.8,217.9]cm
+GMM on log(spacing): BIC(k=1,2,3)=[-815, -838, -817] -> best_k=2
+2-component means: [141.3, 144.5] cm -- MULTIPLE SCALES DETECTED
+VALIDATION_DONE

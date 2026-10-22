@@ -1,0 +1,302 @@
+[orch 14:44] === training net A (rnn_seed 1234, pc_seed 101) ===
+device=mps rnn_seed=1234 pc_seed=101 steps=50000 dir=/Users/harryclark/Documents/spatial-manifolds/data/rnn_xgboost/diffPC_A_Ng1024
+step      1/50000 loss 6.272 err   97.0 cm (662 ms/step)
+step    501/50000 loss 6.238 err  101.2 cm (132 ms/step)
+step   1001/50000 loss 6.238 err  105.4 cm (133 ms/step)
+step   1501/50000 loss 6.238 err  101.3 cm (135 ms/step)
+step   2001/50000 loss 6.238 err  108.6 cm (135 ms/step)
+step   2501/50000 loss 6.238 err   96.1 cm (135 ms/step)
+step   3001/50000 loss 6.238 err   98.8 cm (139 ms/step)
+step   3501/50000 loss 6.238 err  101.5 cm (140 ms/step)
+step   4001/50000 loss 6.238 err   93.1 cm (139 ms/step)
+step   4501/50000 loss 6.238 err  100.3 cm (135 ms/step)
+step   5001/50000 loss 6.237 err   95.1 cm (131 ms/step)
+step   5501/50000 loss 6.238 err  102.6 cm (129 ms/step)
+step   6001/50000 loss 6.238 err  101.9 cm (127 ms/step)
+step   6501/50000 loss 6.237 err  101.8 cm (125 ms/step)
+step   7001/50000 loss 6.237 err   93.7 cm (125 ms/step)
+step   7501/50000 loss 6.237 err   95.2 cm (124 ms/step)
+step   8001/50000 loss 6.235 err   93.2 cm (123 ms/step)
+step   8501/50000 loss 6.235 err   95.6 cm (124 ms/step)
+step   9001/50000 loss 6.234 err   93.0 cm (125 ms/step)
+step   9501/50000 loss 6.234 err   97.8 cm (125 ms/step)
+step  10001/50000 loss 6.233 err   92.5 cm (124 ms/step)
+step  10501/50000 loss 6.234 err   95.0 cm (123 ms/step)
+step  11001/50000 loss 6.233 err   89.5 cm (122 ms/step)
+step  11501/50000 loss 6.232 err   92.9 cm (121 ms/step)
+step  12001/50000 loss 6.231 err   89.1 cm (120 ms/step)
+step  12501/50000 loss 6.230 err   86.6 cm (119 ms/step)
+step  13001/50000 loss 6.229 err   84.7 cm (120 ms/step)
+step  13501/50000 loss 6.230 err   88.9 cm (119 ms/step)
+step  14001/50000 loss 6.230 err   93.3 cm (119 ms/step)
+step  14501/50000 loss 6.226 err   85.0 cm (118 ms/step)
+step  15001/50000 loss 6.225 err   81.1 cm (118 ms/step)
+step  15501/50000 loss 6.225 err   81.4 cm (117 ms/step)
+step  16001/50000 loss 6.224 err   76.1 cm (117 ms/step)
+step  16501/50000 loss 6.221 err   72.5 cm (117 ms/step)
+step  17001/50000 loss 6.222 err   76.0 cm (116 ms/step)
+step  17501/50000 loss 6.222 err   75.2 cm (116 ms/step)
+step  18001/50000 loss 6.219 err   64.8 cm (115 ms/step)
+step  18501/50000 loss 6.220 err   66.1 cm (115 ms/step)
+step  19001/50000 loss 6.217 err   60.3 cm (115 ms/step)
+step  19501/50000 loss 6.215 err   56.4 cm (114 ms/step)
+step  20001/50000 loss 6.216 err   58.8 cm (114 ms/step)
+step  20501/50000 loss 6.212 err   52.8 cm (114 ms/step)
+step  21001/50000 loss 6.214 err   52.2 cm (114 ms/step)
+step  21501/50000 loss 6.209 err   45.8 cm (114 ms/step)
+step  22001/50000 loss 6.205 err   43.7 cm (113 ms/step)
+step  22501/50000 loss 6.205 err   43.5 cm (114 ms/step)
+step  23001/50000 loss 6.204 err   37.4 cm (113 ms/step)
+step  23501/50000 loss 6.204 err   39.6 cm (113 ms/step)
+step  24001/50000 loss 6.205 err   37.5 cm (113 ms/step)
+step  24501/50000 loss 6.203 err   36.6 cm (112 ms/step)
+step  25001/50000 loss 6.206 err   38.4 cm (111 ms/step)
+step  25501/50000 loss 6.202 err   33.5 cm (110 ms/step)
+step  26001/50000 loss 6.201 err   36.6 cm (109 ms/step)
+step  26501/50000 loss 6.197 err   29.7 cm (108 ms/step)
+step  27001/50000 loss 6.198 err   28.2 cm (108 ms/step)
+step  27501/50000 loss 6.198 err   31.9 cm (107 ms/step)
+step  28001/50000 loss 6.200 err   28.1 cm (107 ms/step)
+step  28501/50000 loss 6.190 err   21.6 cm (106 ms/step)
+step  29001/50000 loss 6.192 err   21.0 cm (106 ms/step)
+step  29501/50000 loss 6.195 err   23.1 cm (106 ms/step)
+step  30001/50000 loss 6.197 err   24.4 cm (105 ms/step)
+step  30501/50000 loss 6.195 err   21.5 cm (105 ms/step)
+step  31001/50000 loss 6.190 err   17.9 cm (105 ms/step)
+step  31501/50000 loss 6.194 err   21.5 cm (104 ms/step)
+step  32001/50000 loss 6.190 err   18.8 cm (104 ms/step)
+step  32501/50000 loss 6.189 err   17.5 cm (104 ms/step)
+step  33001/50000 loss 6.190 err   18.3 cm (104 ms/step)
+step  33501/50000 loss 6.185 err   16.8 cm (103 ms/step)
+step  34001/50000 loss 6.184 err   14.4 cm (103 ms/step)
+step  34501/50000 loss 6.185 err   14.5 cm (103 ms/step)
+step  35001/50000 loss 6.186 err   16.7 cm (103 ms/step)
+step  35501/50000 loss 6.185 err   16.1 cm (102 ms/step)
+step  36001/50000 loss 6.184 err   14.0 cm (102 ms/step)
+step  36501/50000 loss 6.190 err   14.9 cm (102 ms/step)
+step  37001/50000 loss 6.187 err   16.9 cm (102 ms/step)
+step  37501/50000 loss 6.184 err   13.9 cm (102 ms/step)
+step  38001/50000 loss 6.183 err   14.9 cm (101 ms/step)
+step  38501/50000 loss 6.186 err   13.9 cm (101 ms/step)
+step  39001/50000 loss 6.184 err   15.1 cm (101 ms/step)
+step  39501/50000 loss 6.182 err   14.2 cm (101 ms/step)
+step  40001/50000 loss 6.180 err   12.1 cm (101 ms/step)
+step  40501/50000 loss 6.182 err   12.4 cm (101 ms/step)
+step  41001/50000 loss 6.184 err   12.4 cm (100 ms/step)
+step  41501/50000 loss 6.179 err   10.8 cm (100 ms/step)
+step  42001/50000 loss 6.184 err   12.7 cm (100 ms/step)
+step  42501/50000 loss 6.183 err   13.0 cm (100 ms/step)
+step  43001/50000 loss 6.179 err   11.2 cm (100 ms/step)
+step  43501/50000 loss 6.182 err   12.1 cm (100 ms/step)
+step  44001/50000 loss 6.183 err   12.2 cm (99 ms/step)
+step  44501/50000 loss 6.180 err   10.4 cm (99 ms/step)
+step  45001/50000 loss 6.180 err   10.5 cm (99 ms/step)
+step  45501/50000 loss 6.177 err   10.7 cm (99 ms/step)
+step  46001/50000 loss 6.183 err   11.8 cm (99 ms/step)
+step  46501/50000 loss 6.183 err   12.7 cm (99 ms/step)
+step  47001/50000 loss 6.180 err   10.7 cm (99 ms/step)
+step  47501/50000 loss 6.180 err   11.8 cm (99 ms/step)
+step  48001/50000 loss 6.178 err   10.8 cm (99 ms/step)
+step  48501/50000 loss 6.176 err   10.4 cm (98 ms/step)
+step  49001/50000 loss 6.180 err    9.8 cm (98 ms/step)
+step  49501/50000 loss 6.178 err    9.8 cm (98 ms/step)
+DONE step=50000 final err 10.5 cm (81.8 min)
+[orch 16:06] === training net B (rnn_seed 5678, pc_seed 202) ===
+device=mps rnn_seed=5678 pc_seed=202 steps=50000 dir=/Users/harryclark/Documents/spatial-manifolds/data/rnn_xgboost/diffPC_B_Ng1024
+step      1/50000 loss 6.272 err  100.9 cm (466 ms/step)
+step    501/50000 loss 6.238 err   91.3 cm (89 ms/step)
+step   1001/50000 loss 6.238 err   89.8 cm (91 ms/step)
+step   1501/50000 loss 6.238 err   90.9 cm (89 ms/step)
+step   2001/50000 loss 6.238 err   93.8 cm (90 ms/step)
+step   2501/50000 loss 6.238 err   92.7 cm (90 ms/step)
+step   3001/50000 loss 6.238 err   95.1 cm (91 ms/step)
+step   3501/50000 loss 6.238 err   89.6 cm (92 ms/step)
+step   4001/50000 loss 6.238 err   96.3 cm (91 ms/step)
+step   4501/50000 loss 6.238 err   93.1 cm (91 ms/step)
+step   5001/50000 loss 6.238 err  102.3 cm (90 ms/step)
+step   5501/50000 loss 6.237 err  103.4 cm (90 ms/step)
+step   6001/50000 loss 6.238 err   98.9 cm (93 ms/step)
+step   6501/50000 loss 6.238 err   98.3 cm (95 ms/step)
+step   7001/50000 loss 6.238 err  100.0 cm (96 ms/step)
+step   7501/50000 loss 6.238 err  101.0 cm (97 ms/step)
+step   8001/50000 loss 6.237 err  100.9 cm (97 ms/step)
+step   8501/50000 loss 6.237 err   98.8 cm (98 ms/step)
+step   9001/50000 loss 6.237 err   98.7 cm (98 ms/step)
+step   9501/50000 loss 6.237 err   97.4 cm (98 ms/step)
+step  10001/50000 loss 6.235 err   93.6 cm (98 ms/step)
+step  10501/50000 loss 6.235 err   93.2 cm (98 ms/step)
+step  11001/50000 loss 6.235 err   88.6 cm (98 ms/step)
+step  11501/50000 loss 6.234 err   85.8 cm (97 ms/step)
+step  12001/50000 loss 6.233 err   83.1 cm (98 ms/step)
+step  12501/50000 loss 6.233 err   86.8 cm (97 ms/step)
+step  13001/50000 loss 6.231 err   84.0 cm (97 ms/step)
+step  13501/50000 loss 6.231 err   87.1 cm (97 ms/step)
+step  14001/50000 loss 6.230 err   91.8 cm (97 ms/step)
+step  14501/50000 loss 6.228 err   84.5 cm (97 ms/step)
+step  15001/50000 loss 6.227 err   86.2 cm (97 ms/step)
+step  15501/50000 loss 6.226 err   83.6 cm (97 ms/step)
+step  16001/50000 loss 6.225 err   81.8 cm (97 ms/step)
+step  16501/50000 loss 6.223 err   79.0 cm (97 ms/step)
+step  17001/50000 loss 6.221 err   79.6 cm (97 ms/step)
+step  17501/50000 loss 6.222 err   80.0 cm (97 ms/step)
+step  18001/50000 loss 6.220 err   73.6 cm (97 ms/step)
+step  18501/50000 loss 6.220 err   69.5 cm (97 ms/step)
+step  19001/50000 loss 6.218 err   71.3 cm (97 ms/step)
+step  19501/50000 loss 6.218 err   63.8 cm (97 ms/step)
+step  20001/50000 loss 6.214 err   61.0 cm (96 ms/step)
+step  20501/50000 loss 6.215 err   60.8 cm (96 ms/step)
+step  21001/50000 loss 6.214 err   53.0 cm (96 ms/step)
+step  21501/50000 loss 6.210 err   51.6 cm (96 ms/step)
+step  22001/50000 loss 6.208 err   50.3 cm (96 ms/step)
+step  22501/50000 loss 6.208 err   48.9 cm (96 ms/step)
+step  23001/50000 loss 6.207 err   43.9 cm (96 ms/step)
+step  23501/50000 loss 6.206 err   44.6 cm (95 ms/step)
+step  24001/50000 loss 6.205 err   40.2 cm (95 ms/step)
+step  24501/50000 loss 6.204 err   40.1 cm (95 ms/step)
+step  25001/50000 loss 6.206 err   41.1 cm (95 ms/step)
+step  25501/50000 loss 6.203 err   31.9 cm (95 ms/step)
+step  26001/50000 loss 6.205 err   38.3 cm (95 ms/step)
+step  26501/50000 loss 6.201 err   31.6 cm (95 ms/step)
+step  27001/50000 loss 6.202 err   32.4 cm (95 ms/step)
+step  27501/50000 loss 6.201 err   31.9 cm (95 ms/step)
+step  28001/50000 loss 6.199 err   29.5 cm (95 ms/step)
+step  28501/50000 loss 6.195 err   28.5 cm (95 ms/step)
+step  29001/50000 loss 6.195 err   21.7 cm (95 ms/step)
+step  29501/50000 loss 6.199 err   28.5 cm (95 ms/step)
+step  30001/50000 loss 6.201 err   27.5 cm (95 ms/step)
+step  30501/50000 loss 6.195 err   23.3 cm (94 ms/step)
+step  31001/50000 loss 6.193 err   21.1 cm (94 ms/step)
+step  31501/50000 loss 6.196 err   26.6 cm (94 ms/step)
+step  32001/50000 loss 6.191 err   21.2 cm (94 ms/step)
+step  32501/50000 loss 6.191 err   19.0 cm (94 ms/step)
+step  33001/50000 loss 6.191 err   21.9 cm (94 ms/step)
+step  33501/50000 loss 6.191 err   21.3 cm (94 ms/step)
+step  34001/50000 loss 6.186 err   18.2 cm (94 ms/step)
+step  34501/50000 loss 6.189 err   17.6 cm (94 ms/step)
+step  35001/50000 loss 6.192 err   19.7 cm (94 ms/step)
+step  35501/50000 loss 6.188 err   15.9 cm (94 ms/step)
+step  36001/50000 loss 6.190 err   16.2 cm (94 ms/step)
+step  36501/50000 loss 6.192 err   19.6 cm (94 ms/step)
+step  37001/50000 loss 6.192 err   16.3 cm (94 ms/step)
+step  37501/50000 loss 6.188 err   13.7 cm (94 ms/step)
+step  38001/50000 loss 6.186 err   13.1 cm (94 ms/step)
+step  38501/50000 loss 6.189 err   15.5 cm (94 ms/step)
+step  39001/50000 loss 6.189 err   15.9 cm (94 ms/step)
+step  39501/50000 loss 6.185 err   14.8 cm (94 ms/step)
+step  40001/50000 loss 6.183 err   13.8 cm (94 ms/step)
+step  40501/50000 loss 6.186 err   12.7 cm (94 ms/step)
+step  41001/50000 loss 6.185 err   13.2 cm (94 ms/step)
+step  41501/50000 loss 6.183 err   12.4 cm (94 ms/step)
+step  42001/50000 loss 6.186 err   14.0 cm (94 ms/step)
+step  42501/50000 loss 6.183 err   12.7 cm (94 ms/step)
+step  43001/50000 loss 6.182 err   12.1 cm (94 ms/step)
+step  43501/50000 loss 6.182 err   12.6 cm (94 ms/step)
+step  44001/50000 loss 6.184 err   11.0 cm (94 ms/step)
+step  44501/50000 loss 6.181 err   10.1 cm (94 ms/step)
+step  45001/50000 loss 6.184 err   11.7 cm (94 ms/step)
+step  45501/50000 loss 6.179 err   10.8 cm (95 ms/step)
+step  46001/50000 loss 6.186 err   11.3 cm (95 ms/step)
+step  46501/50000 loss 6.184 err   11.6 cm (95 ms/step)
+step  47001/50000 loss 6.182 err   10.4 cm (95 ms/step)
+step  47501/50000 loss 6.182 err   10.8 cm (95 ms/step)
+step  48001/50000 loss 6.180 err   10.5 cm (95 ms/step)
+step  48501/50000 loss 6.178 err   10.5 cm (95 ms/step)
+step  49001/50000 loss 6.182 err   10.8 cm (95 ms/step)
+step  49501/50000 loss 6.178 err   10.5 cm (95 ms/step)
+DONE step=50000 final err 10.4 cm (79.4 min)
+[orch 17:25] === validating both nets ===
+net A (1234/pc101): decode=10.3 cm | grid median=0.28 | frac>0.3=0.45 | n>0.3=463/1024
+net B (5678/pc202): decode=10.3 cm | grid median=0.27 | frac>0.3=0.42 | n>0.3=427/1024
+saved two_network_diffPC_validation.png/pdf
+VALIDATION_DONE
+[orch 17:31] === building diffPC xgboost cache ===
+device=mps
+netA(seed1234,pc101) 474 GCs, random 40 selected, mean|J|=0.0096 | netB(seed5678,pc202) 424 GCs, random 40 selected, mean|J|=0.0084
+combined: 80 units (40+40) | T=48,000 bins | baseline=pos+speed+hd | speed 0.0001-0.0785
+ETA ~5.6 h (4.2 min/target x 80)
+[1/80] target 0 (net0)  3.4 min  mean dpR2 within=0.0944 cross=0.0526
+[2/80] target 1 (net0)  7.0 min  mean dpR2 within=0.0557 cross=0.0304
+[3/80] target 2 (net0)  10.4 min  mean dpR2 within=0.0428 cross=0.0219
+[4/80] target 3 (net0)  14.0 min  mean dpR2 within=0.0353 cross=0.0193
+[5/80] target 4 (net0)  17.3 min  mean dpR2 within=0.0602 cross=0.0309
+[6/80] target 5 (net0)  20.4 min  mean dpR2 within=0.0547 cross=0.0274
+[7/80] target 6 (net0)  23.7 min  mean dpR2 within=0.0526 cross=0.0251
+[8/80] target 7 (net0)  26.7 min  mean dpR2 within=0.0466 cross=0.0223
+[9/80] target 8 (net0)  30.0 min  mean dpR2 within=0.0442 cross=0.0213
+[10/80] target 9 (net0)  33.6 min  mean dpR2 within=0.0431 cross=0.0202
+[11/80] target 10 (net0)  36.4 min  mean dpR2 within=0.0441 cross=0.0196
+[12/80] target 11 (net0)  39.9 min  mean dpR2 within=0.0418 cross=0.0184
+[13/80] target 12 (net0)  43.5 min  mean dpR2 within=0.0443 cross=0.0186
+[14/80] target 13 (net0)  47.0 min  mean dpR2 within=0.0433 cross=0.0177
+[15/80] target 14 (net0)  50.3 min  mean dpR2 within=0.0422 cross=0.0176
+[16/80] target 15 (net0)  53.5 min  mean dpR2 within=0.0408 cross=0.0168
+[17/80] target 16 (net0)  56.7 min  mean dpR2 within=0.0389 cross=0.0162
+[18/80] target 17 (net0)  59.7 min  mean dpR2 within=0.0395 cross=0.0166
+[19/80] target 18 (net0)  63.2 min  mean dpR2 within=0.0391 cross=0.0165
+[20/80] target 19 (net0)  66.7 min  mean dpR2 within=0.0386 cross=0.0161
+[21/80] target 20 (net0)  69.8 min  mean dpR2 within=0.0390 cross=0.0159
+[22/80] target 21 (net0)  73.0 min  mean dpR2 within=0.0376 cross=0.0154
+[23/80] target 22 (net0)  76.3 min  mean dpR2 within=0.0373 cross=0.0149
+[24/80] target 23 (net0)  79.6 min  mean dpR2 within=0.0431 cross=0.0170
+[25/80] target 24 (net0)  82.9 min  mean dpR2 within=0.0449 cross=0.0182
+[26/80] target 25 (net0)  85.8 min  mean dpR2 within=0.0465 cross=0.0187
+[27/80] target 26 (net0)  88.7 min  mean dpR2 within=0.0466 cross=0.0184
+[28/80] target 27 (net0)  91.8 min  mean dpR2 within=0.0470 cross=0.0183
+[29/80] target 28 (net0)  95.1 min  mean dpR2 within=0.0457 cross=0.0179
+[30/80] target 29 (net0)  98.1 min  mean dpR2 within=0.0485 cross=0.0186
+[31/80] target 30 (net0)  101.5 min  mean dpR2 within=0.0493 cross=0.0191
+[32/80] target 31 (net0)  104.3 min  mean dpR2 within=0.0510 cross=0.0191
+[33/80] target 32 (net0)  107.7 min  mean dpR2 within=0.0511 cross=0.0191
+[34/80] target 33 (net0)  110.8 min  mean dpR2 within=0.0524 cross=0.0195
+[35/80] target 34 (net0)  114.1 min  mean dpR2 within=0.0514 cross=0.0191
+[36/80] target 35 (net0)  117.2 min  mean dpR2 within=0.0502 cross=0.0187
+[37/80] target 36 (net0)  120.4 min  mean dpR2 within=0.0502 cross=0.0187
+[38/80] target 37 (net0)  123.0 min  mean dpR2 within=0.0505 cross=0.0187
+[39/80] target 38 (net0)  129.3 min  mean dpR2 within=0.0519 cross=0.0190
+[40/80] target 39 (net0)  132.3 min  mean dpR2 within=0.0511 cross=0.0187
+[41/80] target 40 (net1)  135.6 min  mean dpR2 within=0.0500 cross=0.0183
+[42/80] target 41 (net1)  138.9 min  mean dpR2 within=0.0489 cross=0.0178
+[43/80] target 42 (net1)  141.9 min  mean dpR2 within=0.0479 cross=0.0175
+[44/80] target 43 (net1)  145.1 min  mean dpR2 within=0.0469 cross=0.0171
+[45/80] target 44 (net1)  148.3 min  mean dpR2 within=0.0461 cross=0.0167
+[46/80] target 45 (net1)  151.7 min  mean dpR2 within=0.0455 cross=0.0163
+[47/80] target 46 (net1)  154.7 min  mean dpR2 within=0.0468 cross=0.0178
+[48/80] target 47 (net1)  156.4 min  mean dpR2 within=0.0461 cross=0.0175
+[49/80] target 48 (net1)  158.3 min  mean dpR2 within=0.0453 cross=0.0172
+[50/80] target 49 (net1)  160.7 min  mean dpR2 within=0.0449 cross=0.0171
+[51/80] target 50 (net1)  163.2 min  mean dpR2 within=0.0442 cross=0.0167
+[52/80] target 51 (net1)  165.8 min  mean dpR2 within=0.0435 cross=0.0164
+[53/80] target 52 (net1)  168.1 min  mean dpR2 within=0.0429 cross=0.0162
+[54/80] target 53 (net1)  170.6 min  mean dpR2 within=0.0423 cross=0.0160
+[55/80] target 54 (net1)  173.2 min  mean dpR2 within=0.0416 cross=0.0157
+[56/80] target 55 (net1)  174.9 min  mean dpR2 within=0.0442 cross=0.0182
+[57/80] target 56 (net1)  177.4 min  mean dpR2 within=0.0435 cross=0.0178
+[58/80] target 57 (net1)  179.6 min  mean dpR2 within=0.0432 cross=0.0176
+[59/80] target 58 (net1)  181.9 min  mean dpR2 within=0.0433 cross=0.0177
+[60/80] target 59 (net1)  184.1 min  mean dpR2 within=0.0429 cross=0.0175
+[61/80] target 60 (net1)  186.6 min  mean dpR2 within=0.0422 cross=0.0172
+[62/80] target 61 (net1)  188.7 min  mean dpR2 within=0.0418 cross=0.0170
+[63/80] target 62 (net1)  191.3 min  mean dpR2 within=0.0412 cross=0.0168
+[64/80] target 63 (net1)  193.6 min  mean dpR2 within=0.0407 cross=0.0165
+[65/80] target 64 (net1)  195.9 min  mean dpR2 within=0.0405 cross=0.0163
+[66/80] target 65 (net1)  198.1 min  mean dpR2 within=0.0402 cross=0.0162
+[67/80] target 66 (net1)  200.4 min  mean dpR2 within=0.0400 cross=0.0160
+[68/80] target 67 (net1)  202.9 min  mean dpR2 within=0.0395 cross=0.0159
+[69/80] target 68 (net1)  205.1 min  mean dpR2 within=0.0393 cross=0.0158
+[70/80] target 69 (net1)  207.3 min  mean dpR2 within=0.0388 cross=0.0156
+[71/80] target 70 (net1)  209.7 min  mean dpR2 within=0.0384 cross=0.0155
+[72/80] target 71 (net1)  212.2 min  mean dpR2 within=0.0379 cross=0.0152
+[73/80] target 72 (net1)  215.7 min  mean dpR2 within=0.0375 cross=0.0151
+[74/80] target 73 (net1)  219.1 min  mean dpR2 within=0.0372 cross=0.0149
+[75/80] target 74 (net1)  222.0 min  mean dpR2 within=0.0368 cross=0.0147
+[76/80] target 75 (net1)  225.6 min  mean dpR2 within=0.0366 cross=0.0145
+[77/80] target 76 (net1)  228.8 min  mean dpR2 within=0.0363 cross=0.0144
+[78/80] target 77 (net1)  232.0 min  mean dpR2 within=0.0358 cross=0.0142
+[79/80] target 78 (net1)  235.3 min  mean dpR2 within=0.0353 cross=0.0140
+[80/80] target 79 (net1)  237.9 min  mean dpR2 within=0.0352 cross=0.0140
+DONE
+[orch 21:35] === generating figures ===
+FIGURES_DONE
+=== diffPC RESULT: within ΔpR²=0.0352 cross=0.0140 ratio=2.52x | Spearman(|J|,ΔpR²)=+0.093 Spearman(|J|,pR²cell)=+0.187 | strong-within=3.6x floor
+=== COMPARISON of cross-net ΔpR² floor: pretrained4096=0.0106 (1.66x) | sharedPC-1024=0.0245 (1.01x) | diffPC-1024=0.0140 (2.52x)
+[orch 21:35] ===== ALL DONE =====

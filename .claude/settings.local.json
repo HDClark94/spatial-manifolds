@@ -18,7 +18,8 @@
       "Bash(awk:*)",
       "Bash(date:*)",
       "Bash(ls:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(python -)"
     ]
   }
 }

@@ -1,4 +1,4 @@
-"""Figure 5, several panel arrangements and a choice of example session.
+"""Figure 6, several panel arrangements and a choice of example session.
 
 Usage:  python3 fig6_layouts.py [mouse day]
 

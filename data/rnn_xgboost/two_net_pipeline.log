@@ -1,0 +1,97 @@
+[orch 07:29] waiting for seed5678 training to finish...
+[orch 08:17] training done:
+DONE step=50000 final err 11.7 cm (62.7 min)
+[orch 08:17] === validating both nets ===
+net seed1234: decode=12.5 cm | grid median=0.27 | frac>0.3=0.46 | n>0.3=475/1024
+net seed5678: decode=11.3 cm | grid median=0.30 | frac>0.3=0.50 | n>0.3=512/1024
+saved two_network_both_validation.png/pdf
+VALIDATION_DONE
+[orch 08:20] === building two-net xgboost cache ===
+device=mps
+net1(seed1234) selected grid scores: 0.97-1.35 | net2(seed5678): 1.01-1.43
+combined population: 80 units (40+40) | T=48,000 bins | baseline=[np.str_('pos_x'), np.str_('pos_y'), np.str_('speed'), np.str_('cos_hd'), np.str_('sin_hd')] | speed range 0.0001-0.0785
+ETA ~3.0 h (2.3 min/target x 80)
+[1/80] target 0 (net0)  1.8 min  mean dpR2 within=0.0149 cross=0.0167
+[2/80] target 1 (net0)  4.2 min  mean dpR2 within=0.0112 cross=0.0098
+[3/80] target 2 (net0)  6.4 min  mean dpR2 within=0.0155 cross=0.0133
+[4/80] target 3 (net0)  8.5 min  mean dpR2 within=0.0138 cross=0.0123
+[5/80] target 4 (net0)  10.9 min  mean dpR2 within=0.0159 cross=0.0151
+[6/80] target 5 (net0)  13.1 min  mean dpR2 within=0.0138 cross=0.0136
+[7/80] target 6 (net0)  15.6 min  mean dpR2 within=0.0140 cross=0.0139
+[8/80] target 7 (net0)  18.0 min  mean dpR2 within=0.0143 cross=0.0155
+[9/80] target 8 (net0)  20.1 min  mean dpR2 within=0.0148 cross=0.0160
+[10/80] target 9 (net0)  22.5 min  mean dpR2 within=0.0159 cross=0.0168
+[11/80] target 10 (net0)  24.7 min  mean dpR2 within=0.0154 cross=0.0161
+[12/80] target 11 (net0)  27.0 min  mean dpR2 within=0.0156 cross=0.0163
+[13/80] target 12 (net0)  29.3 min  mean dpR2 within=0.0166 cross=0.0172
+[14/80] target 13 (net0)  31.5 min  mean dpR2 within=0.0179 cross=0.0189
+[15/80] target 14 (net0)  33.8 min  mean dpR2 within=0.0172 cross=0.0184
+[16/80] target 15 (net0)  35.9 min  mean dpR2 within=0.0178 cross=0.0190
+[17/80] target 16 (net0)  38.2 min  mean dpR2 within=0.0208 cross=0.0221
+[18/80] target 17 (net0)  40.6 min  mean dpR2 within=0.0206 cross=0.0220
+[19/80] target 18 (net0)  43.2 min  mean dpR2 within=0.0202 cross=0.0215
+[20/80] target 19 (net0)  45.5 min  mean dpR2 within=0.0203 cross=0.0219
+[21/80] target 20 (net0)  47.9 min  mean dpR2 within=0.0202 cross=0.0220
+[22/80] target 21 (net0)  50.3 min  mean dpR2 within=0.0196 cross=0.0214
+[23/80] target 22 (net0)  52.7 min  mean dpR2 within=0.0198 cross=0.0218
+[24/80] target 23 (net0)  55.2 min  mean dpR2 within=0.0203 cross=0.0222
+[25/80] target 24 (net0)  57.6 min  mean dpR2 within=0.0201 cross=0.0219
+[26/80] target 25 (net0)  59.8 min  mean dpR2 within=0.0202 cross=0.0219
+[27/80] target 26 (net0)  62.2 min  mean dpR2 within=0.0203 cross=0.0217
+[28/80] target 27 (net0)  64.6 min  mean dpR2 within=0.0203 cross=0.0218
+[29/80] target 28 (net0)  67.0 min  mean dpR2 within=0.0205 cross=0.0219
+[30/80] target 29 (net0)  69.4 min  mean dpR2 within=0.0209 cross=0.0224
+[31/80] target 30 (net0)  71.6 min  mean dpR2 within=0.0205 cross=0.0220
+[32/80] target 31 (net0)  74.1 min  mean dpR2 within=0.0210 cross=0.0225
+[33/80] target 32 (net0)  76.4 min  mean dpR2 within=0.0213 cross=0.0229
+[34/80] target 33 (net0)  79.0 min  mean dpR2 within=0.0212 cross=0.0228
+[35/80] target 34 (net0)  81.4 min  mean dpR2 within=0.0211 cross=0.0227
+[36/80] target 35 (net0)  83.9 min  mean dpR2 within=0.0212 cross=0.0228
+[37/80] target 36 (net0)  86.3 min  mean dpR2 within=0.0215 cross=0.0230
+[38/80] target 37 (net0)  88.4 min  mean dpR2 within=0.0223 cross=0.0236
+[39/80] target 38 (net0)  90.8 min  mean dpR2 within=0.0222 cross=0.0234
+[40/80] target 39 (net0)  93.1 min  mean dpR2 within=0.0221 cross=0.0233
+[41/80] target 40 (net1)  95.3 min  mean dpR2 within=0.0231 cross=0.0242
+[42/80] target 41 (net1)  97.5 min  mean dpR2 within=0.0231 cross=0.0241
+[43/80] target 42 (net1)  100.0 min  mean dpR2 within=0.0231 cross=0.0240
+[44/80] target 43 (net1)  102.3 min  mean dpR2 within=0.0236 cross=0.0244
+[45/80] target 44 (net1)  104.5 min  mean dpR2 within=0.0239 cross=0.0246
+[46/80] target 45 (net1)  106.7 min  mean dpR2 within=0.0239 cross=0.0247
+[47/80] target 46 (net1)  109.1 min  mean dpR2 within=0.0243 cross=0.0249
+[48/80] target 47 (net1)  111.4 min  mean dpR2 within=0.0244 cross=0.0248
+[49/80] target 48 (net1)  113.9 min  mean dpR2 within=0.0243 cross=0.0247
+[50/80] target 49 (net1)  116.3 min  mean dpR2 within=0.0246 cross=0.0251
+[51/80] target 50 (net1)  118.8 min  mean dpR2 within=0.0246 cross=0.0251
+[52/80] target 51 (net1)  121.0 min  mean dpR2 within=0.0248 cross=0.0249
+[53/80] target 52 (net1)  123.2 min  mean dpR2 within=0.0248 cross=0.0249
+[54/80] target 53 (net1)  125.8 min  mean dpR2 within=0.0251 cross=0.0252
+[55/80] target 54 (net1)  128.0 min  mean dpR2 within=0.0252 cross=0.0252
+[56/80] target 55 (net1)  130.3 min  mean dpR2 within=0.0255 cross=0.0253
+[57/80] target 56 (net1)  132.8 min  mean dpR2 within=0.0253 cross=0.0251
+[58/80] target 57 (net1)  135.2 min  mean dpR2 within=0.0255 cross=0.0252
+[59/80] target 58 (net1)  137.6 min  mean dpR2 within=0.0252 cross=0.0250
+[60/80] target 59 (net1)  140.1 min  mean dpR2 within=0.0251 cross=0.0248
+[61/80] target 60 (net1)  142.7 min  mean dpR2 within=0.0250 cross=0.0247
+[62/80] target 61 (net1)  145.0 min  mean dpR2 within=0.0251 cross=0.0248
+[63/80] target 62 (net1)  147.3 min  mean dpR2 within=0.0249 cross=0.0246
+[64/80] target 63 (net1)  149.6 min  mean dpR2 within=0.0248 cross=0.0245
+[65/80] target 64 (net1)  151.8 min  mean dpR2 within=0.0247 cross=0.0244
+[66/80] target 65 (net1)  154.3 min  mean dpR2 within=0.0250 cross=0.0247
+[67/80] target 66 (net1)  156.6 min  mean dpR2 within=0.0248 cross=0.0245
+[68/80] target 67 (net1)  158.8 min  mean dpR2 within=0.0248 cross=0.0244
+[69/80] target 68 (net1)  161.1 min  mean dpR2 within=0.0251 cross=0.0248
+[70/80] target 69 (net1)  163.5 min  mean dpR2 within=0.0250 cross=0.0247
+[71/80] target 70 (net1)  165.9 min  mean dpR2 within=0.0248 cross=0.0247
+[72/80] target 71 (net1)  168.1 min  mean dpR2 within=0.0250 cross=0.0248
+[73/80] target 72 (net1)  170.5 min  mean dpR2 within=0.0250 cross=0.0248
+[74/80] target 73 (net1)  173.1 min  mean dpR2 within=0.0251 cross=0.0249
+[75/80] target 74 (net1)  175.6 min  mean dpR2 within=0.0251 cross=0.0249
+[76/80] target 75 (net1)  177.9 min  mean dpR2 within=0.0252 cross=0.0250
+[77/80] target 76 (net1)  180.4 min  mean dpR2 within=0.0250 cross=0.0247
+[78/80] target 77 (net1)  182.8 min  mean dpR2 within=0.0251 cross=0.0247
+[79/80] target 78 (net1)  185.2 min  mean dpR2 within=0.0251 cross=0.0248
+[80/80] target 79 (net1)  187.4 min  mean dpR2 within=0.0248 cross=0.0245
+DONE
+[orch 11:31] === generating figures ===
+FIGURES_DONE | within ΔpR²=0.0248 cross=0.0245 ratio=1.01x | Spearman(|J|,ΔpR²)=+0.151 Spearman(|J|,pR²cell)=+0.266
+[orch 11:31] ===== ALL DONE =====

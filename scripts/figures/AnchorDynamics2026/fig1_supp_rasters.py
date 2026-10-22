@@ -81,7 +81,7 @@ def session(mo, dy):
     Lb = np.vstack(blocks)
 
     # sign changes of PC1, epochs under three trials absorbed; the rule is in
-    # the anchoring module, shared with Figures 6 and 7
+    # the anchoring module, shared with Figures 7 and 8
     trans = major_transitions(pc1)
 
     return (beh, trials, stops, trials_a, Lb, frac, len(ord_v), len(ord_l),

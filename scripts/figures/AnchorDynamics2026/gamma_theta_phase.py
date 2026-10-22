@@ -1,6 +1,6 @@
 """At which theta phase does each gamma band reach its amplitude peak?
 
-An early version of Figure 8 drew slow and fast gamma nested at DIFFERENT
+An early version of Figure 9 drew slow and fast gamma nested at DIFFERENT
 points in the theta cycle -- slow on one flank, fast on the other. That is a specific empirical
 claim and nothing in this collection had tested it: lfp_spectrum_pac.py stores
 the modulation index, which says HOW STRONGLY a band is nested, and discards the

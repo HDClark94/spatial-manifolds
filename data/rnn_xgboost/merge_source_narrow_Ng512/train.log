@@ -1,0 +1,15 @@
+device=mps rnn_seed=9201 pc_seed=9200 steps=25000 pc_rf=0.06 seq_len=20 box_width=2.2 Np=512 dir=data/rnn_xgboost/merge_source_narrow_Ng512
+place-cell width groups: [0.06], counts=[512]
+irnn_init ON: weight_hh_l0 = 0.99*I, spectral radius=0.990
+step      1/25000 loss 6.289 err   96.0 cm grad_norm    0.00 (1056 ms/step)
+step    501/25000 loss 6.284 err   94.1 cm grad_norm    0.00 (65 ms/step)
+step   1001/25000 loss 6.279 err   97.6 cm grad_norm    0.00 (65 ms/step)
+step   1501/25000 loss 6.275 err   99.2 cm grad_norm    0.00 (68 ms/step)
+step   2001/25000 loss 6.271 err  103.8 cm grad_norm    0.00 (68 ms/step)
+step   2501/25000 loss 6.267 err   99.5 cm grad_norm    0.00 (67 ms/step)
+step   3001/25000 loss 6.264 err   96.0 cm grad_norm    0.00 (66 ms/step)
+step   3501/25000 loss 6.261 err   86.8 cm grad_norm    0.00 (66 ms/step)
+step   4001/25000 loss 6.258 err   97.6 cm grad_norm    0.00 (65 ms/step)
+step   4501/25000 loss 6.255 err   93.3 cm grad_norm    0.00 (64 ms/step)
+step   5001/25000 loss 6.253 err   97.3 cm grad_norm    0.00 (64 ms/step)
+step   5501/25000 loss 6.251 err   96.8 cm grad_norm    0.00 (64 ms/step)

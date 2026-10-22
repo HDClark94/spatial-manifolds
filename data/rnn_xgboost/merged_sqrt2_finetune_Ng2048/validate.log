@@ -1,0 +1,13 @@
+sigma_group.npy on disk differs from the freshly-reconstructed shuffle -- using the SAVED (training-time) assignment
+place-cell width groups: [0.12, 0.1944], counts=[512, 512]
+/Users/harryclark/Documents/spatial-manifolds/GRID-PATTERN-FORMATION/scores.py:137: RuntimeWarning: invalid value encountered in divide
+  x_coef = np.divide(covar, np.multiply(std_seq1, std_seq2))
+
+decode err = 4.0 cm, 516/2048 units grid_score>0.3
+encoder_mask was ON -- ng_group counts=[1024, 1024]
+  Ng group 0 (matched to pc width 0.12): 136 grid cells, spacing median=113.3cm range=[85.2,172.2]cm
+  Ng group 1 (matched to pc width 0.1944): 375 grid cells, spacing median=142.2cm range=[94.7,185.8]cm
+spacing (grid cells only, n=511): median=137.8cm range=[85.2,185.8]cm
+GMM on log(spacing): BIC(k=1,2,3)=[-531, -622, -601] -> best_k=2
+2-component means: [108.8, 141.9] cm -- MULTIPLE SCALES DETECTED
+VALIDATION_DONE

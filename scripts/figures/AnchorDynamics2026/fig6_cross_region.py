@@ -1,4 +1,4 @@
-"""Figure 6: one state, shared across structures, expressed most strongly by a cell type.
+"""Figure 7: one state, shared across structures, expressed most strongly by a cell type.
 
 THE QUESTION THIS FIGURE NOW ASKS. Earlier versions asked "which regions follow the
 MEC axis?", which makes entorhinal cortex the privileged frame: a region can only

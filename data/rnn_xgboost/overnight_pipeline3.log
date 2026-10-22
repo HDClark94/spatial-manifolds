@@ -1,0 +1,34 @@
+=== multiscale_seq20_control_Ng1024: START Thu Aug 20 09:10:09 BST 2026 ===
+=== multiscale_seq20_control_Ng1024: DONE Thu Aug 20 09:40:26 BST 2026 ===
+place-cell width groups: [0.12], counts=[512]
+/Users/harryclark/Documents/spatial-manifolds/GRID-PATTERN-FORMATION/scores.py:137: RuntimeWarning: invalid value encountered in divide
+  x_coef = np.divide(covar, np.multiply(std_seq1, std_seq2))
+
+decode err = 9.9 cm, 118/1024 units grid_score>0.3
+spacing (grid cells only, n=118): median=101.1cm range=[86.7,148.2]cm
+GMM on log(spacing): BIC(k=1,2,3)=[-191, -204, -195] -> best_k=2
+2-component means: [98.9, 117.4] cm -- MULTIPLE SCALES DETECTED
+VALIDATION_DONE
+=== multiscale_seq50_control_Ng1024: START Thu Aug 20 09:40:26 BST 2026 ===
+=== multiscale_seq50_control_Ng1024: DONE Thu Aug 20 10:50:09 BST 2026 ===
+place-cell width groups: [0.12], counts=[512]
+/Users/harryclark/Documents/spatial-manifolds/GRID-PATTERN-FORMATION/scores.py:137: RuntimeWarning: invalid value encountered in divide
+  x_coef = np.divide(covar, np.multiply(std_seq1, std_seq2))
+
+decode err = 8.7 cm, 37/1024 units grid_score>0.3
+spacing (grid cells only, n=37): median=116.3cm range=[75.3,185.4]cm
+GMM on log(spacing): BIC(k=1,2,3)=[8, 15, 25] -> best_k=1
+single component wins -- NO evidence for multiple scales
+VALIDATION_DONE
+=== multiscale_combo2_Ng1024: START Thu Aug 20 10:50:09 BST 2026 ===
+=== multiscale_combo2_Ng1024: DONE Thu Aug 20 11:40:20 BST 2026 ===
+place-cell width groups: [0.06, 0.18], counts=[256, 256]
+/Users/harryclark/Documents/spatial-manifolds/GRID-PATTERN-FORMATION/scores.py:137: RuntimeWarning: invalid value encountered in divide
+  x_coef = np.divide(covar, np.multiply(std_seq1, std_seq2))
+
+decode err = 7.2 cm, 406/1024 units grid_score>0.3
+spacing (grid cells only, n=405): median=133.8cm range=[97.0,207.8]cm
+GMM on log(spacing): BIC(k=1,2,3)=[-847, -852, -828] -> best_k=2
+2-component means: [132.1, 139.6] cm -- MULTIPLE SCALES DETECTED
+VALIDATION_DONE
+OVERNIGHT_PIPELINE3_DONE

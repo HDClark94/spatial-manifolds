@@ -35,3 +35,19 @@ data/xgboost_cell_number_assay_master*.csv
 # large regenerable artifacts (too big for GitHub)
 data/xgboost_shank_anchoring/*.pkl
 scripts/figures/figure_2_anatomy_of_spatial_cells/*.gif
+
+# --- large or machine-specific files kept out of git (2026-10-22) ---
+# regenerable caches (rebuild_paper.py derive) and abandoned backups
+data/lfp/tsc/
+data/lfp/tsc_neural_cycles/
+data/lfp/PREGATE/
+data/manifold/
+data/sac_umap_cache/*.npz
+# RNN training artefacts; Figure S1 needs only net7_1D_track_sim/{sim,switch,of_ratemaps}_cache.npz
+data/rnn_xgboost/**/ckpt.pth
+data/rnn_xgboost/**/ratemaps_cache.npy
+data/rnn_xgboost/net7_2D_OF_sim/
+data/rnn_xgboost/net7_1D_track_sim/conditions_cache.npz
+# rebuild_paper.py run products
+scripts/figures/AnchorDynamics2026/rebuild_logs/
+scripts/figures/AnchorDynamics2026/rebuild_paths.json

@@ -1,4 +1,4 @@
-"""Figure 4 — the local circuit: wired together, but the wiring does not carry
+"""Figure 5 — the local circuit: wired together, but the wiring does not carry
 the state.
 
 Usage:  python3 fig4_monosynaptic.py

@@ -1,4 +1,4 @@
-"""Figure 5 — theta and the population anchoring state, in one panel.
+"""Figure 6 — theta and the population anchoring state, in one panel.
 
     A   one session on a shared trial axis: the population anchoring raster,
         theta amplitude, theta frequency and running speed

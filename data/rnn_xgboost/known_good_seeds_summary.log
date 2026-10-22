@@ -1,0 +1,5 @@
+=== merge_source_net6seed_Ng1024 (seed 4444) ===
+decode err = 8.6 cm, 56/1024 units grid_score>0.3
+=== merge_source_net7seed_Ng1024 (seed 5555) ===
+decode err = 10.3 cm, 140/1024 units grid_score>0.3
+KNOWN_GOOD_SEEDS_DONE

@@ -1,7 +1,7 @@
 """Best-fit recording slice through the atlas: the shared implementation.
 
 The same slice geometry is wanted by more than one figure (Figure 3's anatomy
-panels, Figure 6's region examples), and it is not the kind of thing to have two
+panels, Figure 7's region examples), and it is not the kind of thing to have two
 copies of -- the CCF transform, the plane fit and the region shading all have to
 agree or the figures disagree about where a cell is. This module holds it once.
 
@@ -11,7 +11,7 @@ fitting a plane to cell positions fits the approximation rather than the probe
 geometry that produced it. The contacts are the geometry.
 
 The 4.8 GB annotation volume is memory-mapped and loaded ONLY when a region grid
-is actually requested, so importing this module is cheap. Figure 6's examples
+is actually requested, so importing this module is cheap. Figure 7's examples
 need the slice outline and the cells; nothing forces them to pay for the atlas
 unless they ask to shade it.
 
@@ -29,7 +29,7 @@ from matplotlib.colors import BoundaryNorm, ListedColormap
 
 ROOT = '/Users/harryclark/Documents/spatial-manifolds'
 BG = '/Users/harryclark/.brainglobe/allen_mouse_10um_v1.2'
-DC_PATH = '/Users/harryclark/Downloads/device_contact_id_annotations.csv'
+DC_PATH = '/Users/harryclark/Documents/spatial-manifolds/data/device_contact_id_annotations.csv'  # build_device_contacts.py, from clark2025
 
 COL_HIPPO, COL_PREPARA = '#9C6A38', '#ABDBD2'
 COL_MEC, COL_VIS = '#2E7D6C', '#8C6BB1'

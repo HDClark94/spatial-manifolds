@@ -4,7 +4,7 @@ Three stacked statements: what the phenomenon is and what it buys the animal,
 which cells express it, and what the state is.
 
 NOTHING HERE IS A SCHEMATIC EXCEPT THE TWO TRACK STRIPS, and nothing is typed
-in except the Figure 2 and Figure 7 bar values. Everything else is computed
+in except the Figure 2 and Figure 8 bar values. Everything else is computed
 from cached tables, so it cannot drift from the paper the way the retired
 Figure 2D values once did:
 
@@ -15,11 +15,11 @@ Figure 2D values once did:
               orders them
   behaviour   data/eye_anchoring/eye_anchoring_trials.csv -- hit rate by state
               and cue condition, the state being the sign of PC1
-  the pupil   one video frame per state from the Figure 5 example session, at a
-              matched track position, and the Figure 5I profiles from
+  the pupil   one video frame per state from the Figure 6 example session, at a
+              matched track position, and the Figure 6I profiles from
               data/eye_anchoring/eye_position_profiles_gated.npz, drawn as that
               panel draws them. The per-bin significance markers are left off:
-              they are uncorrected in Figure 5 and mark extent rather than test
+              they are uncorrected in Figure 6 and mark extent rather than test
               it, which is not a distinction a graphical abstract can carry.
 
 ga_build_cache.py writes ga_cache.npz and needs the lab volume; this script
@@ -318,7 +318,7 @@ axp.set_ylabel('z(pupil radius)', fontsize=5.2, labelpad=1)
 axp.tick_params(labelsize=4.8, length=2, pad=1)
 axp.spines[['top', 'right']].set_visible(False)
 
-# the same schematic Figure 8 draws, at the measured preferred theta phases:
+# the same schematic Figure 9 draws, at the measured preferred theta phases:
 # what the state changes is how much each band carries and, for fast gamma,
 # how tightly its burst is confined -- not when in the cycle it arrives
 PH_SLOW, PH_FAST = 95., 42.

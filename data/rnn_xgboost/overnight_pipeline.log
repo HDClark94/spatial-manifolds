@@ -1,0 +1,15 @@
+=== RUN 1: combined (mixed widths + long sequence + encoder mask) ===
+=== RUN 1 DONE ===
+place-cell width groups: [0.06, 0.18], counts=[256, 256]
+/Users/harryclark/Documents/spatial-manifolds/GRID-PATTERN-FORMATION/scores.py:137: RuntimeWarning: invalid value encountered in divide
+  x_coef = np.divide(covar, np.multiply(std_seq1, std_seq2))
+
+decode err = 96.8 cm, 67/1024 units grid_score>0.3
+encoder_mask was ON -- ng_group counts=[512, 512]
+  Ng group 0 (matched to pc width 0.06): 19 grid cells, spacing median=123.8cm range=[78.6,144.1]cm
+  Ng group 1 (matched to pc width 0.18): 48 grid cells, spacing median=118.7cm range=[67.0,130.4]cm
+spacing (grid cells only, n=67): median=119.9cm range=[67.0,144.1]cm
+GMM on log(spacing): BIC(k=1,2,3)=[-61, -74, -69] -> best_k=2
+2-component means: [91.7, 122.1] cm -- MULTIPLE SCALES DETECTED
+VALIDATION_DONE
+=== RUN 2: ablation (mixed widths + long sequence, NO encoder mask) ===

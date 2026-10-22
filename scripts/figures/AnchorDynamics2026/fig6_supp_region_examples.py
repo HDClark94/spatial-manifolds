@@ -1,4 +1,4 @@
-"""Figure 6 supplement 2: the state outside MEC, in sessions MEC does not dominate.
+"""Figure 7 supplement 2: the state outside MEC, in sessions MEC does not dominate.
 
 The main region-example figure shows sessions where entorhinal cortex supplies
 most of the cells, which is the usual case and is also the weakest place to
@@ -29,7 +29,7 @@ structure are in the main examples.
                     honest way to say so.
 
 Taken in order the visual rows run +0.91, +0.65, -0.50: the range is the point,
-and a figure showing only the top of it would misrepresent Figure 6C.
+and a figure showing only the top of it would misrepresent Figure 7C.
 
 WHAT IS AND IS NOT BEING CLAIMED. These are examples, chosen for their sampling
 rather than their result, and the printed correlations are single sessions. The

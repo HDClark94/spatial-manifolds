@@ -1,4 +1,4 @@
-"""Figure 8: one circuit, one gate, and what each setting of the gate produces.
+"""Figure 9: one circuit, one gate, and what each setting of the gate produces.
 
 THIS FIGURE IS SPECULATIVE AND IS LABELLED AS SUCH ON THE PAGE. It belongs to
 the Ideas and speculation section, not to Results. The circuit is a schematic
@@ -12,7 +12,7 @@ a landmark drive carrying the task frame that passes through a gate. The gate
 is what the anchoring state IS: open, the estimate is corrected to the task
 frame on every traversal; shut, it is not. Engagement sets the gate, and in
 this task engagement goes with a CONSTRICTED pupil, not a dilated one (Figure
-5: pupil falls 0.41 z on entry to the anchored state and rises 0.49 z on exit,
+6: pupil falls 0.41 z on entry to the anchored state and rises 0.49 z on exit,
 and hit rate falls monotonically from 0.83 to 0.39 across pupil deciles, so the
 constricted state is the focused one). The position estimate then drives
 behaviour -- where the animal slows and stops.
@@ -30,7 +30,7 @@ WHAT CHANGED, AND WHY.
      side. That said the opposite of what is meant: the circuit is ONE circuit
      and only the gate moves. It is now drawn once.
   3. That version also had the pupil DILATED in the engaged state, which is
-     backwards for this task -- see above and Figure 5.
+     backwards for this task -- see above and Figure 6.
 
 THE TEN SMALL PANELS ARE SIMULATED. Three periodic 1D grid cells of different
 spacing, the position decoded from a continuous attractor fed by them, and the
@@ -55,7 +55,7 @@ THE FIELD-POTENTIAL CHANGES ARE DRAWN ON THE SCHEMATIC, beside the estimate,
 because the frequency-specific part of the result is what says the change is a
 rotation of the input balance rather than a gain change: slow gamma rises,
 fast gamma, theta and theta-fast coupling fall, and the difference crosses
-zero at a median of 67 Hz in 25 of 26 sessions (Figure 7).
+zero at a median of 67 Hz in 25 of 26 sessions (Figure 8).
 The non-anchored panels are drawn with the phase RE-DRAWN rather than
 progressively displaced, because that is what the data show: non-anchored
 trials have no coherent field at any offset once the unrelated-cell floor is
@@ -90,7 +90,7 @@ GRID_C = '#c04744'
 INT_C = '#2b6cb0'
 ACH = '#b8860b'        # engagement / the gate
 ANCH, NONANCH = '#a8559e', '#3f9b8f'
-# Bands. Figure 7 draws slow gamma in the interneuron blue and fast gamma in
+# Bands. Figure 8 draws slow gamma in the interneuron blue and fast gamma in
 # the grid-cell red; here those two colours are already spoken for by the two
 # populations inside the estimate, so the bands take green and orange.
 SLOW, FAST, THETA = '#2f7d32', '#e8701a', '#7b4173'

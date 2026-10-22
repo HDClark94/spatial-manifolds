@@ -1,4 +1,4 @@
-"""Which session best represents the Figure 5 population trend?
+"""Which session best represents the Figure 6 population trend?
 
 Usage:  python3 fig6_session_ranking.py
 

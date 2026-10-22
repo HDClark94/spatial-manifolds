@@ -1,0 +1,15 @@
+device=mps | cache N=80
+T=48000 | regenerated activations (spot pr2_base[0] cached=0.560)
+  null 100/500  (3.3 min)
+  null 200/500  (6.6 min)
+  null 300/500  (9.6 min)
+  null 400/500  (12.8 min)
+  null 500/500  (15.8 min)
+
+=== SHIFT-NULL RESULT ===
+null (shifted source):  mean=+0.0011  std=0.0124  95th=0.0036
+cross-net ΔpR²:         mean=+0.0140  (+1.0 SD above null)
+within-net ΔpR²:        mean=+0.0352  (+2.8 SD above null)
+cross floor above null 95th percentile? True
+saved two_network_diffPC_shiftnull.png/pdf
+NULL_DONE

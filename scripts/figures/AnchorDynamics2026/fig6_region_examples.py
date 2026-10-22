@@ -1,6 +1,6 @@
-"""Figure 6 lead-in: the same anchoring state, seen separately in each structure.
+"""Figure 7 lead-in: the same anchoring state, seen separately in each structure.
 
-Figure 6's statistics are abstract -- split-half reliabilities, correlations
+Figure 7's statistics are abstract -- split-half reliabilities, correlations
 between principal components corrected for attenuation. They are easier to
 believe, and easier to doubt in the right places, after seeing the states
 themselves and the single cells underneath them.
@@ -8,7 +8,7 @@ themselves and the single cells underneath them.
 Two sessions are shown, chosen to BRACKET the range rather than to represent it:
 the strongest and the weakest entorhinal-visual agreement among sessions
 recording all three structures with at least MIN_REGION_CELLS label-varying cells
-each. Picking the two best would misrepresent Figure 6C, whose disattenuated mean
+each. Picking the two best would misrepresent Figure 7C, whose disattenuated mean
 of +0.863 carries a confidence interval of [0.49, 1.23] precisely because
 sessions differ this much.
 
@@ -17,7 +17,7 @@ SESSIONS APPEAR. At 10 the worst session reaches -0.49, but it has 10 subicular
 and 21 visual cells, so its axes are barely estimated and the anti-correlation is
 as likely to be noise as signal -- bracketing on extremes is exactly the
 selection most vulnerable to it. Requiring 20 keeps the examples legible and the
-bracket meaningful. The population statistics in Figure 6 are unaffected: they
+bracket meaningful. The population statistics in Figure 7 are unaffected: they
 use every qualifying session and correct for reliability explicitly, which is
 what this figure cannot do for a single session.
 

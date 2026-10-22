@@ -1,4 +1,4 @@
-"""Figure 7 supplement: the band changes in individual sessions.
+"""Figure 8 supplement: the band changes in individual sessions.
 
 The main figure carries one example (M26 D18) and then the population average.
 A single example cannot show whether the population trend is a few strong

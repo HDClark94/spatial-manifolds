@@ -1,8 +1,8 @@
-"""Figure 5 statistics with the hierarchy modelled, instead of ignored.
+"""Figure 6 statistics with the hierarchy modelled, instead of ignored.
 
 Usage:  python3 fig6_lmm.py
 
-WHAT WAS WRONG. Every number in Figure 5 came from a Wilcoxon signed-rank test
+WHAT WAS WRONG. Every number in Figure 6 came from a Wilcoxon signed-rank test
 over sessions, which treats 19 sessions as 19 independent observations. They are
 not: they come from a handful of mice, several sessions each, so sessions from
 one animal are correlated and the effective n is smaller than 19. That inflates
@@ -99,7 +99,7 @@ def lmm(df, dv, covar=None, warn=True):
 def lmm_session(S, col_a, col_n, dv):
     """Session-level: the signed-rank test's own unit, plus a mouse term.
 
-    This is the minimal correction to what Figure 5 already does. The trial-level
+    This is the minimal correction to what Figure 6 already does. The trial-level
     model has far more power but assumes trials are conditionally independent
     given session, which consecutive trials are not -- running speed and theta
     drift slowly across a session -- so its p-values are anti-conservative. Where

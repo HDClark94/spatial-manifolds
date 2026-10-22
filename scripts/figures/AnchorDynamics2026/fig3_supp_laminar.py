@@ -71,7 +71,7 @@ plt.rcParams['pdf.fonttype'] = 42
 ROOT = '/Users/harryclark/Documents/spatial-manifolds'
 FIG = os.path.dirname(os.path.abspath(__file__))
 PS = f'{ROOT}/data/population_state'
-DC = '/Users/harryclark/Downloads/device_contact_id_annotations.csv'
+DC = '/Users/harryclark/Documents/spatial-manifolds/data/device_contact_id_annotations.csv'  # build_device_contacts.py, from clark2025
 OUT = f'{FIG}/fig3_supp_laminar.pdf'
 
 MIN_SPAN_UM = 200.0        # as in Figure 3: two shank pitches

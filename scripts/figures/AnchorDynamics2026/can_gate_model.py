@@ -1,6 +1,6 @@
 """A continuous attractor with a gated landmark correction, simulated.
 
-THE QUESTION. Figure 8 proposes that the anchoring state is the gain on a
+THE QUESTION. Figure 9 proposes that the anchoring state is the gain on a
 landmark correction and not a change in the entorhinal circuit. That account
 has to produce, from one parameter, four things measured separately: fields
 that recur or do not; slow gamma up and fast gamma down with the difference
@@ -126,7 +126,7 @@ TAU_EF = 0.002               # error population: a faster membrane
 TAU_G = 0.002                # inhibitory pools
 D_SLOW, D_FAST = 0.007, 0.0035       # -> 42 Hz and 86 Hz
 A_EE, A_G, DRIVE = 4.0, 2.0, 0.50    # attractor: bump PV 0.66, stable
-F_EE, F_G, F_DR = 3.0, 6.0, 0.0      # error ring
+F_EE, F_G, F_DR = 3.0, 5.0, 0.0      # error ring; F_G from the scan
 F_BG, F_NOISE = 0.25, 0.10   # asynchronous background on the error ring
 S_THETA = 0.0                # septal theta direct onto the slow pool.
 #                              Tried at 0.15, 0.35 and 0.60 to flatten
@@ -137,8 +137,29 @@ S_THETA = 0.0                # septal theta direct onto the slow pool.
 #                              buys nothing.
 DELAY_LAND = 0.012
 F_THETA, THETA_DEPTH = 8.0, 0.35
+# Septal theta need not reach the two populations at the same phase, so the
+# error ring's theta gate carries an offset. It was swept over a full cycle,
+# 0 to 5 radians, against Figure S10, which measures the two bands only about
+# 40 degrees apart in the theta cycle. It does not help: the fast band's
+# preferred phase stays within 25 degrees of the theta peak throughout
+# (15, 357, 352, 354, 5, 24 degrees) and the slow band's within 10 degrees of
+# the trough (197 to 201), so the separation never leaves 150-180 degrees.
+# The two pools' envelopes are driven in antiphase by the construction itself
+# -- one tracks how concentrated the bump is, the other how large the error is
+# -- and no phase offset on the input changes that. Left at zero, and the
+# failure is reported rather than hidden.
+THETA_PHI_F = 0.0
 TAU_PRED = 0.008
-G_OPEN = 4.5
+# G_OPEN and F_G were set by can_gate_scan.py, which scored the model against
+# the measured band changes with the attractor's own results as constraints.
+# They turn out to be orthogonal: G_OPEN sets the slow-gamma change and the
+# sign of theta's, F_G sets the fast-gamma change, the theta-fast coupling and
+# the prediction together, through a threshold between 4 and 5 at which the
+# error ring starts to oscillate strongly. There is therefore no setting with
+# a realistically small fast-gamma change AND the measured coupling drop: in
+# this model they are the same event. 2.0 and 5.0 keep both and leave the
+# fast-gamma overshoot as the one remaining spectral failure.
+G_OPEN = 2.0
 NOISE, RMAX = 0.05, 2.0
 
 th = np.arange(N) * 2 * np.pi / N
@@ -164,7 +185,25 @@ def shift(v, s):
     return relu(np.real(np.fft.ifft(np.fft.fft(v) * np.exp(-2j * np.pi * KF * s / N))))
 
 
-def run(gate, seed=0):
+def run_blocks(seed=0, nblock=33):
+    """One session that goes non-anchored, anchored, non-anchored.
+
+    The recordings do not hand us one switch halfway: the population state
+    comes in blocks of tens of trials with transitions in both directions, so
+    the simulated session is built the same way. Nothing is reset between
+    blocks, so the attractor carries straight through each transition.
+    """
+    global NLAP
+    keep = NLAP
+    sched = np.r_[np.zeros(nblock), np.full(nblock, G_OPEN), np.zeros(nblock)]
+    try:
+        NLAP = 3 * nblock
+        return run(G_OPEN, seed, schedule=sched), sched
+    finally:
+        NLAP = keep
+
+
+def run(gate, seed=0, switch_lap=None, schedule=None):
     rng = np.random.default_rng(seed)
     nstep = int(NLAP * TRACK / 30.0 / DT)
     x, lap = 0.0, 0
@@ -191,6 +230,7 @@ def run(gate, seed=0):
         # speed; added as a current its trough rectifies the bump away
         a_th = THETA_DEPTH * (0.55 + 0.015 * spd)
         th_t = a_th * np.cos(2 * np.pi * F_THETA * t)
+        th_f = a_th * np.cos(2 * np.pi * F_THETA * t + THETA_PHI_F)
 
         pred = pred + DT / TAU_PRED * (-pred + s)
         # theta GATES the transmission of the error rather than driving the
@@ -204,7 +244,7 @@ def run(gate, seed=0):
         # falls even though nothing about the timing has moved. Without a
         # background the residual is pure theta-gated error and coupling goes
         # UP when the gate opens -- the opposite of the recordings.
-        I_F = ((1.0 + 1.6 * th_t) * (1.6 * bump(phi_land) - 1.1 * pred)
+        I_F = ((1.0 + 1.6 * th_f) * (1.6 * bump(phi_land) - 1.1 * pred)
                - F_G * buf_f[0] + F_DR + F_BG
                + F_NOISE * rng.standard_normal(N))
         r_F = r_F + DT / TAU_EF * (-r_F + np.clip(I_F, 0, RMAX))
@@ -228,6 +268,10 @@ def run(gate, seed=0):
         sh = spd * DT / LAM * N
         s = shift(s, sh); r_E = shift(r_E, sh)
 
+        if schedule is not None:
+            gate = float(schedule[min(lap, len(schedule) - 1)])
+        elif switch_lap is not None and lap >= switch_lap:
+            gate = 0.0
         rec['lfp_s'].append(g_s); rec['lfp_f'].append(g_f); rec['lfp_th'].append(th_t)
         if i % 4 == 0:
             phi = np.angle((s * np.exp(1j * th)).sum()) % (2 * np.pi)
@@ -282,6 +326,64 @@ def ratemap(r, unit, nb=40):
     return M
 
 
+def population_state(r, nbin=50):
+    """The model's own anchoring raster and PC1, built as Figure 1 builds them.
+
+    The simulated ring is passed through the recordings' own classifier --
+    trial_cluster_labels on each unit's trial-by-position map, then the first
+    principal component of the cell-by-trial label matrix -- so the model's
+    population state is produced by the same code, and the same choices, as
+    the measured one.
+    """
+    import sys
+    sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
+    from spatial_manifolds.anchoring import trial_cluster_labels
+    lap = np.asarray(r['lap'])
+    pos = np.asarray(r['x']) % TRACK
+    nlap = int(lap.max()) + 1
+    b = np.clip((pos / TRACK * nbin).astype(int), 0, nbin - 1)
+    rE = r['rE']
+    M = np.full((rE.shape[1], nlap, nbin), np.nan)
+    for L in range(nlap):
+        m = lap == L
+        if not m.any():
+            continue
+        for k in range(nbin):
+            mm = m & (b == k)
+            if mm.any():
+                M[:, L, k] = rE[mm].mean(0)
+    lab = np.stack([trial_cluster_labels(M[i])[0] for i in range(len(M))])
+    P = lab[~np.isnan(lab).all(1)]
+    frac = np.nanmean(P, axis=0)
+    Pc = np.nan_to_num(P - np.nanmean(P, axis=1, keepdims=True))
+    U, sv, Vt = np.linalg.svd(Pc, full_matrices=False)
+    pc1, load = Vt[0], U[:, 0]
+    if np.corrcoef(pc1, np.nan_to_num(frac))[0, 1] < 0:
+        pc1, load = -pc1, -load
+    return dict(labels=lab, pc1=pc1, pc1_load=load, frac_anch=frac, maps=M)
+
+
+def lap_spectra(r, nper=2048):
+    """One spectrum per lap, so the model can be summarised as Figure 8 is.
+
+    Figure 8E plots two things the recordings allow because they have trials:
+    a whitened spectrum with the session mean removed, and each frequency
+    z-scored across trials. A single Welch estimate per state supports
+    neither. The model's laps are its trials, so the field potential is cut
+    at lap boundaries and a spectrum taken within each.
+    """
+    lfp = lfp_of(r)
+    lap = np.repeat(np.asarray(r['lap']), 4)[:len(lfp)]
+    f, rows = None, []
+    for L in np.unique(lap):
+        seg = lfp[lap == L]
+        if len(seg) < nper:
+            continue
+        f, P = welch(seg, fs=1 / DT, nperseg=nper)
+        rows.append(np.log10(P + 1e-30))
+    return f, np.asarray(rows)
+
+
 def analyse(r, seed=0):
     fs, out = 1 / DT, {}
     lfp = lfp_of(r)
@@ -312,6 +414,31 @@ def analyse(r, seed=0):
     return out
 
 
+def bump_excess(rE, rng, bin_ms=100.0, sigma=2.5, nperm=200):
+    """The bump measured exactly as attractor_coherence.py measures it.
+
+    The model's own bump statistic is the resultant of the rate profile over
+    the ring, which is not what the recordings can report: there, each cell's
+    phase offset is estimated and the population is projected onto it, and the
+    answer is the excess over a shuffle of which offset belongs to which cell.
+    To compare the two, the same measure is applied here -- rates binned to
+    100 ms and smoothed as the recordings are, z-scored per neuron, projected
+    onto the ring phase, and referred to the same phase shuffle.
+    """
+    from scipy.ndimage import gaussian_filter
+    k = max(1, int(round(bin_ms / 1e3 / (DT * 4))))        # rE is every 4 dt
+    T = (len(rE) // k) * k
+    R = rE[:T].reshape(-1, k, rE.shape[1]).mean(1).T       # neurons x bins
+    R = gaussian_filter(R, sigma=(0, sigma))
+    sd = R.std(1, keepdims=True)
+    R = (R - R.mean(1, keepdims=True)) / np.where(sd > 1e-12, sd, 1.0)
+    pv = lambda ph: (np.abs(np.exp(1j * ph) @ R)
+                     / (np.sqrt(len(ph) / 2.0)
+                        * np.linalg.norm(R, axis=0) + 1e-9)).mean()
+    nul = np.mean([pv(rng.permutation(th)) for _ in range(nperm)])
+    return float(pv(th)), float(nul)
+
+
 if __name__ == '__main__':
     print('simulating two states ...', flush=True)
     S = {True: run(G_OPEN, 0), False: run(0.0, 0)}
@@ -329,6 +456,63 @@ if __name__ == '__main__':
               f'{C[iu].mean():+.3f}   |mismatch| '
               f'{np.degrees(S[anch]["mism"]).mean():5.1f} deg   bump {pv:.3f}')
         S[anch]['_map'] = M
+
+    print('  -- the same measure the recordings use (phase-shuffle excess):')
+    _rng = np.random.default_rng(1)
+    BX = {}
+    for anch in (True, False):
+        ob, nu = bump_excess(S[anch]['rE'], _rng)
+        BX[anch] = (ob, nu)
+        print(f'     gate {"OPEN " if anch else "SHUT "}: PV {ob:.3f}  '
+              f'shuffled {nu:.3f}  excess {ob - nu:+.4f}')
+    print(f'     the model keeps '
+          f'{100 * (BX[False][0] - BX[False][1]) / (BX[True][0] - BX[True][1]):.0f}'
+          f'% of the bump with the gate shut')
+
+    # one continuous session with the gate closing halfway, passed through the
+    # recordings' own anchoring classifier, so B and C can be read against
+    # Figure 1 rather than against each other
+    print('\n=== 1b. the population state, as Figure 1 measures it =======')
+    NBLOCK = 33          # ~100 laps, as a recorded session has
+    RS, SCHED = run_blocks(nblock=NBLOCK)
+    PSW = population_state(RS)
+    _n = PSW['labels'].shape[1]
+    # the blocks are NBLOCK laps each BY CONSTRUCTION; thirds of the
+    # recorded lap count are not the same thing, because the number of
+    # laps actually run depends on the speed profile and falls short of
+    # NLAP. Taking thirds put the boundary nine laps early and made the
+    # state look as though it persisted after the gate shut.
+    _edge = [min(NBLOCK, _n), min(2 * NBLOCK, _n)]
+    _open = np.zeros(_n, bool); _open[_edge[0]:_edge[1]] = True
+    _use = ~np.isnan(PSW['labels']).all(1)
+    _bi = int(np.where(_use)[0][int(np.argmax(PSW['pc1_load']))])
+    print(f'  {PSW["labels"].shape[0]} units, {_n} laps, gate open on laps '
+          f'{_edge[0]}-{_edge[1] - 1}')
+    print(f'  anchored fraction  open {np.nanmean(PSW["labels"][:, _open]):.2f}'
+          f'  shut {np.nanmean(PSW["labels"][:, ~_open]):.2f}')
+    print(f'  PC1 positive on {(PSW["pc1"][_open] > 0).sum()}/{_open.sum()} '
+          f'open and {(PSW["pc1"][~_open] > 0).sum()}/{(~_open).sum()} shut laps',
+          flush=True)
+    SW = dict(sw_map=PSW['maps'][_bi], sw_labels=PSW['labels'],
+              sw_pc1=PSW['pc1'], sw_load=PSW['pc1_load'],
+              sw_edges=np.array(_edge))
+
+    # the same summary the recordings get: whitened spectrum with the mean
+    # removed, and each frequency z-scored across laps and averaged by state
+    _fl, _Lo = lap_spectra(S[True])
+    _, _Ls = lap_spectra(S[False])
+    _All = np.vstack([_Lo, _Ls])
+    _ok = (_fl >= 2) & (_fl <= 120)
+    _Z = (_All - _All.mean(0)) / (_All.std(0) + 1e-12)
+    _w = _All.mean(0) * 0
+    _wo = _Lo.mean(0) + np.log10(np.maximum(_fl, 1e-9))
+    _ws = _Ls.mean(0) + np.log10(np.maximum(_fl, 1e-9))
+    _mu = np.concatenate([_wo[_ok], _ws[_ok]]).mean()
+    SP = dict(sp_f=_fl[_ok], rel_open=(_wo - _mu)[_ok],
+              rel_shut=(_ws - _mu)[_ok],
+              z_open=_Z[:len(_Lo)].mean(0)[_ok],
+              z_shut=_Z[len(_Lo):].mean(0)[_ok])
+    print(f'  per-lap spectra: {len(_Lo)} open laps, {len(_Ls)} shut')
 
     print('\n=== 2. the field potential ==================================')
     for nm in ('theta', 'slow', 'fast'):
@@ -369,7 +553,9 @@ if __name__ == '__main__':
     np.savez_compressed(f'{FIG}/can_gate_model.npz', f=f, d=d,
                         P_open=o['P'], P_shut=s_['P'],
                         map_open=S[True]['_map'], map_shut=S[False]['_map'],
-                        mism=r['mism'], ampfast=af, dec=np.array(dec))
+                        mism=r['mism'], ampfast=af, dec=np.array(dec),
+                        bump_open=np.array(BX[True]),
+                        bump_shut=np.array(BX[False]), **SP, **SW)
     print('\nwrote can_gate_model.npz')
 
 
@@ -443,6 +629,31 @@ def draw():
 
     fig.savefig(OUT, dpi=300, bbox_inches='tight')
     print(f'wrote {OUT}')
+
+
+def bump_excess(rE, rng, bin_ms=100.0, sigma=2.5, nperm=200):
+    """The bump measured exactly as attractor_coherence.py measures it.
+
+    The model's own bump statistic is the resultant of the rate profile over
+    the ring, which is not what the recordings can report: there, each cell's
+    phase offset is estimated and the population is projected onto it, and the
+    answer is the excess over a shuffle of which offset belongs to which cell.
+    To compare the two, the same measure is applied here -- rates binned to
+    100 ms and smoothed as the recordings are, z-scored per neuron, projected
+    onto the ring phase, and referred to the same phase shuffle.
+    """
+    from scipy.ndimage import gaussian_filter
+    k = max(1, int(round(bin_ms / 1e3 / (DT * 4))))        # rE is every 4 dt
+    T = (len(rE) // k) * k
+    R = rE[:T].reshape(-1, k, rE.shape[1]).mean(1).T       # neurons x bins
+    R = gaussian_filter(R, sigma=(0, sigma))
+    sd = R.std(1, keepdims=True)
+    R = (R - R.mean(1, keepdims=True)) / np.where(sd > 1e-12, sd, 1.0)
+    pv = lambda ph: (np.abs(np.exp(1j * ph) @ R)
+                     / (np.sqrt(len(ph) / 2.0)
+                        * np.linalg.norm(R, axis=0) + 1e-9)).mean()
+    nul = np.mean([pv(rng.permutation(th)) for _ in range(nperm)])
+    return float(pv(th)), float(nul)
 
 
 if __name__ == '__main__':

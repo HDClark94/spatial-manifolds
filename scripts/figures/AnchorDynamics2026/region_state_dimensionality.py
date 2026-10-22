@@ -1,6 +1,6 @@
 """Is the anchoring state ONE state, and how well does PC1 capture it?
 
-Figure 6 shows that each region has a coherent axis and that the axes agree. It
+Figure 7 shows that each region has a coherent axis and that the axes agree. It
 does not show that a SINGLE axis is an adequate description of a region's label
 matrix. PC1 is by construction the largest component of whatever is there; that
 it exists says nothing about whether the rest is noise or a second state.
