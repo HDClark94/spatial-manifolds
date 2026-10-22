@@ -79,7 +79,8 @@ python rebuild_paper.py figures
 ```
 
 This redraws every figure from the intermediate results in the repository and
-then compiles `AnchorDynamics2026_Cell_mockup.pdf`. It takes under an hour.
+then compiles `AnchorDynamics2026_Cell_mockup.pdf`. On Harry's laptop this took
+about 6 minutes (without the two LFP figures), all 25 other steps succeeding.
 Without clark2025_lfp, add `--skip-lfp`; Figures 8 and S9 then keep whatever
 version is already in the folder.
 
@@ -98,9 +99,12 @@ Step 4 uses the intermediate results already committed to the repository:
 anchoring labels, the unit table, LFP spectra and so on. `derive` recomputes
 all of them from clark2025 and clark2025_lfp, in order, so you can confirm the
 committed versions follow from the data. It overwrites them in place, so
-commit or copy `data/` first if you want to compare. It is slow, most of a
-day, almost all of it the LFP steps (`--skip-lfp` leaves those out).
-`monosyn` alone takes several hours. Steps can be resumed with `--from`.
+commit or copy `data/` first if you want to compare (`git diff --stat data/`
+afterwards shows what changed). It is slow -- expect many hours, most of it the
+LFP steps (`--skip-lfp` leaves those out) and `monosyn` -- and, unlike
+`figures`, it has not yet been run end to end in one go: each script ran
+individually while the paper was written, but if a step fails here its log
+will say why, and Harry would like to know. Steps can be resumed with `--from`.
 
 ---
 
@@ -137,6 +141,9 @@ why.
   that contains `M20/`, `M21/`, ...
 - **Figure 3 tries to open a 3D window**: a render PNG is missing from
   `data/anatomy_renders/`; restore it from git rather than re-rendering.
-- **Numbers in a rebuilt figure differ slightly from the PDF**: if you ran
-  `derive`, shuffles are seeded, so differences should be at most at the last
-  printed digit. Larger ones are worth telling Harry about.
+- **Numbers in a rebuilt figure differ from the PDF after `derive`**: most
+  shuffles are seeded, but not all, so small differences in p-values are
+  possible. Anything that changes a conclusion is worth telling Harry about.
+- **The reference PDFs**: the figure PDFs and the compiled
+  `AnchorDynamics2026_Cell_mockup.pdf` are committed, so you can compare your
+  rebuild against them.
