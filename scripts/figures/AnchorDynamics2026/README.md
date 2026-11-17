@@ -1,8 +1,10 @@
-# AnchorDynamics2026: making the figures and the paper
+# Entorhinal grid codes are gated by attention
 
-Everything behind the paper lives in this folder: the analysis scripts, the
-figure scripts, the manuscript text, and the builders that set it all as a
-PDF. This file is the practical guide — where the processed data is, and the
+*Making the figures and the paper.* This repository is specifically for this
+paper -- its analysis, its figures and its text -- and everything behind it,
+referred to throughout as *AnchorDynamics2026*, lives in this folder: the
+analysis scripts, the figure scripts, the manuscript text, and the builders
+that set it all as a PDF. This file is the practical guide — where the processed data is, and the
 command for each figure, either all at once or one at a time.
 
 Two documents, so you know which to read:
