@@ -51,3 +51,29 @@ data/rnn_xgboost/net7_1D_track_sim/conditions_cache.npz
 # rebuild_paper.py run products
 scripts/figures/AnchorDynamics2026/rebuild_logs/
 scripts/figures/AnchorDynamics2026/rebuild_paths.json
+
+# local copies of the lab-share eye videos (cache_eye_frames.py); ~1 GB, not for git
+data/eye_frames/video/
+data/eye_frames/*_crops.npz
+
+# --- bulk kept out of git (2026-11-17); REBUILD.md says how to remake each ---
+# abandoned backups of data/ from before the curation changes
+data/_PREVRBC_20261031/
+data/_atlas_backup_20261026/
+**/*_PREISI/
+data/population_state/stale_caches_PREISI/
+data/population_state/stale_workers_PREISI/
+# per-session caches, regenerable (attractor_cache.py, manifold_supp_build.py,
+# attractor_recruit_examples.py)
+data/population_state/attractor_cache/
+data/population_state/attractor_recruit/
+data/manifold_supp/
+# waveform store (pack_waveforms.py from clark2025) and the eye-video crops
+data/waveforms/
+data/eye_frames/
+# 218 MB, over GitHub's file limit; lfp_batch.py remakes it from clark2025_lfp
+data/lfp/lfp_power_by_anchoring.csv
+# build products (build_docx.py)
+scripts/figures/AnchorDynamics2026/google_doc/
+data/monosyn/logs/
+data/monosyn/PREISI/

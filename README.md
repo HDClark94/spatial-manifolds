@@ -28,6 +28,16 @@ Read [`data/README.md`](data/README.md) for directions on where to get what data
 Various analysis scripts can be found in [`scripts/`](scripts/).  
 The source code used in these can be found in [`src/spatial_manifolds/`](src/spatial_manifolds/).
 
+## Rebuilding the AnchorDynamics2026 paper
+
+The figures, the PDF mock-ups and the manuscript text of *AnchorDynamics2026*
+all live in [`scripts/figures/AnchorDynamics2026/`](scripts/figures/AnchorDynamics2026/).
+[`REBUILD.md`](scripts/figures/AnchorDynamics2026/REBUILD.md) in that folder is
+the guide: what data you need, how to point the scripts at it, how to redraw
+every figure (`rebuild_paper.py figures`), how to recompute the intermediate
+results from the raw recordings (`rebuild_paper.py derive`), and how to rebuild
+the text on its own, which needs no data at all.
+
 ## Questions
 
 I am happy to answer your questions or to discuss my work, please send me an email!
