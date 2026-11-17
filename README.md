@@ -32,11 +32,15 @@ The source code used in these can be found in [`src/spatial_manifolds/`](src/spa
 
 The figures, the PDF mock-ups and the manuscript text of *AnchorDynamics2026*
 all live in [`scripts/figures/AnchorDynamics2026/`](scripts/figures/AnchorDynamics2026/).
-[`REBUILD.md`](scripts/figures/AnchorDynamics2026/REBUILD.md) in that folder is
-the guide: what data you need, how to point the scripts at it, how to redraw
-every figure (`rebuild_paper.py figures`), how to recompute the intermediate
-results from the raw recordings (`rebuild_paper.py derive`), and how to rebuild
-the text on its own, which needs no data at all.
+Start with [`README.md`](scripts/figures/AnchorDynamics2026/README.md) in that
+folder: where the processed data is on the DataStore, how to point the scripts
+at it, the command for each figure one at a time or all at once
+(`rebuild_paper.py figures`), which notebooks are still live, and how to
+rebuild the manuscript PDFs, which needs no data at all.
+[`REBUILD.md`](scripts/figures/AnchorDynamics2026/REBUILD.md) goes deeper:
+recomputing every intermediate result from the raw recordings
+(`rebuild_paper.py derive`), the caches to clear first, what is deliberately
+not in git, and troubleshooting.
 
 ## Questions
 

@@ -7,6 +7,12 @@ to rebuild the figures and the PDF on your own machine from the shared data.
 One script does the work: `rebuild_paper.py`. The steps below are all you
 need, in order.
 
+For the shorter path -- the DataStore paths, the command for each figure on
+its own, which notebooks are still live, and the PDF builders -- see
+[README.md](README.md) in this folder. This file is the deeper guide: every
+step of the pipeline, recomputing the intermediate results from the raw
+recordings, and what to do when something goes wrong.
+
 ---
 
 ## 1. What you need
