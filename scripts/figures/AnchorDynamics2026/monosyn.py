@@ -47,7 +47,7 @@ import pynapple as nap
 from scipy.signal import fftconvolve
 from scipy.stats import norm as sp_norm, poisson as sp_poisson
 from spatial_manifolds.cross_correlograms import _CCH_inner
-from spatial_manifolds.data.curation import curate_clusters
+from paper_units import curate
 
 SRC = '/Users/harryclark/Downloads/clark2025/'
 OUT = '/Users/harryclark/Documents/spatial-manifolds/data/monosyn'
@@ -103,7 +103,7 @@ def session_ccgs(mouse, day, jitter=False, rng=None):
     cp = f'{stem}_srt-kilosort4_clusters.npz'
     if not os.path.exists(cp):
         return None
-    clusters = curate_clusters(nap.load_file(cp))
+    clusters = curate(nap.load_file(cp), mouse, day)
     ids = [int(c) for c in clusters.index]
     if len(ids) < 5:
         return None

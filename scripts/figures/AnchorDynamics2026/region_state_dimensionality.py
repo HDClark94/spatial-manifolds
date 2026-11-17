@@ -50,7 +50,20 @@ would overstate how much of the real VE_oos reflects cross-cell agreement.
 Because the null is computed at the same n, from the same cells, with the same
 marginals, the cell-count bias cancels in the difference.
 
+WHAT A SECOND MAP WOULD LOOK LIKE (added 2026-11-01). A population could hold
+more than one stable map, each expressed by a subset of cells and switching on
+its own schedule (Low et al., 2021); with enough cells that would appear as a
+second component that generalises out of sample. Panels A, B and E simulate it:
+cells that follow their population's block-structured state on a fraction
+SIM_FOLLOW of trials and otherwise run their own blocky labels, SIM_FOLLOW set
+so a one-state simulation matches MEC's PC1 excess at MATCH_N cells per half
+(0.034 against 0.035). Two populations, 50/50 or 75/25, each with its own
+independent state, put a clear PC2 above its null, and it grows with the cells
+used; MEC's PC2 stays at the null at every n. The simulations go through the
+same out-of-sample code and the same circular-shift null as the data.
+
 Writes data/population_state/region_state_dimensionality.csv
+       data/population_state/region_state_dimensionality_sim.csv
        fig6_supp_dimensionality.pdf
 """
 import os
@@ -58,6 +71,7 @@ import sys
 import warnings
 
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 import pandas as pd
 
 warnings.filterwarnings('ignore')
@@ -83,10 +97,23 @@ FIG = f'{ROOT}/scripts/figures/AnchorDynamics2026'
 PS = f'{ROOT}/data/population_state'
 OUT_CSV = f'{PS}/region_state_dimensionality.csv'
 OUT_PDF = f'{FIG}/fig6_supp_dimensionality.pdf'
+OUT_SIM = f'{PS}/region_state_dimensionality_sim.csv'
+SIM_CELLS, SIM_TRIALS, SIM_SESS, SIM_REP = 100, 220, 30, 30
+SIM_FOLLOW = .30          # calibrated: one-state PC1 excess 0.034 at n = 8 (MEC 0.035)
+SIM_BLOCK, SIM_OWN_BLOCK = 15, 8     # mean block length (trials) of a state, of a cell's own labels
+SIM_NGRID = [4, 8, 16, 32, 48]
+# greys: the regions own the colours in C and D (subicular is orange)
+SCENARIOS = [('one state', (1.0,), '0.1'), ('two states, 50/50', (.5, .5), '0.45'),
+             ('two states, 75/25', (.75, .25), '0.72')]
 
 NGRID = [4, 6, 8, 12, 16, 24, 32, 48, 64]
 N_REP = 60            # resamples per (session, region, n)
 N_COMP = 5            # components scored out of sample
+# Panel A only: an illustration, not a calibrated simulation. Each cell follows
+# its population's gate on SIM_SHOW_FOLLOW of trials, so the two gates are
+# visible, and the session is chosen (seed) so the two gates mostly disagree
+# (state r = -0.37); B and E use the calibrated SIM_FOLLOW.
+SIM_SHOW_FOLLOW, SIM_SHOW_SEED = .9, 25
 MATCH_N = 8           # cells per half for the by-component panel
 MIN_TRIALS = 20
 MIN_SESS = 5          # sessions required before a point is drawn
@@ -251,13 +278,59 @@ def session_dimensionality(D, at_n=None, crit='p95'):
     return pd.DataFrame(out)
 
 
+# ── simulation: what one state and two states look like to the same analysis ──
+def sim_blocks(T, mean, rng):
+    s_ = np.empty(T); t = 0; v = rng.random() < .5
+    while t < T:
+        L = rng.geometric(1 / mean); s_[t:t + L] = v; t += L; v = not v
+    return s_
+
+
+def sim_session(rng, groups, follow=SIM_FOLLOW, N=SIM_CELLS, T=SIM_TRIALS):
+    """Cells in len(groups) populations, each with its own block-structured
+    state; a cell follows its population's state on a fraction `follow` of trials
+    and otherwise runs its own blocky labels. Returns labels, population of each
+    cell and the populations' states."""
+    sizes = np.round(np.array(groups) * N).astype(int)
+    M, pop, states = [], [], []
+    for g, n in enumerate(sizes):
+        st = sim_blocks(T, SIM_BLOCK, rng); states.append(st)
+        for _ in range(n):
+            f = rng.random(T) < follow
+            M.append(np.where(f, st, sim_blocks(T, SIM_OWN_BLOCK, rng))); pop.append(g)
+    return np.array(M), np.array(pop), np.array(states)
+
+
+def simulate():
+    rng = np.random.default_rng(1)
+    rows = []
+    for name, groups, _ in SCENARIOS:
+        for k in range(SIM_SESS):
+            M = sim_session(rng, groups)[0]
+            for n in SIM_NGRID:
+                obs, nul = [], []
+                for _ in range(SIM_REP):
+                    p = rng.permutation(len(M))[:2 * n]
+                    obs.append(ve_out_of_sample(M[p[:n]], M[p[n:]]))
+                    Ms = shift_null(M[p], rng)
+                    nul.append(ve_out_of_sample(Ms[:n], Ms[n:]))
+                for c in range(N_COMP):
+                    rows.append(dict(scenario=name, sess=k, n=n, comp=c + 1,
+                                     excess=np.nanmean(np.array(obs)[:, c]) - np.nanmean(np.array(nul)[:, c])))
+        print(f'  simulated: {name}', flush=True)
+    S = pd.DataFrame(rows)
+    S.to_csv(OUT_SIM, index=False)
+    return S
+
+
 def main():
     # --replot rebuilds the figure from the saved CSV. The resampling loop is
     # minutes of work and is unchanged by any layout decision, so iterating on
     # the figure must not require recomputing it.
     if '--replot' in sys.argv:
         D = pd.read_csv(OUT_CSV)
-        make_figure(D)
+        S = pd.read_csv(OUT_SIM) if os.path.exists(OUT_SIM) and '--resim' not in sys.argv else simulate()
+        make_figure(D, S)
         report(D)
         return
     C = pd.read_csv(f'{ROOT}/data/cell_classifications_v2.csv')
@@ -277,13 +350,18 @@ def main():
     D.to_csv(OUT_CSV, index=False)
     print(f'\nwrote {OUT_CSV} ({len(D)} rows, '
           f'{D.drop_duplicates(["mouse", "day"]).shape[0]} sessions)')
-    make_figure(D)
+    make_figure(D, simulate())
     report(D)
 
 
-def make_figure(D):
+def make_figure(D, S):
     # ---------------------------------------------------------------- figure
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.9))
+    fig = plt.figure(figsize=(9.6, 7.7))
+    gs = fig.add_gridspec(3, 1, height_ratios=[.5, 1, 1], hspace=.42)
+    top = gs[1].subgridspec(1, 2, width_ratios=[1.6, 1], wspace=.35)
+    bot = gs[2].subgridspec(1, 3, wspace=.48)
+    sim_panels(fig, gs[0], top, S)
+    axes = [fig.add_subplot(bot[0]), fig.add_subplot(bot[1])]
 
     ax = axes[0]
     P1 = D[D.comp == 1]
@@ -335,7 +413,7 @@ def make_figure(D):
     ax.legend(fontsize=5.6, frameon=False, loc='upper left')
     ax.tick_params(labelsize=6.5)
     ax.spines[['top', 'right']].set_visible(False)
-    ax.text(-.20, 1.0, 'A', transform=ax.transAxes, fontsize=10, weight='bold',
+    ax.text(-.20, 1.0, 'C', transform=ax.transAxes, fontsize=10, weight='bold',
             va='bottom', ha='right')
 
     ax = axes[1]
@@ -374,11 +452,159 @@ def make_figure(D):
     ax.legend(fontsize=5.6, frameon=False)
     ax.tick_params(labelsize=6.5)
     ax.spines[['top', 'right']].set_visible(False)
-    ax.text(-.20, 1.0, 'B', transform=ax.transAxes, fontsize=10, weight='bold',
+    ax.text(-.20, 1.0, 'D', transform=ax.transAxes, fontsize=10, weight='bold',
             va='bottom', ha='right')
 
+    pc2_by_n(fig.add_subplot(bot[2]), D, S)
     fig.savefig(OUT_PDF, bbox_inches='tight', dpi=220)
     print(f'wrote {OUT_PDF}')
+
+
+def sim_ratemaps(fig, spec, M, pop, n_per=4, seed=11):
+    """Rate maps (trial x position) for n_per cells drawn at random from each
+    population of the simulated session. Each cell is a periodic 1D grid cell
+    with its own spacing and phase. On its anchored trials its fields sit at
+    that phase; on non-anchored trials the phase is re-drawn every trial, by an
+    offset shared by the cells of its population (one attractor per population),
+    as the non-anchored data behave (re-drawn, not drifting). The labels are the
+    simulation's; only the firing is added here, for display."""
+    from matplotlib.colors import ListedColormap
+    ANCH_C, NONANCH_C = '#a8559e', '#3f9b8f'
+    rng = np.random.default_rng(seed)
+    T, X = M.shape[1], np.arange(0, 200, 2.) + 1
+    off = rng.random((pop.max() + 1, T))                    # per population, per trial
+    pick = [c for g_ in range(pop.max() + 1)
+            for c in np.sort(rng.choice(np.where(pop == g_)[0], n_per, replace=False))]
+    g = spec.subgridspec(1, 2 * n_per + 1, width_ratios=[1] * n_per + [.2] + [1] * n_per,
+                         wspace=.18)
+    slots = list(range(n_per)) + list(range(n_per + 1, 2 * n_per + 1))
+    for k, c in enumerate(pick):
+        sp, ph = rng.uniform(55, 100), rng.uniform(0, 1)
+        sh = np.where(M[c] == 1, ph, ph + off[pop[c]])[:, None] * sp
+        d = (X[None, :] - sh) % sp
+        d = np.minimum(d, sp - d)
+        rate = 12 * np.exp(-d ** 2 / (2 * (.13 * sp) ** 2)) + .3
+        R = gaussian_filter1d(rng.poisson(rate * .25).astype(float), 1.2, axis=1)
+        gi = g[slots[k]].subgridspec(1, 2, width_ratios=[.09, 1], wspace=.06)
+        a_ = fig.add_subplot(gi[0])
+        a_.imshow(M[c][:, None], aspect='auto', cmap=ListedColormap([NONANCH_C, ANCH_C]),
+                  vmin=0, vmax=1, interpolation='nearest')
+        a_.set_axis_off()
+        am = fig.add_subplot(gi[1])
+        am.imshow(R, aspect='auto', cmap='viridis', extent=[0, 200, T, 0],
+                  interpolation='nearest', vmin=0, vmax=np.percentile(R, 99))
+        am.set_yticks([]); am.set_xticks([0, 200] if k in (0, n_per) else [])
+        am.tick_params(labelsize=5.8, length=2, pad=1)
+        if k == 0:
+            am.set_xlabel('position (cm)', fontsize=6.3, labelpad=1)
+            a_.text(-1.2, T / 2, 'trial', rotation=90, ha='right', va='center', fontsize=6.5)
+        for s_ in am.spines.values():
+            s_.set_visible(False)
+        am.text(.5, 1.03, f'cell {c + 1}', transform=am.transAxes, fontsize=6,
+                color='0.35', va='bottom', ha='center')
+        if k % n_per == 0:
+            am.text(0, 1.2, f'population {pop[c] + 1}', transform=am.transAxes, fontsize=6.8,
+                    color='0.25', va='bottom')
+            if k == 0:
+                a_.text(-3.5, 1.38, 'A', transform=a_.transAxes, fontsize=10, weight='bold',
+                        va='bottom', ha='right')
+                am.text(0, 1.42, 'two populations, each switching between its own maps',
+                        transform=am.transAxes, fontsize=8, va='bottom')
+
+
+def sim_panels(fig, spec_maps, spec, S):
+    """A: one simulated two-population session, example rate maps above its
+    label raster; B: the by-component test on the simulations at MATCH_N, as D
+    does on the data."""
+    from matplotlib.colors import ListedColormap
+    ANCH_C, NONANCH_C = '#a8559e', '#3f9b8f'
+    M, pop, states = sim_session(np.random.default_rng(SIM_SHOW_SEED), (.5, .5), follow=SIM_SHOW_FOLLOW)
+    sim_ratemaps(fig, spec_maps, M, pop)
+    g = spec[0].subgridspec(1, 4, width_ratios=[1, .05, .05, .55], wspace=.08)
+    ax = fig.add_subplot(g[0])
+    ax.imshow(M.T, aspect='auto', cmap=ListedColormap([NONANCH_C, ANCH_C]), vmin=0, vmax=1,
+              interpolation='nearest', extent=[0, len(M), M.shape[1], 0])
+    ax.axvline((pop == 0).sum(), color='w', lw=1.5)
+    for k_, lab in enumerate(('population 1', 'population 2')):
+        ax.text(((pop < k_).sum() + (pop <= k_).sum()) / 2, -4, lab, ha='center', va='bottom',
+                fontsize=6.5, color='0.25')
+    ax.set_xticks([]); ax.set_xlabel(f'{len(M)} simulated cells', fontsize=7)
+    ax.set_ylabel('trial', fontsize=7.5); ax.tick_params(labelsize=6.5)
+    for sp_ in ax.spines.values():
+        sp_.set_visible(False)
+    for j in range(2):
+        a_ = fig.add_subplot(g[1 + j])
+        a_.imshow(states[j][:, None], aspect='auto', cmap=ListedColormap([NONANCH_C, ANCH_C]),
+                  vmin=0, vmax=1, interpolation='nearest')
+        a_.set_xticks([]); a_.set_yticks([])
+        a_.set_xlabel(f'state {j + 1}', fontsize=5.6, rotation=90, labelpad=2)
+    # PC1 and PC2 of this session, z-scored, as Figure 1 draws PC1
+    Mc = centred(M)
+    Vt = np.linalg.svd(Mc, full_matrices=False)[2]
+    gg = g[3].subgridspec(1, 2, wspace=.15)
+    for j in range(2):
+        a_ = fig.add_subplot(gg[j])
+        sc = Vt[j] * np.sign(np.corrcoef(Vt[j], states[j])[0, 1] or 1)
+        sc = (sc - sc.mean()) / sc.std()
+        y = np.arange(len(sc))
+        a_.fill_betweenx(y, 0, sc, where=sc >= 0, color=ANCH_C, lw=0, edgecolor='none', interpolate=True)
+        a_.fill_betweenx(y, 0, sc, where=sc < 0, color=NONANCH_C, lw=0, edgecolor='none', interpolate=True)
+        a_.axvline(0, color='0.5', lw=.6)
+        a_.set_ylim(len(sc), 0); a_.set_yticks([]); a_.set_xticks([])
+        a_.set_title(f'PC{j + 1} (z)', fontsize=6.5, pad=2)
+        r_ = [abs(np.corrcoef(Vt[j], st)[0, 1]) for st in states]
+        a_.set_xlabel(f'|r| with state\n1: {r_[0]:.2f}, 2: {r_[1]:.2f}', fontsize=5.6)
+        for sp_ in a_.spines.values():
+            sp_.set_visible(False)
+
+    ax = fig.add_subplot(spec[1])
+    w = .26
+    for j, (name, _, col) in enumerate(SCENARIOS):
+        d = S[(S.scenario == name) & (S.n == MATCH_N)]
+        gq = d.groupby('comp').excess.agg(['mean', 'sem'])
+        x = np.arange(len(gq)) + (j - 1) * w
+        ax.bar(x, gq['mean'], w, color=col, lw=0, label=name)
+        ax.errorbar(x, gq['mean'], yerr=gq['sem'], fmt='none', ecolor='0.3', elinewidth=.8, capsize=0)
+    ax.axhline(0, color='0.4', lw=1)
+    ax.set_xticks(np.arange(N_COMP)); ax.set_xticklabels([f'PC{i + 1}' for i in range(N_COMP)], fontsize=6.5)
+    ax.set_xlabel(f'component (axis from {MATCH_N} cells)', fontsize=7.5)
+    ax.set_ylabel('out-of-sample VE\nover null', fontsize=7.5)
+    ax.set_title(f'simulated ({SIM_SESS} sessions each)', fontsize=8)
+    ax.legend(fontsize=5.6, frameon=False)
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+    ax.text(-.25, 1.0, 'B', transform=ax.transAxes, fontsize=10, weight='bold', va='bottom', ha='right')
+
+
+def pc2_by_n(ax, D, S):
+    """E: PC2's out-of-sample excess as the axis is built from more cells, MEC
+    against the simulations. A second map in a subset of cells would show here
+    as sampling grows."""
+    for name, _, col in SCENARIOS:
+        g = S[(S.scenario == name) & (S.comp == 2)].groupby('n').excess.agg(['mean', 'sem'])
+        ax.fill_between(g.index, g['mean'] - g['sem'], g['mean'] + g['sem'], color=col, alpha=.25,
+                        lw=0, edgecolor='none')
+        ax.plot(g.index, g['mean'], color=col, lw=1.2, ls='--', marker='o', ms=2.2,
+                label=f'simulated, {name}')
+    d = D[(D.region == 'MEC') & (D.comp == 2)].groupby('n').excess.agg(['mean', 'sem', 'count'])
+    d = d[d['count'] >= MIN_SESS]
+    ax.fill_between(d.index, d['mean'] - d['sem'], d['mean'] + d['sem'], color=RCOL['MEC'], alpha=.25,
+                    lw=0, edgecolor='none')
+    ax.plot(d.index, d['mean'], color=RCOL['MEC'], lw=1.5, marker='o', ms=2.6, label='MEC data')
+    ax.axhline(0, color='0.4', lw=.8)
+    ax.set_xscale('log', base=2); ax.set_xticks([4, 8, 16, 32, 64])
+    ax.set_xticklabels(['4', '8', '16', '32', '64'], fontsize=6.5)
+    ax.set_xlabel('cells used to build the axis', fontsize=7.5)
+    ax.set_ylabel('PC2 out-of-sample VE\nover null', fontsize=7.5)
+    ax.set_title('a second map would grow with\nsampling; MEC\'s PC2 does not', fontsize=8)
+    ax.legend(fontsize=5.4, frameon=False, loc='upper left')
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+    ax.text(-.25, 1.0, 'E', transform=ax.transAxes, fontsize=10, weight='bold', va='bottom', ha='right')
+    m32 = d.loc[32] if 32 in d.index else None
+    if m32 is not None:
+        print(f'  E: MEC PC2 excess at n = 32: {m32["mean"]:+.4f} ({int(m32["count"])} sessions)')
+    for name, _, _ in SCENARIOS:
+        v = S[(S.scenario == name) & (S.comp == 2) & (S.n == 32)].excess
+        print(f'  E: {name} PC2 excess at n = 32: {v.mean():+.4f}')
 
 
 def report(D):

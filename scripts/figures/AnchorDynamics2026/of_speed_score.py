@@ -40,7 +40,7 @@ import pandas as pd
 warnings.filterwarnings('ignore')
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 import pynapple as nap
-from spatial_manifolds.data.curation import curate_clusters
+from paper_units import curate
 
 ROOT = '/Users/harryclark/Documents/spatial-manifolds'
 SRC = '/Users/harryclark/Downloads/clark2025'
@@ -60,7 +60,7 @@ def session(mo, dy, of, rng):
     if not (os.path.exists(bp) and os.path.exists(cp)):
         return None
     beh = nap.load_file(bp)
-    cur = curate_clusters(nap.load_file(cp))
+    cur = curate(nap.load_file(cp), mo, dy)
     ids = [int(c) for c in cur.index]
     if not ids:
         return None

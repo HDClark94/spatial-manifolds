@@ -55,6 +55,14 @@ from scipy.stats import wilcoxon
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 from spatial_manifolds.anchoring import ANCH_COLOR, NONANCH_COLOR
 
+
+def merged_or_shards(stem):
+    """The single-run output when present, else its worker shards (rebuild_paper
+    runs every step unsharded, so old shards beside it are stale)."""
+    if os.path.exists(stem + '.csv'):
+        return [stem + '.csv']
+    return sorted(glob.glob(stem + '_w*.csv'))
+
 plt.rcParams['font.family'] = 'Arial'
 
 
@@ -71,7 +79,7 @@ ICOL = {'grid': '#c04744', 'non-grid spatial': '#3171ae',
         'non-spatial': '#888888', 'putative interneuron': '#d95f02'}
 TL = 200.0
 
-D = pd.concat([pd.read_csv(f) for f in glob.glob(f'{PS}/trial_map_stats_w*.csv')],
+D = pd.concat([pd.read_csv(f) for f in merged_or_shards(f'{PS}/trial_map_stats')],
               ignore_index=True)
 U = pd.read_csv(f'{PS}/unit_table.csv')
 N = pd.read_csv(f'{PS}/trial_map_null.csv')
@@ -102,7 +110,7 @@ sns.boxplot(data=L, x='variable', y='value', ax=ax, showfliers=False,
             medianprops=dict(color='k', lw=1.4))
 ax.axhline(0, color='0.6', lw=.7, ls=':')
 ax.set_xlabel(''); ax.set_ylabel('r at zero offset', fontsize=8.5)
-_lp(ax, 'A')
+_lp(ax, 'G')
 ax.set_title(f'spatial correspondence collapses\np = '
              f'{wilcoxon(M.r0_anch, M.r0_non).pvalue:.0e}', fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
@@ -120,7 +128,7 @@ ax.axhline(NULL_SHUF, color='0.45', lw=1.1, ls=':')
 ax.annotate(f'no structure {NULL_SHUF:.2f}', (-.45, NULL_SHUF + .012),
             fontsize=6.2, color='0.45')
 ax.set_xlabel(''); ax.set_ylabel('best r over offsets', fontsize=8.5)
-_lp(ax, 'B')
+_lp(ax, 'H')
 ax.set_title('but the best-offset search\nhas almost no headroom',
              fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
@@ -133,7 +141,7 @@ ax.axvline(TL / 4, color='k', lw=1.3, ls='--')
 ax.annotate('chance\n50 cm', (TL / 4 + 2, ax.get_ylim()[1] * .62), fontsize=6.2)
 ax.set_xlabel('|best offset| (cm)', fontsize=8)
 ax.set_ylabel('Density', fontsize=8.5)
-_lp(ax, 'C')
+_lp(ax, 'I')
 ax.set_title('offsets are where noise put them', fontsize=7.5, loc='left')
 ax.legend(fontsize=6, frameon=False, loc='upper left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
@@ -151,7 +159,7 @@ ax.axhline(0, color='k', lw=1.1, ls='--')
 ax.set_xticks(range(4)); ax.set_xticklabels(['grid', 'NGS', 'NS', 'int'],
                                             fontsize=7.5)
 ax.set_ylabel('best r above the\nunrelated-cell floor', fontsize=8)
-_lp(ax, 'D')
+_lp(ax, 'J')
 ax.set_title('no identity recovers a field', fontsize=7.5, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 

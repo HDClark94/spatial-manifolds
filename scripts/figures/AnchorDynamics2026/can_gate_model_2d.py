@@ -326,9 +326,29 @@ def phase_of(x):
     return KMAT @ np.asarray(x, float)
 
 
+# A simulated mouse that stops where its own bump says the reward zone is
+# (behave=True). The bump's position on the track is decoded from its sheet
+# phase against the phase the landmarks give at each centimetre of the track,
+# which is what an animal with an anchored map can read. It slows over the
+# APPROACH cm before the decoded zone and stops for T_STOP s once the decoded
+# position is in its middle (STOP_LO-STOP_HI), once per trial. Anchored, the decoded and true
+# positions agree and it stops in the zone; with the gate shut the bump has
+# slipped and it stops wherever the slipped bump puts the zone.
+RZ_LO, RZ_HI = 90.0, 110.0
+# it aims for the middle of the zone: the stop is triggered once the decoded
+# position is within its central 10 cm, so that a decoding lag of a few mm
+# does not leave an anchored stop just short of the zone's edge
+STOP_LO, STOP_HI = 95.0, 105.0
+APPROACH, T_STOP, V_MIN = 35.0, 1.0, 5.0
+
+
 def run(gate, seed=0, switch_lap=None, nlap=None, walk=False,
-        dur=None, schedule=None):
-    """One session. walk=True foraged in 2-D instead of running the track."""
+        dur=None, schedule=None, keep=None, behave=False):
+    """One session. walk=True foraged in 2-D instead of running the track.
+
+    keep: unit indices (into the raveled sheet) to record, instead of all
+    NS * NS -- a long session at every unit does not fit in memory.
+    """
     rng = np.random.default_rng(seed)
     nlap = nlap or NLAP
     nstep = int((dur if dur else nlap * TRACK / 30.0) / DT)
@@ -341,7 +361,11 @@ def run(gate, seed=0, switch_lap=None, nlap=None, walk=False,
     buf_f = [0.0] * int(D_FAST / DT)
     land = [(0.0, 0.0)] * max(1, int(DELAY_LAND / DT))
     rec = {k: [] for k in ('t', 'x', 'y', 'pos', 'lap', 'spd', 'mism',
-                           'lfp_s', 'lfp_f', 'lfp_th', 'rE')}
+                           'lfp_s', 'lfp_f', 'lfp_th', 'rE', 'gate', 'xhat', 'stop')}
+    # the landmark phase at each cm of the track, for decoding the bump
+    XG = np.arange(0.0, TRACK, 1.0)
+    PLG = KMAT @ (x2[:, None] + XG[None, :] * heading[:, None])
+    xhat, stop_t, stopped, last_lap = 0.0, 0.0, False, 0
     for i in range(nstep):
         t = i * DT
         if walk:
@@ -357,10 +381,31 @@ def run(gate, seed=0, switch_lap=None, nlap=None, walk=False,
                     nxt = x2 + step
             x2 = nxt
         else:
-            spd = 30.0 + 9.0 * np.sin(2 * np.pi * x / TRACK) \
-                - 11.0 * np.exp(-((x - 100.0) / 22.0) ** 2) \
-                + 2.5 * rng.standard_normal()
-            spd = max(spd, 3.0)
+            if behave:
+                if lap != last_lap:
+                    stopped, last_lap = False, lap
+                if i % 20 == 0:          # decode every 10 ms
+                    z1 = np.angle((s * np.exp(1j * TH1)).sum())
+                    z2 = np.angle((s * np.exp(1j * TH2)).sum())
+                    xhat = XG[int(np.argmax(np.cos(z1 - PLG[0]) + np.cos(z2 - PLG[1])))]
+                base = 30.0 + 6.0 * np.sin(2 * np.pi * x / TRACK) + 2.5 * rng.standard_normal()
+                if stop_t > 0:
+                    spd = 0.0
+                    stop_t -= DT
+                    if stop_t <= 0:
+                        stopped = True
+                elif not stopped and STOP_LO <= xhat <= STOP_HI:
+                    spd, stop_t = 0.0, T_STOP
+                else:
+                    ahead = (0.5 * (RZ_LO + RZ_HI) - xhat) % TRACK
+                    spd = base
+                    if not stopped and ahead < APPROACH:
+                        spd = max(V_MIN, base * ahead / APPROACH)
+            else:
+                spd = 30.0 + 9.0 * np.sin(2 * np.pi * x / TRACK) \
+                    - 11.0 * np.exp(-((x - 100.0) / 22.0) ** 2) \
+                    + 2.5 * rng.standard_normal()
+                spd = max(spd, 3.0)
             x += spd * DT
             step = spd * DT * heading
             x2 = x2 + step
@@ -424,7 +469,9 @@ def run(gate, seed=0, switch_lap=None, nlap=None, walk=False,
             rec['y'].append(x2.copy()); rec['pos'].append(x2.copy())
             rec['spd'].append(spd)
             rec['mism'].append(float(np.hypot(*mm)))
-            rec['rE'].append(r_E.ravel().copy())
+            rec['rE'].append((r_E.ravel() if keep is None else r_E.ravel()[keep]).copy())
+            rec['gate'].append(gate)
+            rec['xhat'].append(xhat); rec['stop'].append(stop_t > 0)
     out = {k: np.asarray(v) for k, v in rec.items() if k != 'pos'}
     out['pos'] = np.asarray(rec['pos'])
     return out

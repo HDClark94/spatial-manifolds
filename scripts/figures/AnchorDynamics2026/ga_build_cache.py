@@ -28,8 +28,9 @@ NB = f'{FIG}/lick_raster_by_trial_type.ipynb'
 OUT = f'{FIG}/ga_cache.npz'
 
 MOUSE, DAY = 26, 18
-CELL = 109          # grid score 0.95, highest PC1 loading in the session,
-                    # and 52% anchored trials so both states are well sampled
+CELL = 202          # a non-grid spatial cell in MEC by the physiological anatomy of
+                    # Figure S15 (the atlas had placed it in visual cortex), with a
+                    # clear field that follows the population state
 NBIN, TL, SIGMA = 50, 200.0, 2.0
 
 _g = {}
@@ -65,9 +66,9 @@ i = int(np.where(z['cluster_id'] == CELL)[0][0])
 gc_anch = np.asarray(z['labels'][i], dtype=np.float32)
 assert len(gc_anch) == gc_map.shape[0], (len(gc_anch), gc_map.shape)
 
-C = pd.read_csv(f'{ROOT}/data/behavioural_influence_cache/'
-                f'M{MOUSE}_D{DAY}.csv')
-gs = float(C.loc[C.cluster_id == CELL, 'grid_score'].iloc[0])
+C = pd.read_csv(f'{ROOT}/data/cell_classifications_v2.csv')
+gs = float(C.loc[(C.mouse == MOUSE) & (C.day == DAY) & (C.cluster_id == CELL),
+                 'grid_score_of1'].iloc[0])
 print(f'M{MOUSE}D{DAY} cell {CELL}: grid score {gs:.2f}, '
       f'{gc_map.shape[0]} trials, {np.nanmean(gc_anch):.0%} anchored')
 

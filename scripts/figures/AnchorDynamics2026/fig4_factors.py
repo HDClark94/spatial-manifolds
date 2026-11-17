@@ -21,8 +21,9 @@ FACTORS, in groups:
 Anteroposterior position is left out: within a session it varies by a median
 33 um, against 175-185 um for the other two axes.
 
-MODEL. Linear mixed model, session random intercept with shank nested inside
-it as a variance component (as fig4_controls.py; position varies mostly
+MODEL. Linear mixed model, mouse random intercept with session and shank
+nested inside it as variance components (2026-11-01: mouse added, so the
+sessions of one animal are not independent replicates; position varies mostly
 between shanks, so shank must be a unit). Continuous factors are z-scored, so
 coefficients are per SD and comparable.
 
@@ -37,7 +38,8 @@ Because several factors overlap by construction (putative interneurons are
 classed on waveform and rate, grid cells on grid score), the drop-one share
 understates factors that duplicate one another. The figure therefore ranks them
 by DOMINANCE analysis (general dominance, Budescu 1993): each factor's added R^2
-averaged over every subset of the others (2^11 models per factor), so shared
+averaged over every subset of the others, with firing rate held in every model
+as a covariate rather than ranked (see COVARIATES), so shared
 variance is divided fairly rather than discarded. Least squares on session-
 centred outcome and factors (session fixed effects), which makes the 4,096 fits
 fast. As a check that does not assume linearity, gradient-boosted trees on the
@@ -108,17 +110,21 @@ def load():
 
 def fit(d, terms, reml=False):
     f = 'excess ~ ' + (' + '.join(terms) if terms else '1')
-    return smf.mixedlm(f, d, groups=d['sess'], re_formula='1',
-                       vc_formula={'shank': '0 + C(shank_id)'}).fit(reml=reml, method='lbfgs')
+    return smf.mixedlm(f, d, groups=d['mouse'], re_formula='1',
+                       vc_formula={'sess': '0 + C(sess)', 'shank': '0 + C(shank_id)'}
+                       ).fit(reml=reml, method='lbfgs')
 
 
 def r2(m):
-    """Nakagawa marginal and conditional R^2 for a random-intercept model."""
+    """Nakagawa marginal and conditional R^2, and each level's share of the
+    variance: mouse, session within mouse, shank within session, cell."""
     fe = np.var(m.model.exog @ m.fe_params.values)
-    s_sess = float(m.cov_re.iloc[0, 0]); s_sh = float(m.vcomp[0]); s_e = float(m.scale)
-    tot = fe + s_sess + s_sh + s_e
-    return dict(r2m=fe / tot, r2c=(fe + s_sess + s_sh) / tot, sess=s_sess / tot,
-                shank=s_sh / tot, resid=s_e / tot)
+    vc = dict(zip(m.model.exog_vc.names, np.asarray(m.vcomp, float)))
+    s_mo = float(m.cov_re.iloc[0, 0]); s_se = vc['sess']; s_sh = vc['shank']
+    s_e = float(m.scale)
+    tot = fe + s_mo + s_se + s_sh + s_e
+    return dict(r2m=fe / tot, r2c=(fe + s_mo + s_se + s_sh) / tot, mouse=s_mo / tot,
+                sess=s_se / tot, shank=s_sh / tot, resid=s_e / tot)
 
 
 def holm(p):
@@ -128,8 +134,19 @@ def holm(p):
     return out
 
 
+# Held in every dominance model and not ranked (2026-11-01). A cell's anchoring
+# labels are built from its VR spikes, so a cell that fires more has less noisy
+# labels and can show more agreement: firing rate measures how well agreement
+# is measured as much as anything about the cell. It is a covariate, not a
+# candidate. Its unique effect is still tested, and reported, with the others.
+COVARIATES = ('rate',)
+RATE_FLOOR = 1.0           # Hz in VR, for the check that drops low-rate cells
+
+
 def dominance(d):
-    """General dominance of each factor on the session-centred outcome."""
+    """General dominance of each factor on the session-centred outcome, with
+    the COVARIATES in every model: each factor's R^2 added beyond them,
+    averaged over every subset of the other factors."""
     import itertools
     y = (d.excess - d.groupby('sess').excess.transform('mean')).values
     cols = {}
@@ -140,13 +157,12 @@ def dominance(d):
         else:
             v = d[terms].values.astype(float)
         cols[k] = v - pd.DataFrame(v).groupby(d.sess.values).transform('mean').values
-    keys = list(cols); n = len(keys); r2s = {}
+    Z = np.hstack([np.ones((len(y), 1))] + [cols[k] for k in COVARIATES])
+    keys = [k for k in cols if k not in COVARIATES]; n = len(keys); r2s = {}
     tss = np.sum((y - y.mean()) ** 2)
     for r in range(n + 1):
         for S in itertools.combinations(range(n), r):
-            if not S:
-                r2s[S] = 0.; continue
-            X = np.hstack([np.ones((len(y), 1))] + [cols[keys[i]] for i in S])
+            X = np.hstack([Z] + [cols[keys[i]] for i in S])
             b = np.linalg.lstsq(X, y, rcond=None)[0]
             r2s[S] = 1 - np.sum((y - X @ b) ** 2) / tss
     dom = {}
@@ -155,7 +171,27 @@ def dominance(d):
         dom[k] = float(np.mean([np.mean([r2s[tuple(sorted(S + (i,)))] - r2s[S]
                                          for S in itertools.combinations(rest, m)])
                                 for m in range(n)]))
-    return dom, float(r2s[tuple(range(n))])
+    return dom, float(r2s[tuple(range(n))]), float(r2s[()])
+
+
+N_BOOT = 200
+
+
+def dominance_boot(d, n=N_BOOT, seed=0):
+    """Dominance shares (% of the variance beyond the covariates) over a
+    bootstrap of whole sessions, so the ranking's stability is measured at
+    the level the cells are clustered at."""
+    rng = np.random.default_rng(seed)
+    S = d.sess.unique(); out = []
+    for b in range(n):
+        pick = rng.choice(S, len(S), replace=True)
+        db = pd.concat([d[d.sess == s_].assign(sess=f'{s_}#{k}') for k, s_ in enumerate(pick)],
+                       ignore_index=True)
+        dom, full, cov = dominance(db)
+        out.append({k: 100 * v / (full - cov) for k, v in dom.items()})
+        if (b + 1) % 50 == 0:
+            print(f'  bootstrap {b + 1}/{n}', flush=True)
+    return pd.DataFrame(out)
 
 
 def boosted(d):
@@ -213,8 +249,21 @@ if __name__ == '__main__':
     F['p_holm'] = holm(F.p)
     gb = boosted(d)
     F['perm_importance'] = F.factor.map(gb)
-    dom, r2_within = dominance(d)
+    dom, r2_within, r2_cov = dominance(d)
+    # the same ranking on cells firing at least RATE_FLOOR Hz in VR, whose labels
+    # are reliable enough that rate should matter little: a check that the
+    # covariate, not the cells it lets in, sets the order
+    d1 = d[d.firing_rate >= RATE_FLOOR]
+    dom1, r2_1, r2c_1 = dominance(d1)
+    F['dominance_floor'] = F.factor.map(dom1)
+    print(f'rate floor {RATE_FLOOR} Hz: {len(d1)} of {len(d)} cells; R2 beyond rate {r2_1 - r2c_1:.4f}')
     F['dominance'] = F.factor.map(dom)
+    B = dominance_boot(d)
+    _rk = B.rank(axis=1, ascending=False)
+    F['boot_lo'] = F.factor.map(B.quantile(.025))
+    F['boot_hi'] = F.factor.map(B.quantile(.975))
+    F['boot_p_top'] = F.factor.map((_rk == 1).mean())
+    F['boot_rank_med'] = F.factor.map(_rk.median())
     F = F.sort_values('dominance', ascending=False)
     print(F.round(5).to_string(index=False))
     print('coefficients (per SD):')
@@ -231,7 +280,10 @@ if __name__ == '__main__':
                             p=float(m.pvalues['ml_z']))
         print(f'   ML {nm:24s} b {m.params["ml_z"]:+.4f} p {m.pvalues["ml_z"]:.3g}')
     cors = {c: float(np.corrcoef(d.ml_z, d[c])[0, 1]) for c in Xc if c != 'ml_z'}
-    json.dump(dict(n_cells=len(d), r2_within=r2_within, ml_steps=ml_steps, ml_cor=cors, n_shanks=int(d.shank_id.nunique()),
+    json.dump(dict(n_cells=len(d), r2_within=r2_within, r2_covariates=r2_cov,
+                   rate_floor=dict(hz=RATE_FLOOR, n_cells=len(d1), r2_within=r2_1, r2_covariates=r2c_1),
+                   covariates=list(COVARIATES), n_boot=N_BOOT, n_mice=int(d.mouse.nunique()),
+                   ml_steps=ml_steps, ml_cor=cors, n_shanks=int(d.shank_id.nunique()),
                    n_sess=int(d.sess.nunique()), r2=R, vif=vif, coef=coef,
                    sd=d.attrs['sd'], factors=F.to_dict(orient='records')),
               open(OUT + '.partial', 'w'), indent=1)

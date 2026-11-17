@@ -51,8 +51,8 @@ globals().update({k: v for k, v in _g.items() if not k.startswith('__')})
 # Prefer the local microSD copy when present: the lab mount has dropped mid-run
 # repeatedly, and these analyses read hundreds of MB per session.
 import os as _os
-_SD = '/Volumes/datasetsSD/clark2025_lfp'
-LFP_ROOT = '/Volumes/INCR-NolanLab/ActiveProjects/Wolf/harry/data/clark2025_lfp'
+_SD = '/Volumes/datasetsSD/Ephys_data/clark2025_lfp'
+LFP_ROOT = '/Volumes/datasetsSD/Ephys_data/clark2025_lfp'
 if _os.path.isdir(_SD):
     LFP_ROOT = _SD
 OUT = '/Users/harryclark/Documents/spatial-manifolds/data/lfp'

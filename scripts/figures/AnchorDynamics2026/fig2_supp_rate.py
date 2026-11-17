@@ -59,6 +59,14 @@ from statsmodels.stats.multitest import multipletests
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 from spatial_manifolds.anchoring import ANCH_COLOR, NONANCH_COLOR
 
+
+def merged_or_shards(stem):
+    """The single-run output when present, else its worker shards (rebuild_paper
+    runs every step unsharded, so old shards beside it are stale)."""
+    if os.path.exists(stem + '.csv'):
+        return [stem + '.csv']
+    return sorted(glob.glob(stem + '_w*.csv'))
+
 plt.rcParams['font.family'] = 'Arial'
 # mathtext must resolve to Arial, not the DejaVu default, or rho/times and any
 # bold panel letters render in a different face from the rest of the figure
@@ -76,7 +84,7 @@ plt.rcParams['font.monospace'] = ['Menlo', 'Courier New', 'Courier']
 # non-anchored trial is and whether firing rate changes with the state. Its
 # panels therefore continue that figure's lettering (A-D) rather than
 # restarting at A.
-LETTER_OFFSET = 4
+LETTER_OFFSET = 10
 
 
 def _L(s):
@@ -97,9 +105,9 @@ SHORT = ['grid', 'NGS', 'NS', 'int']
 ICOL = {'grid': '#c04744', 'non-grid spatial': '#3171ae',
         'non-spatial': '#888888', 'putative interneuron': '#d95f02'}
 
-D = pd.concat([pd.read_csv(f) for f in glob.glob(f'{PS}/trial_map_stats_w*.csv')],
+D = pd.concat([pd.read_csv(f) for f in merged_or_shards(f'{PS}/trial_map_stats')],
               ignore_index=True)
-R = pd.concat([pd.read_csv(f) for f in glob.glob(f'{PS}/trial_rate_speed_w*.csv')],
+R = pd.concat([pd.read_csv(f) for f in merged_or_shards(f'{PS}/trial_rate_speed')],
               ignore_index=True)
 U = pd.read_csv(f'{PS}/unit_table.csv')
 M = (D.merge(R, on=['mouse', 'day', 'cluster_id'])

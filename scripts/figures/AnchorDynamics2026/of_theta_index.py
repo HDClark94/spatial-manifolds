@@ -71,7 +71,7 @@ from scipy.signal import welch
 warnings.filterwarnings('ignore')
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 import pynapple as nap
-from spatial_manifolds.data.curation import curate_clusters
+from paper_units import curate
 
 ROOT = '/Users/harryclark/Documents/spatial-manifolds'
 SRC = '/Users/harryclark/Downloads/clark2025'
@@ -113,7 +113,7 @@ def session(mo, dy, of):
           '_srt-kilosort4_clusters.npz')
     if not os.path.exists(cp):
         return []
-    cur = curate_clusters(nap.load_file(cp))
+    cur = curate(nap.load_file(cp), mo, dy)
     rows = []
     for c in [int(x) for x in cur.index]:
         t = np.asarray(cur[c].index, dtype=float)

@@ -73,6 +73,14 @@ from lfp_spectrum_pac import GAMMA, _bp, tort_mi
 from spatial_manifolds.anchoring import (ANCH_COLOR, NONANCH_COLOR,
                                          major_transitions)
 
+
+def merged_or_shards(stem):
+    """The single-run output when present, else its worker shards (rebuild_paper
+    runs every step unsharded, so old shards beside it are stale)."""
+    if os.path.exists(stem + '.csv'):
+        return [stem + '.csv']
+    return sorted(glob.glob(stem + '_w*.csv'))
+
 plt.rcParams['font.family'] = 'Arial'
 # mathtext must resolve to Arial, not the DejaVu/STIX default, or rho, times
 # and the panel letters render in a different face from the rest of the figure
@@ -205,10 +213,10 @@ pac_v = {k: np.array(v) for k, v in pac_v.items()}
 
 # ============================ the population ===================================
 S = pd.concat([pd.read_csv(f) for f in
-               sorted(glob.glob(f'{ROOT}/data/lfp/spectrum_by_anchoring_w*.csv'))],
+               merged_or_shards(f'{ROOT}/data/lfp/spectrum_by_anchoring')],
               ignore_index=True)
 P = pd.concat([pd.read_csv(f) for f in
-               sorted(glob.glob(f'{ROOT}/data/lfp/pac_by_anchoring_w*.csv'))],
+               merged_or_shards(f'{ROOT}/data/lfp/pac_by_anchoring')],
               ignore_index=True)
 _n = S.drop_duplicates(['mouse', 'day', 'state']).pivot_table(
     index=['mouse', 'day'], columns='state', values='n_trials')
@@ -520,10 +528,14 @@ ax = fig.add_subplot(GEF[1])
 for j, (nm, lo, hi) in enumerate(PBANDS):
     g = pband(lo, hi).dropna()
     p = wilcoxon(g).pvalue
+    print(f'  F {nm.replace(chr(10), " ")} {lo}-{hi} Hz: {g.mean():+.3f} z, p = {p:.2g}, '
+          f'{(g > 0).sum()} of {len(g)} up')
     c = SIG_C if p < .05 else '0.6'
-    ax.bar(j, g.mean(), .62, color=c, linewidth=0)
+    ax.bar(j, g.mean(), .62, color=c, linewidth=0, alpha=.55)
+    ax.scatter(j + np.random.default_rng(j).uniform(-.18, .18, len(g)), g, s=5, color=c,
+               lw=0, alpha=.8, zorder=3)
     se = g.std() / np.sqrt(len(g))
-    ax.plot([j, j], [g.mean() - se, g.mean() + se], color='0.3', lw=1)
+    ax.errorbar(j, g.mean(), yerr=se, color='0.15', lw=1.2, capsize=2.5, zorder=4)
     ax.annotate(f'{p:.0e}'.replace('e-0', 'e-') if p < .001 else f'{p:.3f}',
                 (j, .99), xycoords=('data', 'axes fraction'), ha='center',
                 va='top', fontsize=5.2, color=c, rotation=90)
@@ -532,32 +544,39 @@ ax.set_xticks(range(len(PBANDS)))
 ax.set_xticklabels([b[0].replace('\n', ' ') for b in PBANDS], fontsize=5.6,
                    rotation=38, ha='right')
 ax.set_ylabel('anchored $-$ non (z)', fontsize=7.5)
-ax.set_ylim(top=ax.get_ylim()[1] * 1.55)
+_y0, _y1 = ax.get_ylim()
+ax.set_ylim(_y0, _y1 + .45 * (_y1 - _y0))
 ax.set_title('the difference changes SIGN — not a gain change', fontsize=7.6)
 tidy(ax); lp(ax, 'F', x=-.17)
 
+# both bands on one axis, each session's two states joined
 ax = fig.add_subplot(GQ[0])
 w = .34
 for j, b in enumerate(['slow_gamma', 'fast_gamma']):
     g = P[P.band == b].groupby(['mouse', 'day', 'state']).mi_excess.mean() \
-        .unstack().dropna()
+        .unstack().dropna() * 1e3
     p = wilcoxon(g.anch, g.non).pvalue
+    print(f'  G {b}: MI anchored {g.anch.mean() / 1e3:.5f} vs non {g.non.mean() / 1e3:.5f} '
+          f'({100 * (g.anch.mean() / g.non.mean() - 1):+.1f}%), p = {p:.2g}, '
+          f'{(g.anch < g.non).sum()} of {len(g)} lower')
+    _x = [j - .5 * w, j + .5 * w]
+    for _, r_ in g.iterrows():
+        ax.plot(_x, [r_.non, r_.anch], color='0.7', lw=.5, zorder=2)
     for k, (st, col) in enumerate((('non', NONANCH_COLOR), ('anch', ANCH_COLOR))):
         v = g[st]
-        ax.bar(j + (k - .5) * w, v.mean(), w, color=col, linewidth=0)
+        ax.bar(_x[k], v.mean(), w, color=col, linewidth=0, alpha=.55)
+        ax.scatter(np.full(len(v), _x[k]), v, s=5, color=col, lw=0, alpha=.85, zorder=3)
         se = v.std() / np.sqrt(len(v))
-        ax.plot([j + (k - .5) * w] * 2, [v.mean() - se, v.mean() + se],
-                color='0.3', lw=1)
+        ax.errorbar(_x[k], v.mean(), yerr=se, color='0.15', lw=1.2, capsize=2.5, zorder=4)
     ax.annotate(f'{p:.0e}'.replace('e-0', 'e-') if p < .001 else f'p={p:.2f}',
-                (j, max(g.anch.mean(), g.non.mean()) * 1.10), ha='center',
-                fontsize=5.6, color=SIG_C if p < .05 else '0.5')
-ax.set_xticks([0, 1]); ax.set_xticklabels(['slow\n30–55*', 'fast\n60–100'],
+                (j, max(g.anch.max(), g.non.max())), xytext=(0, 4), textcoords='offset points',
+                ha='center', va='bottom', fontsize=5.6, color=SIG_C if p < .05 else '0.5')
+ax.set_ylim(top=ax.get_ylim()[1] * 1.08)
+ax.set_xticks([0, 1]); ax.set_xticklabels([f'slow\n{GAMMA[0][1]:.0f}–{GAMMA[0][2]:.0f} Hz',
+                                           f'fast\n{GAMMA[1][1]:.0f}–{GAMMA[1][2]:.0f} Hz'],
                                           fontsize=6.2)
-ax.set_ylim(0, .0034)
-ax.set_ylabel('theta–gamma MI\nover shuffle null', fontsize=7.5)
+ax.set_ylabel('theta–gamma MI $\\times 10^{3}$\nover shuffle null', fontsize=7.5)
 ax.set_title('only FAST gamma\nuncouples', fontsize=8)
-ax.text(.5, -.34, '* contains mains', transform=ax.transAxes, fontsize=5,
-        color='0.5', ha='center')
 tidy(ax); lp(ax, 'G', x=-.17)
 
 ax = fig.add_subplot(GH[0])

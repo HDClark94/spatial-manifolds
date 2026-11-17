@@ -8,7 +8,7 @@ in except the Figure 2 and Figure 8 bar values. Everything else is computed
 from cached tables, so it cannot drift from the paper the way the retired
 Figure 2D values once did:
 
-  grid cell   ga_cache.npz -- M26 D18 cell 109, grid score 0.95, its trial x
+  MEC cell    ga_cache.npz -- M26 D18 cell 202 (non-grid spatial, MEC), its trial x
               position map split by the trial's anchoring label
   raster      data/population_state/labels/M26D18.npz -- the cell x trial label
               matrix, its PC1 and the per-cell loading, ordered as Figure 1
@@ -130,7 +130,7 @@ axm.set_ylabel('trial', fontsize=4.8, labelpad=1)
 axm.set_xlabel('position (cm)', fontsize=4.8, labelpad=1)
 for sp in axm.spines.values():
     sp.set_linewidth(.5)
-ax.text(.2325, .385, f'one grid cell, score {gs:.2f}', ha='center', va='top',
+ax.text(.2325, .370, 'one MEC spatial cell', ha='center', va='top',
         fontsize=5.0, color='0.4')
 
 # the state of the same trials, cell by cell and as PC1
@@ -158,7 +158,7 @@ axr.set_xticks([]); axr.tick_params(labelsize=4.6, length=2, pad=1,
                                     labelleft=False)
 for sp in axr.spines.values():
     sp.set_linewidth(.5)
-ax.text(.5975, .385, f'{Lb.shape[0]} MEC cells', ha='center', va='top',
+ax.text(.5975, .370, f'{Lb.shape[0]} MEC cells', ha='center', va='top',
         fontsize=5.0, color='0.4')
 
 axq = ax.inset_axes([.775, .455, .105, .395], sharey=axm)
@@ -171,7 +171,7 @@ axq.axvline(0, color='0.4', lw=.5)
 axq.set_xticks([]); axq.tick_params(labelleft=False, length=0)
 for sp in axq.spines.values():
     sp.set_visible(False)
-ax.text(.8275, .385, 'PC1', ha='center', va='top', fontsize=5.0, color='0.4')
+ax.text(.8275, .370, 'PC1', ha='center', va='top', fontsize=5.0, color='0.4')
 ax.text(.905, .72, 'anchored', fontsize=4.8, color=ANCH, va='center')
 ax.text(.905, .60, 'non-\nanchored', fontsize=4.8, color=NON, va='center',
         linespacing=1.2)
@@ -181,6 +181,10 @@ ax.text(.010, .65, f'M{int(mo)} D{int(dy)}', fontsize=5.0, color='0.45',
 # what the state buys the animal
 axh = ax.inset_axes([.105, .10, .30, .20])
 E = pd.read_csv(f'{ROOT}/data/eye_anchoring/eye_anchoring_trials.csv')
+# the per-trial PC1 lives in the trial table; the eye table keeps the trials
+E = E.drop(columns=['pc1'], errors='ignore').merge(
+    pd.read_csv(f'{ROOT}/data/population_state/trial_table.csv')[['mouse', 'day', 'trial', 'pc1']],
+    on=['mouse', 'day', 'trial'], how='left')
 E = E.dropna(subset=['pc1', 'perf', 'ttype'])
 E['hit'] = (E.perf == 'hit').astype(float)
 E['anch'] = E.pc1 > 0
@@ -229,7 +233,8 @@ ax.text(.33, .038, 'anchoring helps most when the zone must be found by path '
         ha='center', va='top', fontsize=5.2, color='0.35')
 
 # ── 2. which cells follow it, and whose state predicts behaviour ─────────────
-# Two lines, one question each, each with its own scale. Top: mean excess over
+# Two lines, one question each, each with its own scale; labels stack upward
+# where they would overlap. Top: mean excess over
 # every cell's own circular-shift null, averaged within session then across
 # sessions, which lands within 0.004 of the mixed-model estimates in Figure 2D.
 # Bottom: the Anchoring Dependence Index of a state built from FIVE randomly
@@ -238,20 +243,38 @@ ax.text(.33, .038, 'anchoring helps most when the zone must be found by path '
 ax = fig.add_subplot(G[1]); ax.axis('off')
 ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 banner(ax, 'Grid cells and fast-spiking interneurons follow it\n'
-           'most strongly, and every class\'s state predicts behaviour')
+           'most strongly; the grid-cell state predicts behaviour')
 
 _adi = pd.read_csv(f'{ROOT}/data/population_state/adi_by_identity.csv')
 COL4 = {'grid': GRID_C, 'putative interneuron': INT_C,
         'non-grid spatial': GREY, 'non-spatial': GREY}
+_nul = pd.read_csv(f'{ROOT}/data/population_state/pc1_by_region.csv')[
+    ['mouse', 'day', 'cluster_id', 'excess']]
+_U = pd.read_csv(f'{ROOT}/data/population_state/unit_table.csv').merge(
+    _nul, on=['mouse', 'day', 'cluster_id'], how='left')
+_U = _U[_U.in_population & _U.r.notna()]
+_follow = _U.groupby(['identity', 'mouse', 'day']).excess.mean().groupby('identity').mean()
+
+
+def tiers(vals, xmax):
+    """Stack a label one tier up when it would sit on a neighbour's."""
+    out, last = {}, {}
+    for k, v in sorted(vals.items(), key=lambda kv: kv[1]):
+        t = 1
+        while t in last and v - last[t] < xmax * .17:
+            t += 1
+        out[k], last[t] = t, v
+    return out
+
+
 ROWS2 = [
     (.54, 'follows\nthe state', .215, [0, .05, .10, .15, .20],
-     {'grid': .183, 'putative interneuron': .132, 'non-grid spatial': .085,
-      'non-spatial': .052}, {'non-grid spatial': 2}),
+     {k: float(_follow[k]) for k in COL4}),
     (.06, 'its state\npredicts\nuncued hits', .125, [0, .04, .08, .12],
-     {k: float(_adi[k].dropna().mean()) for k in COL4},
-     {'non-grid spatial': 2, 'putative interneuron': 3}),
+     {k: float(_adi[k].dropna().mean()) for k in COL4}),
 ]
-for _y, _lab, _xmax, _ticks, _vals, _tier in ROWS2:
+for _y, _lab, _xmax, _ticks, _vals in ROWS2:
+    _tier = tiers(_vals, _xmax)
     axl = ax.inset_axes([.30, _y, .68, .34])
     axl.plot([0, _xmax], [0, 0], color='0.78', lw=1.0, zorder=1,
              solid_capstyle='butt')
@@ -283,7 +306,7 @@ ax.text(.645, .925, 'more strongly with the population state', ha='center',
 # ── 3. what the state is ─────────────────────────────────────────────────────
 ax = fig.add_subplot(G[2]); ax.axis('off')
 ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-banner(ax, 'The state is attentional engagement, with a\n'
+banner(ax, 'The state tracks engagement, with a\n'
            'frequency-specific change in the field potential')
 
 for k, (y0, key, col, lab) in enumerate(((.55, 'anch', ANCH, 'anchored'),

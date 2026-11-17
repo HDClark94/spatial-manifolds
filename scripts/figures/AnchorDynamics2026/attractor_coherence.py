@@ -71,7 +71,8 @@ for _c in json.load(open(NB))['cells']:
 globals().update({k: v for k, v in _g.items() if not k.startswith('__')})
 
 TIME_BS = 100          # ms, the bin the attractor state is read in
-SIGMA = float(os.environ.get('SIGMA', 2.5))   # bins; the toroidal
+SIGMA = float(sys.argv[sys.argv.index('--sigma') + 1] if '--sigma' in sys.argv
+              else os.environ.get('SIGMA', 2.5))   # bins; the toroidal
 #                        figures use 2.5, which at 100 ms bins is 250 ms
 MIN_GRID = 8           # cells needed in the module
 MIN_TRIAL = 20         # trials needed in each state
@@ -293,11 +294,77 @@ def transition_strip(P, phi, state, lo=5, hi=15, span=9):
             sheet_pixels(phi, np.zeros(P.shape[0]))[1])
 
 
+def bump_speed(R, Ppos, phi_all, st, a, n, spd, rng, nperm=20, ndraw=20):
+    """The bump's own speed against the animal's, moment to moment, by state.
+
+    The two lattice axes that advance along the track are used (as the
+    example panel does): on a linear track the third barely moves. Each axis's
+    phase in time comes from projecting the 100 ms rates onto the cells'
+    offsets; its change per bin, wrapped, is converted to cm/s with that axis's
+    phase advance per cm in the position domain (median over anchored trials,
+    sign included), and the two are averaged. Then, in each state, over pairs
+    of consecutive running bins: Pearson r with the animal's speed (the same
+    as r between the two z-scored speeds), the slope (bump cm per cm run, which
+    a narrower speed range does not bias), r on samples with the two states'
+    speed distributions matched, and r for the phase shuffle, which keeps every
+    rate and destroys the lattice, so the part of r that firing rate alone
+    would give is removed.
+    """
+    psi_pos = np.stack([np.angle(np.exp(1j * q) @ Ppos) for q in phi_all])
+    psi_pos = psi_pos.reshape(len(phi_all), -1, NBIN)              # noqa: F821
+    adv = [abs(np.median([np.unwrap(r)[-1] - np.unwrap(r)[0] for r in w]))
+           for w in psi_pos]
+    kk = list(np.argsort(adv)[::-1][:2])
+    sa = np.zeros(psi_pos.shape[1], bool)
+    sa[:min(len(st), len(sa))] = st[:len(sa)]
+    dpdx = np.array([np.median(np.diff(np.unwrap(psi_pos[k][sa], axis=1), axis=1))
+                     / (TL / NBIN) for k in kk])                   # noqa: F821
+    if np.any(np.abs(dpdx) < 1e-6):
+        return None
+
+    def speed_of(ph):
+        psi = np.stack([np.angle(np.exp(1j * q) @ R) for q in ph])
+        d = (np.diff(psi, axis=1) + np.pi) % (2 * np.pi) - np.pi
+        return (d / dpdx[:, None]).mean(0) / (TIME_BS / 1000.)
+
+    v = spd[1:]
+    ma, mn = a[1:] & a[:-1], n[1:] & n[:-1]
+    bs = speed_of(phi_all[kk])
+    r = lambda m, b: float(np.corrcoef(b[m], v[m])[0, 1])
+    out = dict(r_a=r(ma, bs), r_n=r(mn, bs),
+               slope_a=float(np.polyfit(v[ma], bs[ma], 1)[0]),
+               slope_n=float(np.polyfit(v[mn], bs[mn], 1)[0]),
+               spd_sd_a=float(v[ma].std()), spd_sd_n=float(v[mn].std()))
+    nul = []
+    for _ in range(nperm):
+        b0 = speed_of(np.stack([rng.permutation(p) for p in phi_all[kk]]))
+        nul.append((r(ma, b0), r(mn, b0)))
+    out['rnull_a'], out['rnull_n'] = (float(x) for x in np.mean(nul, 0))
+    # speeds matched between states: equal draws per speed decile
+    edge = np.quantile(v[ma | mn], np.linspace(0, 1, 11))
+    edge[0], edge[-1] = -np.inf, np.inf
+    kb = np.digitize(v, edge[1:-1])
+    rr = []
+    for _ in range(ndraw):
+        ia, iN = [], []
+        for k in range(10):
+            xa, xn = np.where(ma & (kb == k))[0], np.where(mn & (kb == k))[0]
+            take = min(len(xa), len(xn))
+            if take:
+                ia.append(rng.choice(xa, take, replace=False))
+                iN.append(rng.choice(xn, take, replace=False))
+        ia, iN = np.concatenate(ia), np.concatenate(iN)
+        rr.append((np.corrcoef(bs[ia], v[ia])[0, 1], np.corrcoef(bs[iN], v[iN])[0, 1]))
+    out['rm_a'], out['rm_n'] = (float(x) for x in np.mean(rr, 0))
+    return out
+
+
 def main():
     U = pd.read_csv(f'{PS}/unit_table.csv')
     T = pd.read_csv(f'{PS}/anchoring_trials.csv')
     rng = np.random.default_rng(0)
     rows, tro, pho, only = [], [], [], os.environ.get('ONLY')
+    spr, rng_s = [], np.random.default_rng(1)       # own stream: the others reproduce
     for (mo, dy), g in U[U.in_population].groupby(['mouse', 'day']):
         if only and f'M{mo}D{dy}' != only:
             continue
@@ -354,6 +421,19 @@ def main():
                 if t_ < len(st):
                     pho.append(dict(mouse=mo, day=dy, axis=j, trial=t_,
                                     phase=float(z[t_]), anch=bool(st[t_])))
+        # the bump's speed against the animal's (separate rng, so the outputs
+        # above are unchanged by adding this)
+        try:
+            bsr = bump_speed(R, Ppos.reshape(len(mod), -1), phi_all, st, a, n,
+                             S['spd'], rng_s)
+        except Exception as e:
+            print(f'    bump speed failed: {type(e).__name__}: {e}', flush=True)
+            bsr = None
+        if bsr is not None:
+            spr.append(dict(mouse=mo, day=dy, **bsr))
+            print(f'    bump vs animal speed r {bsr["r_a"]:+.3f}/{bsr["r_n"]:+.3f} '
+                  f'(shuffle {bsr["rnull_a"]:+.3f}/{bsr["rnull_n"]:+.3f}), slope '
+                  f'{bsr["slope_a"]:.2f}/{bsr["slope_n"]:.2f}', flush=True)
         # the bump trial by trial, for its time course across a transition
         for t in np.unique(idx[ok]):
             m = ok & (idx == t)
@@ -417,6 +497,7 @@ def main():
                              index=False)
     pd.DataFrame(pho).to_csv(OUT_PHASE.replace('.csv', f'{sfx}.csv'),
                              index=False)
+    pd.DataFrame(spr).to_csv(f'{PS}/attractor_speed{sfx}.csv', index=False)
     print(f'\n{len(D)} sessions, {D.n_grid.sum()} grid cells in module')
     if len(D) > 5:
         def show(lab, v):

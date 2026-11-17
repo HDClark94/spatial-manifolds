@@ -23,9 +23,11 @@ two-photon calcium imaging of hippocampus. The one scale-dependent parameter is
 `MIN_ACTIVITY`, the silent-trial guard; set it relative to the units in use for
 signals on a very different scale, or that can go negative.
 
-Validated against recurrent-network ground truth in
-`anchoring_classifier_validation.ipynb`: median accuracy 0.990 across 1024
-simulated units, sensitivity 0.993, specificity 0.884.
+Validated against simulated grid cells with imposed ground truth (Figure S1,
+fig1_supp_classifier.py): median accuracy 0.94 across 500 cells, sensitivity
+0.998, specificity 0.776 -- specificity limited by periodicity, a re-drawn
+offset near a whole period being indistinguishable from an anchored trial.
+An earlier validation on a recurrent network gave 0.990 / 0.993 / 0.884.
 
     from spatial_manifolds.anchoring import trial_cluster_labels
     labels, mean_corr, smoothed, silhouette = trial_cluster_labels(rate_maps)
@@ -37,10 +39,10 @@ from scipy.ndimage import gaussian_filter, median_filter
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-# Defaults validated against RNN ground truth. MEDFILT_SIZE sets the temporal
-# resolution floor: a size-5 median filter erases runs shorter than 3 trials, so
-# 3 consecutive trials is the shortest detectable state change (recall 0.02 at a
-# 1-trial epoch, 0.07 at 2, 0.64 at 3, plateauing ~0.81 from 5).
+# Defaults validated against simulated grid cells (Figure S1). MEDFILT_SIZE sets
+# the temporal resolution floor: a size-5 median filter erases runs shorter than
+# 3 trials, so 3 consecutive trials is the shortest detectable state change
+# (recall 0.00 at a 1-trial epoch, 0.03 at 2, 0.32 at 3, 0.73 at 10).
 SMOOTH_SIGMA = 1.5
 MEDFILT_SIZE = 5
 N_NULL_SHIFTS = 200      # circular shifts for the per-cell gate null
@@ -240,8 +242,8 @@ def trial_cluster_labels(raw_trials, min_activity=MIN_ACTIVITY,
     The median filter is applied to the LABEL SEQUENCE, not to the firing data.
     It removes isolated false-positive anchored labels inside non-anchored runs,
     which arise because a periodic cell can align in phase with other
-    non-anchored trials by chance. It raises specificity from 0.808 to 0.884 at
-    negligible cost to sensitivity, but imposes the 3-trial resolution floor
+    non-anchored trials by chance. On simulated grid cells it raises specificity
+    from 0.675 to 0.776 at no cost to sensitivity, but imposes the 3-trial resolution floor
     noted above. Pass ``medfilt_size=0`` to disable it where brief anchoring
     events matter, accepting the lower specificity.
     """

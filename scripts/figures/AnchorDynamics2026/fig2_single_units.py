@@ -777,10 +777,11 @@ STATES = ['always', 'varies', 'never']
 # is the comparison the panel makes -- is read along a contiguous run of bars
 SCOL = {'always': ANCH_COLOR, 'varies': '0.8', 'never': NONANCH_COLOR}
 SLAB = {'always': 'always\nanchored', 'varies': 'varies', 'never': 'always\nnon-anch.'}
-xs, cols, labs, stats = [], [], [], {}
+xs, cols, labs, stats, where = [], [], [], {}, {}
 pos = 0.0
 for cls in ('interneuron', 'principal'):
     vals = []
+    where[cls] = {}
     for st in STATES:
         g = SP[(SP.cls == cls) & (SP.lockstate == st)].speed_r
         if len(g) < 5:
@@ -792,6 +793,7 @@ for cls in ('interneuron', 'principal'):
         ax.text(pos, med + se + .004, f'{len(g)}', ha='center', fontsize=4.8,
                 color='0.35')
         xs.append(pos); labs.append(SLAB[st]); vals.append((st, g, med, se))
+        where[cls][st] = pos
         pos += 1.0
     stats[cls] = {st: g for st, g, _, _ in vals}
     pos += 0.9                                   # gap between the two classes
@@ -803,9 +805,11 @@ for cls in ('interneuron', 'principal'):
         continue
     pv = mannwhitneyu(a, v).pvalue
     ptxt.append(f'{cls[:3]} {pv:.1g}')
-    # bracket the two bars being compared
-    i0 = xs[0] if cls == 'interneuron' else xs[3]
-    i1 = i0 + 1.0
+    print(f'  I {cls}: speed score always anchored {a.median():+.4f} (n={len(a)}) vs '
+          f'varies {v.median():+.4f} (n={len(v)}), p = {pv:.2g}')
+    # bracket the two bars being compared; positions are looked up, since a
+    # state with fewer than five cells has no bar
+    i0, i1 = where[cls]['always'], where[cls]['varies']
     yb = max(a.median(), v.median()) * 1.55 + .012
     ax.plot([i0, i0, i1, i1], [yb - .004, yb, yb, yb - .004], color='0.35', lw=.7)
     ax.text((i0 + i1) / 2, yb + .002,
@@ -815,7 +819,7 @@ ax.set_xticks(xs); ax.set_xticklabels(labs, fontsize=5.6)
 ax.set_ylabel('open-field speed score', fontsize=7)
 ax.set_ylim(top=ax.get_ylim()[1] * 1.30)
 # class names under their own group of bars
-for cls, cx in (('interneuron', np.mean(xs[:3])), ('principal', np.mean(xs[3:]))):
+for cls, cx in ((c, np.mean(list(where[c].values()))) for c in ('interneuron', 'principal')):
     ax.annotate(cls, (cx, -.34), xycoords=('data', 'axes fraction'), ha='center',
                 fontsize=6.4, weight='bold',
                 color=ICOL['putative interneuron'] if cls == 'interneuron' else '0.35')
@@ -973,13 +977,19 @@ ax.axhline(0, color='k', lw=1, ls='--')
 ax.set_xticks(range(4)); ax.set_xticklabels(SHORT, fontsize=7)
 ax.set_ylabel('ADI (AUC uncued $-$ cued)', fontsize=8)
 _lp(ax, 'L')
-ax.set_title('every class\'s own state predicts\nuncued performance, and they\n'
-             'do not differ from one another', fontsize=6.8, loc='left')
+ax.set_title('each class\'s own state and\nuncued performance (Holm p\nabove; no pair of classes differs)',
+             fontsize=6.8, loc='left')
 ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 print('  L: ADI by class ' + ', '.join(
-    f'{k.split()[-1]} {_A[k].dropna().mean():+.3f}' for k in _AO))
+    f'{k.split()[-1]} {_A[k].dropna().mean():+.3f} (Holm p {_p:.2g})'
+    for k, _p in zip(_AO, _ps)))
+print('  E: fraction beating own null, mean over mice ' + ', '.join(
+    f'{k.split()[-1]} {M[M.identity == k].groupby("mouse").cls.apply(lambda v: (v == "follows").mean()).mean():.0%}'
+    for k in ORDER))
 
-print(f'  J: speed-modulated {_a[0]}on/{_a[1]}off, not {_b[0]}on/{_b[1]}off, '
+print(f'  J: speed-modulated {_a[0]}on/{_a[1]}off ({_a[0] / _a[1]:.2f}:1, '
+      f'p {binomtest(_a[0], sum(_a), .5).pvalue:.2g}), not {_b[0]}on/{_b[1]}off '
+      f'({_b[0] / _b[1]:.2f}:1, p {binomtest(_b[0], sum(_b), .5).pvalue:.2g}), '
       f'OR {_orr:.2f} p {_pf:.2g}')
 
 out = (f'{FIG}/fig2_single_units.pdf' if CMAP == 'viridis'

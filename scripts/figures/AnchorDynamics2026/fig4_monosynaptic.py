@@ -493,6 +493,8 @@ base = Ki.identity.value_counts(normalize=True)
 for k_, (kind, col) in enumerate((('exc', EXC_C), ('inh', INH_C))):
     pre = C[C.kind == kind].dropna(subset=['ip']).ip.value_counts(normalize=True)
     en = [pre.get(a, 0) / base.get(a, 1) for a in ORDER]
+    print(f'  D {kind} presynaptic enrichment: ' + ', '.join(
+        f'{o} {e:.2f}x' for o, e in zip(ORDER, en)))
     ax.bar(np.arange(4) + (k_ - .5) * .38, en, width=.38, color=col, lw=0,
            label='excitatory' if kind == 'exc' else 'inhibitory')
 ax.axhline(1, color='k', lw=1, ls='--')

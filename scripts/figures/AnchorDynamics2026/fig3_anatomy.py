@@ -417,7 +417,7 @@ from spatial_manifolds.detect_grids import (_fill_nans_from_neighbors,
 
 SRC = '/Users/harryclark/Downloads/clark2025/'
 RM_SESSIONS = [(24, 3000), (19, 3270), (22, 3540), (23, 3720)]
-RM_N, RM_COLS = 24, 3          # 24 cells per session, 8 rows of 3
+RM_N, RM_COLS = 27, 3          # 27 cells per session, 9 rows of 3
 _cls = pd.read_csv(f'{ROOT}/data/cell_classifications.csv')
 
 
@@ -461,184 +461,6 @@ def pick_cells(day):
     gc = gc.assign(_t='GC'); ngs = ngs.assign(_t='NGS')
     return pd.concat([gc, ngs]).reset_index(drop=True), len(gc), len(ngs)
 
-
-# ── figure ──────────────────────────────────────────────────────────────────
-fig = plt.figure(figsize=(14.2, 10.0))
-# row 1 is empty and holds only the legend: with the region key split by MEC
-# layer the legend is too wide for the gap under the slices, whose x labels hang
-# below their axes and collided with it wherever it was centred.
-G = fig.add_gridspec(3, 1, height_ratios=[2.45, .16, 1], hspace=.38)
-# the rate-map block and the equal-aspect slices are both TALL, so they sit
-# side by side rather than stacked -- stacked, each wastes the other's width
-# No legend column. A vertical key down the right-hand side cost ~10% of the
-# width of the widest row in the figure, squeezing both the rate maps and the
-# slices; the same eight entries fit in a single horizontal strip under the
-# row, where they cost height that was whitespace anyway.
-TOP = G[0].subgridspec(1, 5, width_ratios=[.26, 2.48, .66, .66, .66],
-                       wspace=.26)
-
-# A: the gradient shown as rate maps, medial -> lateral
-g0 = TOP[1].subgridspec(1, len(RM_SESSIONS), wspace=.12)
-for bi, (day, ml) in enumerate(RM_SESSIONS):
-    cells, n_gc, n_ngs = pick_cells(day)
-    gb = g0[bi].subgridspec(RM_N // RM_COLS, RM_COLS, wspace=.08, hspace=.08)
-    for ci, (_, row) in enumerate(cells.iterrows()):
-        axm = fig.add_subplot(gb[ci])
-        try:
-            axm.imshow(of_rate_map(int(row.cluster_id), 25, day, cells), cmap='viridis')
-        except Exception:
-            axm.set_facecolor('0.92')
-        axm.set_xticks([]); axm.set_yticks([])
-        for _spine in axm.spines.values():
-            _spine.set_color(COL_GC if row._t == 'GC' else COL_NGS)
-            _spine.set_linewidth(1.1)
-        if ci == 1:
-            axm.set_title(f'D{day}  ML≈{ml} µm\n{n_gc} grid + {n_ngs} non-grid',
-                          fontsize=6.6, pad=4)
-    print(f'  M25 D{day} (ML≈{ml}): {n_gc} grid + {n_ngs} non-grid drawn')
-# the recording sequence, so that the rate maps are not read as task data: every
-# map in A comes from OF1, the arena session that PRECEDES the virtual-reality
-# task, which is what makes cell identity independent of the behaviour it is
-# later used to explain
-axseq = fig.add_subplot(TOP[0]); axseq.axis('off')
-axseq.set_xlim(0, 1); axseq.set_ylim(0, 1)
-_boxes = [('OF 1', .78, True), ('VR', .50, False), ('OF 2', .22, False)]
-for _lab, _yc, _hot in _boxes:
-    axseq.add_patch(Rectangle((.14, _yc - .055), .72, .11,
-                              facecolor=COL_GC if _hot else '0.92',
-                              edgecolor='0.45' if not _hot else COL_GC, lw=.8,
-                              zorder=2))
-    axseq.text(.50, _yc, _lab, ha='center', va='center', fontsize=6.4, zorder=3,
-               color='white' if _hot else '0.25',
-               weight='bold' if _hot else 'normal')
-for _y0, _y1 in ((.725, .615), (.445, .335)):
-    axseq.annotate('', xy=(.50, _y1), xytext=(.50, _y0),
-                   arrowprops=dict(arrowstyle='-|>', color='0.45', lw=.8))
-axseq.text(.50, .92, 'session order', ha='center', va='center', fontsize=6.2,
-           style='italic', color='0.35')
-axseq.text(.50, .08, 'maps in A are\nfrom OF 1', ha='center', va='center',
-           fontsize=5.8, color=COL_GC)
-
-fig.text(g0[0].get_position(fig).x0 - .028, G[0].get_position(fig).y1,
-         'A', fontsize=10, weight='bold', va='top')
-_p0, _p1 = g0[0].get_position(fig), g0[len(RM_SESSIONS) - 1].get_position(fig)
-fig.text((_p0.x0 + _p1.x1) / 2, _p0.y0 - .012,
-         'medial  ←' + '—' * 46 + '→  lateral', fontsize=6.4, ha='center',
-         va='top', style='italic', color='0.3')
-
-# B, C: a small 3D view over each best-fit slice
-
-# Three individual mice rather than one mouse plus a pooled fit. The pooled
-# slice averaged over animals whose probes sat at different mediolateral
-# positions, which is exactly the variable the panel is about; three mice that
-# each reach the medial end show the grid enrichment there directly. M29 and
-# M28 have the highest grid fractions after M25 (6.0% and 4.4%) and both
-# sample in to 3000-3120 um.
-SLICES = [('B', 'M25', 25), ('C', 'M29', 29), ('D', 'M28', 28)]
-for k, (letter, name, mouse) in enumerate(SLICES):
-    gg = TOP[k + 2].subgridspec(2, 1, height_ratios=[.34, 1], hspace=.04)
-    axb = fig.add_subplot(gg[0])
-    try:
-        png = render_brain(mouse, f'{RENDERS}/brain_{"all" if mouse is None else f"m{mouse}"}.png')
-        axb.imshow(trim_white(plt.imread(png)))
-    except Exception as e:
-        axb.text(.5, .5, f'render unavailable\n{type(e).__name__}', ha='center',
-                 va='center', transform=axb.transAxes, fontsize=6.5, color='0.5')
-    axb.axis('off')
-    _lp(axb, letter)
-    axb.set_title(f'{name}', fontsize=8.5, loc='left')
-
-    ax = fig.add_subplot(gg[1])
-    gc_p, ngs_p, oth_p = get_mouse_pts(mouse)
-    contacts = get_mouse_contacts(mouse)
-    allp = np.concatenate([p for p in (gc_p, ngs_p, oth_p) if len(p)])
-    fit = fit_best_slice(contacts, extent_pts=allp)
-    u_vals, v_vals, grid = sample_region_grid(fit)
-    # both axes are micrometres, so the panel is drawn to scale rather than
-    # stretched to fill its cell -- a mediolateral micron and a dorsoventral
-    # micron are the same distance and the slice should look like the tissue
-    ax.imshow(grid, origin='lower', aspect='equal', cmap=region_cmap,
-              norm=region_norm,
-              extent=[u_vals[0], u_vals[-1], v_vals[0], v_vals[-1]], zorder=1)
-    ax.set_aspect('equal', adjustable='box')
-    rng = np.random.default_rng(0)
-    xs, ys, cs = [], [], []
-    for p, col in ((oth_p, COL_OTHER), (ngs_p, COL_NGS), (gc_p, COL_GC)):
-        if not len(p):
-            continue
-        u, v = fit['project'](p)
-        xs.append(u); ys.append(v); cs.append(np.full(len(u), col))
-    xs, ys, cs = (np.concatenate(a) for a in (xs, ys, cs))
-    o = rng.permutation(len(xs))
-    ax.scatter(xs[o], ys[o], color=cs[o], s=3.0, alpha=CELL_ALPHA, lw=0, zorder=3)
-    ax.set_xlabel('medial–lateral (µm)', fontsize=8)
-    if k == 0:
-        ax.set_ylabel('dorsal–ventral (µm)', fontsize=8)
-    ax.invert_yaxis()
-    # equal aspect makes the panel narrow, so the default tick density collides
-    ax.xaxis.set_major_locator(plt.MaxNLocator(2))
-    ax.tick_params(labelsize=6.2)
-    ax.spines[['top', 'right']].set_visible(False)
-    n_gc, n_ngs = len(gc_p), len(ngs_p)
-    ax.set_title(f'{n_gc} grid, {n_ngs} non-grid\n{fit["tilt_deg"]:+.1f}° from coronal',
-                 fontsize=6.4, loc='left')
-
-_handles = ([Patch(facecolor=str(REGION_GREY[k]), edgecolor='0.6', lw=.4, label=l)
-              for k, l in zip((1, 2, 3, 4, 5), REGION_NAMES)]
-            + [Patch(facecolor=str(GREY_OTHER), edgecolor='0.6', lw=.4,
-                     label='other / unassigned')]
-            + [Patch(facecolor=c, label=l) for l, c in
-               (('grid cell', COL_GC), ('non-grid spatial', COL_NGS),
-                ('other', COL_OTHER))]
-            + [Patch(facecolor=COL_CONTACT, label='probe contacts')])
-# Centred in the GAP between the first and second rows, not hung directly under
-# row 0: the slice panels' x tick labels and axis title extend below their axes
-# box, and anchoring to G[0].y0 printed the legend straight through them.
-_y_mid = (G[1].get_position(fig).y0 + G[1].get_position(fig).y1) / 2
-fig.legend(handles=_handles, loc='center', bbox_to_anchor=(.56, _y_mid),
-           ncol=10, fontsize=6.6, frameon=False, handlelength=1.0,
-           handleheight=1.1, columnspacing=1.3, borderpad=0)
-
-# C-E: identity across the axes
-g2 = G[2].subgridspec(1, 3, wspace=.42)
-for k, (axis, lab, letter) in enumerate((('ml', 'medial–lateral (µm)', 'E'),
-                                         ('dv', 'dorsal–ventral (µm)', 'F'))):
-    ax = fig.add_subplot(g2[k])
-    x, y, e = binned(sp, axis, 'gc')
-    ax.fill_between(x, y - e, y + e, color=COL_GC, alpha=.25, lw=0, edgecolor='none')
-    ax.plot(x, y, color=COL_GC, lw=1.8)
-    ws, p = within_session(sp, axis, 'gc')
-    ax.set_xlabel(lab, fontsize=8)
-    if k == 0:
-        ax.set_ylabel('fraction grid\n(of spatial cells)', fontsize=8)
-    ax.set_ylim(0, max(ax.get_ylim()[1], .02) * 1.22)
-    _lp(ax, letter)
-    ax.set_title(f'within session rho = {np.median(ws):+.3f}\n'
-                 f'p = {p:.3g}  ({len(ws)} sessions)', fontsize=7, loc='left')
-    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
-
-# E: layer, which is what the AP axis is really reporting in a curved structure
-ax = fig.add_subplot(g2[2])
-rows = []
-for (mo, dy), g in sp.groupby(['mouse', 'day']):
-    a, b = g[g.sup], g[~g.sup]
-    if len(a) >= 10 and len(b) >= 10:
-        rows.append((a.gc.mean(), b.gc.mean()))
-R = np.array(rows)
-pl = wilcoxon(R[:, 0] - R[:, 1]).pvalue
-for i in range(len(R)):
-    ax.plot([0, 1], R[i], color='0.75', lw=.7, zorder=2)
-for j, (col, nm) in enumerate(((COL_GC, 'superficial'), ('0.45', 'deep'))):
-    ax.errorbar(j, R[:, j].mean(), yerr=R[:, j].std(ddof=1) / np.sqrt(len(R)),
-                color=col, marker='o', ms=6, lw=1.6, capsize=4, zorder=4)
-ax.set_xticks([0, 1]); ax.set_xticklabels(['superficial\n(L1–3)', 'deep\n(L5–6)'],
-                                          fontsize=7)
-ax.set_xlim(-.4, 1.4)
-ax.set_ylabel('fraction grid', fontsize=8)
-_lp(ax, 'G')
-ax.set_title(f'higher in {int((R[:, 0] > R[:, 1]).sum())}/{len(R)} sessions\n'
-             f'p = {pl:.3g}', fontsize=7, loc='left')
-ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
 # ── H, I: two example sessions, each as slice + raster + PC1 + agreement ─────
 # J and L report the mediolateral gradient in following as a correlation. These
@@ -697,7 +519,51 @@ def pc1_transitions(pc1, min_run=3):
     return z, [m[1] + 1 for m in merged[1:]]
 
 
-def example_row(cell, letter, mo, dy):
+MIN_SHANK_SP = 10          # classified cells for a shank's point in Figure 4D
+PROBE_JITTER = 55.0        # um, display spread of cells across their shank
+SHANK_X = [16 + 250 * k for k in range(4)]
+
+
+def probe_axes(ax, mo, dy, cells):
+    """Draw the NP2014 probe on ax, every contact light and the session's recorded
+    contacts darker, shanks re-ordered medial -> lateral. Returns each cell's
+    display x and y (um from the tip), its device shank and its medial->lateral
+    rank."""
+    import probeinterface as pi
+    from matplotlib.collections import PatchCollection
+    A_ = pd.read_csv(f'{SRC}M{mo}/D{dy}/anatomy_M{mo}_D{dy}.csv')
+    A_['s'] = A_.device_contact_id.str.extract(r's(\d)e')[0].astype(int)
+    order = A_.groupby('s').coord_SCs_x.apply(lambda v: v.abs().mean()).sort_values().index
+    rank_of = {int(s_): r_ for r_, s_ in enumerate(order)}
+    probe = pi.get_probe('imec', 'NP2014')
+    xy = np.round(probe.contact_positions).astype(int)
+    on = set(zip(A_.coord_probe_x.round().astype(int), A_.coord_probe_y.round().astype(int)))
+    act = np.array([(x_, y_) in on for x_, y_ in xy])
+    dev = np.clip(np.round((xy[:, 0] - 16) / 250).astype(int), 0, 3)
+    X = np.array([rank_of[d_] for d_ in dev]) * 250 + (xy[:, 0] - 250 * dev)
+    ya = xy[act, 1]
+    y0, y1 = ya.min() - 260, ya.max() + 260
+    for r_ in range(4):                                 # the shank outlines
+        ax.add_patch(Rectangle((250 * r_ - 20, y0 - 50), 72, y1 - y0 + 100, facecolor='0.97',
+                               edgecolor='0.6', lw=.4, zorder=1))
+    vis = (xy[:, 1] > y0) & (xy[:, 1] < y1)
+    for sel, col in ((~act & vis, '0.86'), (act, '0.5')):
+        ax.add_collection(PatchCollection([Rectangle((x_ - 6, y_ - 6), 12, 12)
+                                           for x_, y_ in zip(X[sel], xy[sel, 1])],
+                                          facecolor=col, lw=0, zorder=1.2))
+    cdev = np.clip(np.round((cells.coord_probe_x.values - 16) / 250).astype(int), 0, 3)
+    crank = np.array([rank_of[d_] for d_ in cdev])
+    cx = crank * 250 + (cells.coord_probe_x.values - 250 * cdev)
+    ax.set_xlim(-90, 3 * 250 + 32 + 90); ax.set_ylim(y0, y1)
+    ax.set_xticks(SHANK_X); ax.set_xticklabels([f'S{k + 1}' for k in range(4)], fontsize=6.5)
+    ax.tick_params(axis='y', labelsize=6)
+    ax.set_xlabel('shank, medial → lateral', fontsize=7)
+    ax.set_ylabel('µm from probe tip', fontsize=7)
+    ax.spines[['top', 'right']].set_visible(False)
+    return cx, cells.coord_probe_y.values, cdev, crank
+
+
+def example_row(cell, letter, mo, dy, merge_mec=False):
     # wspace is wider than the rows above because this one carries a colorbar
     # on the slice panel: the bar's tick labels and the raster's rotated y-label
     # both float outward by a fixed point padding that no gridspec setting
@@ -732,95 +598,62 @@ def example_row(cell, letter, mo, dy):
     pcz, tr = pc1_transitions(np.asarray(z['pc1'], float))
     rr = _rr_all.query('mouse == @mo and day == @dy').set_index('cluster_id')
 
-    # slice: where these cells sit, coloured by agreement ABOVE CHANCE -- the
-    # same quantity as Figure 2D: |r| minus the mean |r| of the cell's own
-    # circular-shift null, so absolute is compared with absolute (subtracting
-    # an absolute null from a signed r is the error that retired two earlier
-    # claims). Centred on chance, so cells below their own null show too.
-    # the slice under a strip of per-shank boxplots that shares its mediolateral
-    # axis, so each shank's distribution sits directly over the shank
-    gSl = gR[1].subgridspec(2, 1, height_ratios=[.45, 1], hspace=.10)
+    # the probe, not a best-fit slice: the 4-shank Neuropixels 2.0 (NP2014) with
+    # the session's recorded contacts darker than the inactive ones, as Figure
+    # S22A draws it, and each cell at its localised position coloured by agreement
+    # ABOVE CHANCE -- |r| minus the mean |r| of the cell's own circular-shift
+    # null, so absolute is compared with absolute (subtracting an absolute null
+    # from a signed r is the error that retired two earlier claims). Centred on
+    # chance, so cells below their own null show too. Grid cells are triangles
+    # with a thin dark edge (the user did not want them outlined in colour). Shanks are drawn medial -> lateral (S1 medial), the
+    # order of the raster beside it, whatever the device's own numbering.
+    gSl = gR[1].subgridspec(2, 1, height_ratios=[.42, 1], hspace=.08)
     axbx = fig.add_subplot(gSl[0])
     axsl = fig.add_subplot(gSl[1])
-    cells = (C[(C.mouse == mo) & (C.day == dy)]
-             .dropna(subset=['coord_SCs_x', 'coord_SCs_y', 'coord_SCs_z']))
+    cells = C[(C.mouse == mo) & (C.day == dy)].dropna(subset=['coord_probe_x', 'coord_probe_y'])
     cells = cells[~cells.cluster_id.isin(nolab)]
-    cpts = np.array([stereo_to_ccf(r) for r in
-                     cells[['coord_SCs_z', 'coord_SCs_y', 'coord_SCs_x']].values])
-    fitH = fit_best_slice(get_mouse_contacts(mo), extent_pts=cpts)
-    uv, vv, grid = sample_region_grid(fitH)
-    axsl.imshow(grid, origin='lower', aspect='equal', cmap=region_cmap,
-                norm=region_norm, zorder=1, extent=[uv[0], uv[-1], vv[0], vv[-1]])
-    pu, pv = fitH['project'](cpts)
-    # a little Gaussian jitter on the mediolateral coordinate, for display only:
-    # every cell on a shank is assigned the shank's one nominal position, so
-    # unjittered they stack into a single column. SD 15 um against shank
-    # spacings of 210-270 um keeps the shanks distinct. Shank positions for
-    # labels and boxes use the unjittered values.
-    pu_true = pu.copy()
-    pu = pu + np.random.default_rng(mo * 100 + dy).normal(0, ML_JITTER_FIG4, len(pu))
     ex = np.array([rr.excess.get(c, np.nan) for c in cells.cluster_id])
+    sx, sy, dsh, rank = probe_axes(axsl, mo, dy, cells)
+    rng_ = np.random.default_rng(mo * 100 + dy)
+    px = sx + rng_.uniform(-PROBE_JITTER, PROBE_JITTER, len(sx))
     okc = np.isfinite(ex)
-    axsl.scatter(pu[~okc], pv[~okc], s=2.0, color='0.80', alpha=.5, lw=0, zorder=2)
     hi = max(abs(np.nanpercentile(ex, 2)), abs(np.nanpercentile(ex, 98)))
+    norm_ = TwoSlopeNorm(vcenter=0.0, vmin=-hi, vmax=hi)
     # DIVERGING, white at chance. PRGn because the obvious alternatives each
     # collide with a colour this figure already uses: BrBG ends in the
     # non-anchored teal, PiYG in near-magenta, RdBu in the grid/non-grid red
-    # and blue of B-D, and PuOr's orange vanishes on the gold MEC shading
-    # where the above-chance cells sit.
-    sc = axsl.scatter(pu[okc], pv[okc], c=ex[okc], s=8.0, cmap='PRGn',
-                      norm=TwoSlopeNorm(vcenter=0.0, vmin=-hi, vmax=hi),
-                      alpha=.95, lw=0, edgecolors='none', zorder=3)
-    axsl.set_aspect('equal', adjustable='box')
-    axsl.set_anchor('E')
-    axsl.invert_yaxis()
-    axsl.set_xlabel('medial–lateral (µm)', fontsize=7)
-    axsl.set_ylabel('dorsal–ventral (µm)', fontsize=7)
-    axsl.xaxis.set_major_locator(plt.MaxNLocator(2))
-    axsl.yaxis.set_major_locator(plt.MaxNLocator(3))
-    axsl.tick_params(labelsize=6)
-    axsl.spines[['top', 'right']].set_visible(False)
-    cb = fig.colorbar(sc, ax=axsl, fraction=.045, pad=.03)
-    # label ABOVE the bar, not rotated beside it: the rotated label floats
-    # outward by a fixed point padding and ran into the raster's y-label
-    # loc='left' so the title grows rightwards, away from the S labels that
-    # now sit over the most lateral shank
-    cb.ax.tick_params(labelsize=5.5); cb.outline.set_visible(False)
-    # shanks are numbered medial -> lateral (S1 most medial): the cell table
-    # carries each cell's per-shank mediolateral position but not the device's
-    # own shank id, so this is the order the raster beside it uses
-    _cml = cells.coord_SCs_x.abs().round(0).values
-    bx_vals, bx_pos = [], []
-    for j_, u_ in enumerate(np.sort(np.unique(_cml))):
-        m_ = _cml == u_
-        top = np.argmin(pv[m_])                      # most dorsal cell
-        xs_ = float(np.median(pu_true[m_]))
-        axsl.annotate(f'S{j_ + 1}', (xs_, pv[m_][top]),
-                      xytext=(0, 3), textcoords='offset points', ha='center',
-                      va='bottom', fontsize=6.5, weight='bold', color='0.15',
-                      annotation_clip=False, zorder=6)
-        bx_vals.append(ex[m_ & okc]); bx_pos.append(xs_)
+    # and blue, and PuOr's orange in the interneuron orange.
+    is_gc = (cells.cell_class_of1 == 'GC').values
+    axsl.scatter(px[~okc & ~is_gc], sy[~okc & ~is_gc], s=5, color='0.72', lw=0, zorder=2)
+    axsl.scatter(px[okc & ~is_gc], sy[okc & ~is_gc], c=ex[okc & ~is_gc], s=9, cmap='PRGn',
+                 norm=norm_, lw=.25, edgecolors='0.5', zorder=3)
+    axsl.scatter(px[~okc & is_gc], sy[~okc & is_gc], s=26, marker='^', color='0.72',
+                 edgecolors='0.15', lw=.5, zorder=4)
+    axsl.scatter(px[okc & is_gc], sy[okc & is_gc], c=ex[okc & is_gc], s=26, marker='^',
+                 cmap='PRGn', norm=norm_, edgecolors='0.15', lw=.5, zorder=4)
+    cax = axsl.inset_axes([1.04, .0, .045, .42])
+    cb = fig.colorbar(plt.cm.ScalarMappable(norm_, 'PRGn'), cax=cax)
+    cb.ax.tick_params(labelsize=5.5, length=1.5, pad=1); cb.outline.set_visible(False)
+    cax.set_title('above\nchance', fontsize=5.5, pad=2, loc='left')
+    n_gc = int(is_gc.sum())
+    axsl.text(1.03, 1.0, f'▲ grid cell ({n_gc})\n● other cell\ngrey: locked\n■ recorded contact\n□ inactive',
+              transform=axsl.transAxes, fontsize=5.5, va='top', ha='left', color='0.25',
+              linespacing=1.35)
 
-    # agreement above chance, one box per shank at the shank's own position
-    xl = axsl.get_xlim()
-    w_ = .28 * (np.min(np.diff(bx_pos)) if len(bx_pos) > 1 else 200.0)
-    bp = axbx.boxplot(bx_vals, positions=bx_pos, widths=w_, showfliers=False,
-                      patch_artist=True, manage_ticks=False,
-                      medianprops=dict(color='k', lw=1.3),
-                      boxprops=dict(facecolor='0.85', edgecolor='0.35', lw=.7),
-                      whiskerprops=dict(color='0.35', lw=.7),
-                      capprops=dict(color='0.35', lw=.7))
+    # agreement above chance, one box per shank directly over the shank
+    bx_vals = [ex[(rank == j) & okc] for j in range(4)]
+    axbx.boxplot(bx_vals, positions=SHANK_X, widths=90, showfliers=False,
+                 patch_artist=True, manage_ticks=False,
+                 medianprops=dict(color='k', lw=1.3),
+                 boxprops=dict(facecolor='0.85', edgecolor='0.35', lw=.7),
+                 whiskerprops=dict(color='0.35', lw=.7),
+                 capprops=dict(color='0.35', lw=.7))
     axbx.axhline(0, color='0.5', lw=.7, ls=':', zorder=1)
-    axbx.set_xlim(xl)
+    axbx.set_xlim(axsl.get_xlim())
     axbx.set_xticks([])
     axbx.set_ylabel('above\nchance', fontsize=6, labelpad=1)
     axbx.tick_params(labelsize=5.5)
     axbx.spines[['top', 'right', 'bottom']].set_visible(False)
-    # the slice is drawn at equal aspect, so its box shrinks inside its slot;
-    # match the strip above to the slice's DRAWN width so the shanks line up
-    axsl.apply_aspect()
-    _ps, _pb = axsl.get_position(), axbx.get_position()
-    axbx.set_position([_ps.x0, _pb.y0, _ps.width, _pb.height])
 
     # raster, one block per shank, each under a strip giving the cell's region
     shanks = np.unique(mls)
@@ -833,7 +666,9 @@ def example_row(cell, letter, mo, dy):
     for j, u in enumerate(shanks):
         m = mls == u
         axs = fig.add_subplot(gS[0, j])
-        axs.imshow(strip_rgb[rcls[m]][None, :, :], aspect='auto',
+        # merge_mec: one grey for all of MEC, as Figure 4's key has no layer split
+        _rc = np.where(rcls[m] == 4, 3, rcls[m]) if merge_mec else rcls[m]
+        axs.imshow(strip_rgb[_rc][None, :, :], aspect='auto',
                    interpolation='nearest')
         axs.set_xticks([]); axs.set_yticks([])
         for sp_ in axs.spines.values():
@@ -867,7 +702,7 @@ def example_row(cell, letter, mo, dy):
     # z-scored PC1, on the same rows as the raster (same height split)
     # the row letter, at the raster's top-left now that the raster leads
     _pos = gLft[0].get_position(fig)
-    fig.text(_pos.x0 - .045, _pos.y1 + .012, letter, fontsize=10, weight='bold',
+    fig.text(_pos.x0 - .022, _pos.y1 + .012, letter, fontsize=10, weight='bold',
              va='bottom', ha='right')
     gP = gLft[1].subgridspec(2, 1, height_ratios=HR, hspace=.025)
     axp = fig.add_subplot(gP[1])
@@ -907,156 +742,474 @@ def example_row(cell, letter, mo, dy):
           f'anchored, {len(tr)} PC1 transitions, rho={rho[0]:+.3f} p={rho[1]:.3g}; '
           'per-shank agreement medial->lateral: '
           + ', '.join(f'{v:.2f} (n={n})' for _, v, n in per_shank)
-          + f' | MEC only: rho={rho_m[0]:+.3f} p={rho_m[1]:.3g}')
+          + f' | MEC only: rho={rho_m[0]:+.3f} p={rho_m[1]:.3g}; per shank '
+          + ', '.join(f'{rv[(mls == u) & mec_].mean():.2f}' for u in shanks
+                      if ((mls == u) & mec_).sum() >= 3))
     print('     region classes by shank: ' + '; '.join(
         f'{u:.0f}:' + ','.join(f'{k}={int(((mls == u) & (rcls == k)).sum())}'
                                for k in range(6) if ((mls == u) & (rcls == k)).any())
         for u in shanks))
+    return axbx
 
 
-# ══ FIGURE 3 ENDS HERE. Everything below is the following figure (Figure 5):
-# the mediolateral organisation of FOLLOWING, split out of what was Figure 3H-L (now Figure 4A-E).
-out3 = f'{FIG}/fig3_anatomy.pdf'
-plt.savefig(out3, dpi=200, bbox_inches='tight')
-print(f'\nsaved {out3}')
-plt.close(fig)
+# ── panels ──────────────────────────────────────────────────────────────────
+# Each panel is a function of the axes (or gridspec cell) it draws into, so the
+# main figure and its supplement (Figure S9, the panels the merge left out) can
+# each take what they need.
 
-fig = plt.figure(figsize=(14.2, 16.2))
-G = fig.add_gridspec(6, 1, height_ratios=[.13, 1.30, 1.30, 1, 1.05, 1.25], hspace=.42)
-_rh = ([Patch(facecolor=str(REGION_GREY[k]), edgecolor='0.6', lw=.4, label=l)
-        for k, l in zip((1, 2, 3, 4, 5), REGION_NAMES)]
-       + [Patch(facecolor=str(GREY_OTHER), edgecolor='0.6', lw=.4,
-                label='other / unassigned')])
-_yl = (G[0].get_position(fig).y0 + G[0].get_position(fig).y1) / 2
-fig.legend(handles=_rh, loc='center', bbox_to_anchor=(.5, _yl), ncol=6,
-           fontsize=6.8, frameon=False, handlelength=1.1,
-           title='region (slices, raster strips and points)', title_fontsize=6.8)
-# E, F on one row; G (within-session summary) joins the controls H, I below
-g3 = G[3].subgridspec(1, 2, wspace=.30)
+def session_schematic(ax, letter):
+    """The recording day, top to bottom: the 1 m x 1 m open-field arena (OF1),
+    the virtual-reality task (a head-fixed mouse on a cylinder before the
+    screens), the arena again (OF2). OF1 is marked: every map in the rate-map
+    panel comes from it, the session that PRECEDES the task, which is what
+    makes cell identity independent of the behaviour it is later used to
+    explain."""
+    from matplotlib.patches import Circle, Ellipse, Polygon, Arc
+    ax.set_xlim(0, 1); ax.set_ylim(-.55, 5.2); ax.set_aspect('equal'); ax.axis('off')
+    ax.set_anchor('W')
+    rng = np.random.default_rng(5)
+
+    def arena(yc, hot, name):
+        x0, y0, w = .2, yc - .3, .6
+        ax.add_patch(Rectangle((x0, y0), w, w, facecolor='white',
+                               edgecolor=COL_GC if hot else '0.35', lw=1.4 if hot else .9, zorder=2))
+        st = np.cumsum(rng.normal(0, .035, (160, 2)), axis=0)
+        st = (st - st.min(0)) / np.ptp(st, axis=0) * (w - .1) + [x0 + .05, y0 + .05]
+        ax.plot(st[:, 0], st[:, 1], color='0.6', lw=.45, zorder=3)
+        ax.text(.5, y0 + w + .05, name, ha='center', va='bottom', fontsize=6.6,
+                weight='bold', color=COL_GC if hot else '0.25')
+        ax.annotate('', (x0, y0 - .06), (x0 + w, y0 - .06),
+                    arrowprops=dict(arrowstyle='<->', color='0.4', lw=.6, shrinkA=0, shrinkB=0))
+        ax.text(.5, y0 - .09, '1 m', ha='center', va='top', fontsize=5.6, color='0.35')
+
+    arena(4.35, True, 'OF 1')
+    # VR: screens wrapped round a head-fixed mouse on a cylinder, side view
+    yc = 2.5
+    ax.add_patch(Arc((.62, yc + .02), .7, .66, theta1=-70, theta2=70, color='0.25', lw=2.2, zorder=2))
+    for k_ in range(5):                                       # gratings on the screen
+        th = np.deg2rad(-50 + 25 * k_)
+        ax.plot([.62 + .35 * np.cos(th)] * 2, [yc + .02 + .33 * np.sin(th) - .03,
+                                               yc + .02 + .33 * np.sin(th) + .03],
+                color='0.55', lw=1.2, zorder=3)
+    ax.add_patch(Circle((.45, yc - .2), .13, facecolor='0.9', edgecolor='0.35', lw=.8, zorder=2))
+    ax.add_patch(Ellipse((.43, yc + .0), .3, .14, facecolor='0.55', edgecolor='none', zorder=3))
+    ax.add_patch(Ellipse((.6, yc + .03), .12, .09, facecolor='0.55', edgecolor='none', zorder=3))
+    ax.add_patch(Polygon([(.6, yc + .06), (.56, yc + .13), (.63, yc + .09)], color='0.45', zorder=4))
+    ax.plot([.28, .2, .16], [yc - .01, yc - .06, yc - .02], color='0.55', lw=.8, zorder=3)
+    ax.plot([.58, .58], [yc + .07, yc + .2], color='0.3', lw=1.4, zorder=4)   # head-post
+    ax.text(.5, yc + .42, 'VR task', ha='center', va='bottom', fontsize=6.6, color='0.25',
+            weight='bold')
+    arena(.7, False, 'OF 2')
+    for y_a, y_b in ((3.78, 3.25), (1.82, 1.4)):
+        ax.annotate('', (.5, y_b), (.5, y_a),
+                    arrowprops=dict(arrowstyle='-|>', color='0.45', lw=.8))
+    ax.text(.5, 5.2, 'one recording day', ha='center', va='top', fontsize=6.0,
+            style='italic', color='0.35')
+    ax.text(.5, -.1, f'maps in {letter}\nare from OF 1', ha='center', va='top',
+            fontsize=5.8, color=COL_GC)
+
+
+def panel_ratemaps(spec_seq, spec_maps, letter):
+    """The gradient shown as OF1 rate maps, four M25 sessions medial -> lateral."""
+    g0 = spec_maps.subgridspec(1, len(RM_SESSIONS), wspace=.07)
+    for bi, (day, ml) in enumerate(RM_SESSIONS):
+        cells, n_gc, n_ngs = pick_cells(day)
+        gb = g0[bi].subgridspec(RM_N // RM_COLS, RM_COLS, wspace=.05, hspace=.05)
+        for ci, (_, row) in enumerate(cells.iterrows()):
+            axm = fig.add_subplot(gb[ci])
+            try:
+                axm.imshow(of_rate_map(int(row.cluster_id), 25, day, cells), cmap='viridis', aspect='equal')
+            except Exception:
+                axm.set_facecolor('0.92')
+            axm.set_xticks([]); axm.set_yticks([])
+            for _spine in axm.spines.values():
+                _spine.set_color(COL_GC if row._t == 'GC' else COL_NGS)
+                _spine.set_linewidth(1.1)
+            if ci == 1:
+                axm.set_title(f'D{day}  ML≈{ml} µm\n{n_gc} grid + {n_ngs} non-grid',
+                              fontsize=6.6, pad=4)
+        print(f'  M25 D{day} (ML≈{ml}): {n_gc} grid + {n_ngs} non-grid drawn')
+    axs_ = fig.add_subplot(spec_seq)
+    session_schematic(axs_, letter)
+    _p0, _p1 = g0[0].get_position(fig), g0[len(RM_SESSIONS) - 1].get_position(fig)
+    fig.text(_p0.x0 - .028, _p0.y1 + .02, letter, fontsize=10, weight='bold', va='bottom')
+    fig.text((_p0.x0 + _p1.x1) / 2, _p0.y0 - .008,
+             'medial  ←' + '—' * 46 + '→  lateral', fontsize=6.4, ha='center',
+             va='top', style='italic', color='0.3')
+    return axs_
+
+
+def panel_slice(spec, letter, name, mouse, first):
+    """A small 3D view over the mouse's best-fit slice, cells by identity.
+    Three individual mice rather than a pooled fit: the pooled slice averaged
+    over animals whose probes sat at different mediolateral positions, which is
+    the variable the panel is about."""
+    gg = spec.subgridspec(2, 1, height_ratios=[.34, 1], hspace=.04)
+    axb = fig.add_subplot(gg[0])
+    try:
+        png = render_brain(mouse, f'{RENDERS}/brain_m{mouse}.png')
+        axb.imshow(trim_white(plt.imread(png)))
+    except Exception as e:
+        axb.text(.5, .5, f'render unavailable\n{type(e).__name__}', ha='center',
+                 va='center', transform=axb.transAxes, fontsize=6.5, color='0.5')
+    axb.axis('off')
+    _lp(axb, letter)
+    axb.set_title(name, fontsize=8.5, loc='left')
+    ax = fig.add_subplot(gg[1])
+    gc_p, ngs_p, oth_p = get_mouse_pts(mouse)
+    contacts = get_mouse_contacts(mouse)
+    allp = np.concatenate([p for p in (gc_p, ngs_p, oth_p) if len(p)])
+    fit = fit_best_slice(contacts, extent_pts=allp)
+    u_vals, v_vals, grid = sample_region_grid(fit)
+    # both axes are micrometres, so the slice is drawn to scale
+    ax.imshow(grid, origin='lower', aspect='equal', cmap=region_cmap, norm=region_norm,
+              extent=[u_vals[0], u_vals[-1], v_vals[0], v_vals[-1]], zorder=1)
+    ax.set_aspect('equal', adjustable='box')
+    rng = np.random.default_rng(0)
+    xs, ys, cs = [], [], []
+    for p, col in ((oth_p, COL_OTHER), (ngs_p, COL_NGS), (gc_p, COL_GC)):
+        if not len(p):
+            continue
+        u, v = fit['project'](p)
+        xs.append(u); ys.append(v); cs.append(np.full(len(u), col))
+    xs, ys, cs = (np.concatenate(a) for a in (xs, ys, cs))
+    o = rng.permutation(len(xs))
+    ax.scatter(xs[o], ys[o], color=cs[o], s=3.0, alpha=CELL_ALPHA, lw=0, zorder=3)
+    ax.set_xlabel('medial–lateral (µm)', fontsize=8)
+    if first:
+        ax.set_ylabel('dorsal–ventral (µm)', fontsize=8)
+    ax.invert_yaxis()
+    ax.xaxis.set_major_locator(plt.MaxNLocator(2))
+    ax.tick_params(labelsize=6.2)
+    ax.spines[['top', 'right']].set_visible(False)
+    ax.set_title(f'{len(gc_p)} grid, {len(ngs_p)} non-grid\n{fit["tilt_deg"]:+.1f}° from coronal',
+                 fontsize=6.4, loc='left')
+
+
+def panel_grid_axis(ax, axis, lab, letter, ylabel=True, shank_points=False):
+    """Fraction of spatial cells that are grid cells along one axis.
+    shank_points: one point per shank of every session (each shank of a
+    multi-shank session separately) with at least MIN_SHANK_SP spatial cells,
+    at the shank's position. Shanks are grouped on mediolateral position to
+    50 um, which absorbs the per-cell jitter of the M20/M21 positions."""
+    if shank_points:
+        q = sp.assign(_sh=(sp[axis] / 50).round() * 50)
+        q = (q.groupby(['mouse', 'day', '_sh'])
+             .agg(n=('gc', 'size'), f=('gc', 'mean'), x=(axis, 'mean')).reset_index())
+        q = q[q.n >= MIN_SHANK_SP]
+        ax.scatter(q.x + np.random.default_rng(3).uniform(-12, 12, len(q)), q.f, s=9,
+                   color='0.6', alpha=.6, lw=0, zorder=1)
+        print(f'  {letter}: {len(q)} shank points (>= {MIN_SHANK_SP} spatial cells), '
+              f'{q.groupby(["mouse", "day"]).ngroups} sessions')
+    x, y, e = binned(sp, axis, 'gc')
+    ax.fill_between(x, y - e, y + e, color=COL_GC, alpha=.25, lw=0, edgecolor='none')
+    ax.plot(x, y, color=COL_GC, lw=1.8)
+    ws, p = within_session(sp, axis, 'gc')
+    ax.set_xlabel(lab, fontsize=8)
+    if ylabel:
+        ax.set_ylabel('fraction grid\n(of spatial cells)', fontsize=8)
+    ax.set_ylim(0, max(ax.get_ylim()[1], .02) * (1.05 if shank_points else 1.22))
+    _lp(ax, letter)
+    ax.set_title(f'within session rho = {np.median(ws):+.3f}\n'
+                 f'p = {p:.3g}  ({len(ws)} sessions)', fontsize=7, loc='left')
+    print(f'  {letter} grid vs {axis}: within-session median rho {np.median(ws):+.3f}, '
+          f'p = {p:.3g}, {(np.array(ws) < 0).sum()} of {len(ws)} negative')
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+
+IDENT = [('grid', 'grid', COL_GC), ('non-grid spatial', 'non-grid spatial', COL_NGS),
+         ('non-spatial', 'non-spatial', '#888888'), ('putative interneuron', 'interneuron', '#d95f02')]
+
+
+def mixed_ml(df, y):
+    """Within-session mediolateral slope of y (per 100 um) from a linear mixed
+    model with MOUSE as the top-level random effect: random intercept and
+    random within-session slope per mouse, session intercepts nested within
+    mouse. Position is split into its within-session part (the cell's offset
+    from its session's mean position, the one tested) and the session mean
+    (between-session placement, a nuisance term), so probe placement differing
+    between animals cannot produce the slope, and sessions from one mouse are
+    not counted as independent replicates. A 0/1 identity is fitted as a linear
+    probability model. Returns slope, p, n mice, n sessions."""
+    import statsmodels.formula.api as smf
+    d = df.dropna(subset=['ml', y]).copy()
+    d['sess'] = d.mouse.astype(str) + '_' + d.day.astype(str)
+    sm = d.groupby('sess').ml.transform('mean')
+    d['ml_w'], d['ml_b'] = (d.ml - sm) / 100, (sm - sm.mean()) / 100
+    # 'sess' is a string column, so patsy treats it as categorical; C(sess)
+    # would collide with this module's cell table, also called C
+    m = smf.mixedlm(f'{y} ~ ml_w + ml_b', d, groups=d['mouse'], re_formula='1 + ml_w',
+                    vc_formula={'sess': '0 + sess'}).fit(reml=True, method='lbfgs')
+    assert m.converged, f'mixed_ml({y}) did not converge'
+    return m.params['ml_w'], m.pvalues['ml_w'], d.mouse.nunique(), d.sess.nunique(), \
+        (m, sm.mean())
+
+
+def draw_mixed(ax, fit, lo, hi, col, band_alpha=.3):
+    """The mixed model's within-session slope as a line, drawn through the
+    fitted value of a session at the mean session position (ml_b = 0) and
+    spanning lo..hi; band, 95% CI of that line from the fixed effects."""
+    m, x0 = fit
+    x = np.linspace(lo, hi, 50); dx = (x - x0) / 100
+    b0, b1 = m.fe_params['Intercept'], m.fe_params['ml_w']
+    V = m.cov_params().loc[['Intercept', 'ml_w'], ['Intercept', 'ml_w']].values
+    y = b0 + b1 * dx
+    se = np.sqrt(V[0, 0] + 2 * dx * V[0, 1] + dx ** 2 * V[1, 1])
+    ax.fill_between(x, y - 1.96 * se, y + 1.96 * se, color=col, alpha=band_alpha, lw=0,
+                    edgecolor='none', zorder=3)
+    ax.plot(x, y, color=col, lw=1.6, zorder=4)
+
+
+def running_fraction(x, y, half=100., n=40, lo=None, hi=None):
+    g = np.linspace(x.min() if lo is None else lo, x.max() if hi is None else hi, n)
+    m = np.full(n, np.nan); e = np.full(n, np.nan)
+    for i, g_ in enumerate(g):
+        v = y[np.abs(x - g_) <= half]
+        if len(v) >= 10:
+            m[i], e[i] = v.mean(), v.std(ddof=1) / np.sqrt(len(v))
+    return g, m, e
+
+
+def panel_composition(spec, letter):
+    """The four identities of Figure 3 as fractions of all classified MEC cells
+    (the cells of the unit table, those analysed in the task) along the
+    mediolateral axis: line, cells pooled in quantile bins with SEM; points,
+    one per shank (each shank of a multi-shank session separately, >=
+    MIN_SHANK_SP classified cells). Within-session rho on the sessions spanning
+    two shank pitches, as everywhere in this figure."""
+    q0 = mec.dropna(subset=['identity']).copy()
+    q0['_sh'] = (q0.ml / 50).round() * 50
+    gq = spec.subgridspec(1, 4, wspace=.38)
+    sel = multi_shank(q0, 'ml')
+    for k, (idn, nm, col) in enumerate(IDENT):
+        ax = fig.add_subplot(gq[0, k])
+        q0['y'] = (q0.identity == idn).astype(float)
+        sh = (q0.groupby(['mouse', 'day', '_sh'])
+              .agg(n=('y', 'size'), f=('y', 'mean'), x=('ml', 'mean')).reset_index())
+        sh = sh[sh.n >= MIN_SHANK_SP]
+        ax.scatter(sh.x + np.random.default_rng(3).uniform(-12, 12, len(sh)), sh.f, s=5,
+                   color=col, alpha=.3, lw=0, zorder=1)
+        # the fitted line spans the most medial to the most lateral shank point
+        # (>= MIN_SHANK_SP cells; the 5 cells of M28 D18 at 2910 um are too few
+        # to carry a point)
+        ws = []
+        for kk, g in q0.groupby(['mouse', 'day']):
+            if kk in sel and len(g) >= 20 and g.y.nunique() > 1:
+                ws.append(spearmanr(g.ml, g.y)[0])
+        ws = np.array(ws); p = wilcoxon(ws).pvalue
+        b_, pm_, nmo, nse, fit_ = mixed_ml(q0, 'y')
+        # line, the mixed model's within-session slope (mouse random effect)
+        draw_mixed(ax, fit_, sh.x.min(), sh.x.max(), col)
+        ax.set_title(f'{nm}\n{100 * b_:+.1f}% per 100 µm, p = {pm_:.2g}', fontsize=6.3,
+                     loc='left', color=col, pad=2)
+        print(f'  {letter} {idn}: fraction {q0.y.mean():.3f}; within-session median rho '
+              f'{np.median(ws):+.3f}, {(ws < 0).sum()} of {len(ws)} negative, p = {p:.3g}; '
+              f'{len(sh)} shank points; MIXED (mouse) within-session slope {100 * b_:+.2f}% '
+              f'per 100 um, p = {pm_:.3g}, {nmo} mice, {nse} sessions')
+        ax.set_ylim(0, .5 if idn == 'grid' else None)
+        ax.set_xlim(2980, 3820)
+        ax.set_xticks([3000, 3400, 3800])
+        ax.tick_params(labelsize=5.8, length=2, pad=1)
+        ax.spines[['top', 'right']].set_visible(False)
+        ax.set_xlabel('medial–lateral (µm)', fontsize=6.5, labelpad=1)
+        if k == 0:
+            ax.set_ylabel('fraction of\nMEC cells', fontsize=6.5)
+            _lp(ax, letter, dx=-.5, dy=1.25)
+            ax0 = ax
+    print(f'  {letter}: {len(q0)} classified MEC cells')
+    return ax0
+
+
+def panel_layer(ax, letter):
+    """Grid fraction superficial against deep, per session."""
+    rows = []
+    for (mo, dy), g in sp.groupby(['mouse', 'day']):
+        a, b = g[g.sup], g[~g.sup]
+        if len(a) >= 10 and len(b) >= 10:
+            rows.append((a.gc.mean(), b.gc.mean()))
+    R = np.array(rows)
+    pl = wilcoxon(R[:, 0] - R[:, 1]).pvalue
+    print(f'  layer: grid fraction superficial {R[:, 0].mean():.1%} vs deep {R[:, 1].mean():.1%}, '
+          f'p = {pl:.3g}, higher superficially in {(R[:, 0] > R[:, 1]).sum()} of {len(R)}')
+    for i in range(len(R)):
+        ax.plot([0, 1], R[i], color='0.75', lw=.7, zorder=2)
+    for j, col in enumerate((COL_GC, '0.45')):
+        ax.errorbar(j, R[:, j].mean(), yerr=R[:, j].std(ddof=1) / np.sqrt(len(R)),
+                    color=col, marker='o', ms=6, lw=1.6, capsize=4, zorder=4)
+    ax.set_xticks([0, 1]); ax.set_xticklabels(['superficial\n(L1–3)', 'deep\n(L5–6)'], fontsize=7)
+    ax.set_xlim(-.4, 1.4)
+    ax.set_ylabel('fraction grid', fontsize=8)
+    _lp(ax, letter)
+    ax.set_title(f'higher in {int((R[:, 0] > R[:, 1]).sum())}/{len(R)} sessions\n'
+                 f'p = {pl:.3g}', fontsize=7, loc='left')
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+
+def region_legend(y, cells=False, simple=False, anchor=None):
+    """simple: Figure 4's key, MEC as one region and no hippocampus (none of its
+    example sessions has hippocampal cells)."""
+    keys = ((2, 'Pre/parasubiculum'), (3, 'MEC'), (5, 'Visual cortex')) if simple else \
+        tuple(zip((1, 2, 3, 4, 5), REGION_NAMES))
+    h = ([Patch(facecolor=str(REGION_GREY[k]), edgecolor='0.6', lw=.4, label=l) for k, l in keys]
+         + [Patch(facecolor=str(GREY_OTHER), edgecolor='0.6', lw=.4, label='other / unassigned')])
+    if cells:
+        h += [Patch(facecolor=c, label=l) for l, c in
+              (('grid cell', COL_GC), ('non-grid spatial', COL_NGS), ('other', COL_OTHER))]
+    if anchor is not None:                  # a compact key at a given figure point
+        fig.legend(handles=h, loc='upper left', bbox_to_anchor=anchor, ncol=1, fontsize=6.0,
+                   frameon=False, handlelength=1.0, handleheight=.9, labelspacing=.3,
+                   borderpad=0, title='region (raster strips)', title_fontsize=6.0,
+                   alignment='left')
+        return
+    fig.legend(handles=h, loc='center', bbox_to_anchor=(.5, y), ncol=len(h), fontsize=6.6,
+               frameon=False, handlelength=1.0, handleheight=1.1, columnspacing=1.3,
+               borderpad=0, title='region (raster strips' + (', slices' if cells else '') + ')',
+               title_fontsize=6.6)
+
+
 foll = mec.dropna(subset=['r'])
 N_ML_SESS = len(within_session(foll, 'ml', 'r')[0])
-for (_letter, _mo, _dy), _cell in zip(EXAMPLES, [c for r_ in (G[1], G[2]) for c in r_.subgridspec(1, 2, wspace=.24)]):
-    example_row(_cell, _letter, _mo, _dy)
-# E: the pooled mediolateral gradient, as agreement ABOVE CHANCE (the quantity
-# the example slices and boxplots show), not raw agreement with the axis
 _EX = pd.read_csv(f'{PS}/pc1_by_region.csv')[['mouse', 'day', 'cluster_id', 'excess']]
 follx = foll.merge(_EX, on=['mouse', 'day', 'cluster_id'], how='left')
-ax = fig.add_subplot(g3[0])
-x, y, e = binned(follx, 'ml', 'excess')
-ax.fill_between(x, y - e, y + e, color='0.35', alpha=.28, lw=0, edgecolor='none')
-ax.plot(x, y, color='k', lw=1.8)
-ax.axhline(0, color='0.6', lw=.7, ls=':')
-_rp = spearmanr(follx.dropna(subset=['excess']).ml, follx.dropna(subset=['excess']).excess)
-_ws, _p = within_session(follx, 'ml', 'excess')
-ax.set_xlabel('medial–lateral (µm)', fontsize=8)
-ax.set_ylabel('agreement above chance', fontsize=8)
-_lp(ax, 'E')
-ax.set_title(f'MEC cells, all sessions: pooled rho = {_rp[0]:+.2f} (p = {_rp[1]:.0e})\n'
-             f'WITHIN SESSION rho = {np.median(_ws):+.3f}, p = {_p:.3g} ({len(_ws)} sess.)',
-             fontsize=6.6, loc='left')
-ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
-print(f'  E: pooled rho {_rp[0]:+.3f} p {_rp[1]:.2g}; within {np.median(_ws):+.3f} p {_p:.3g} n {len(_ws)}')
-
-# F: distance from the MEC-parasubiculum border. Probe placement differs a lot
-# between animals, which is why the pooled mediolateral coordinate is unsafe;
-# distance from an anatomical landmark aligns every session to the same one.
-# The border is taken from each animal's best-fit slice through the atlas: every
-# parasubiculum pixel with an MEC neighbour is a border point, and a cell's
-# distance is the SHORTEST distance from its projected position to any border
-# point, signed by the cell's own atlas label (MEC +, parasubiculum -). Cells
-# are at per-shank nominal mediolateral positions, so this is no finer than the
-# shank pitch.
-from scipy.spatial import cKDTree
-CB = (C.merge(_EX, on=['mouse', 'day', 'cluster_id'], how='left')
-      .dropna(subset=['coord_SCs_x', 'coord_SCs_y', 'coord_SCs_z']))
-CB = CB[CB.brain_region.astype(str).str.match(r'^(ENTm|PAR|PRE)')].copy()
-CB['dist'] = np.nan
-for _mo, _g in CB.groupby('mouse'):
-    try:
-        _pts = np.array([stereo_to_ccf(r_) for r_ in
-                         _g[['coord_SCs_z', 'coord_SCs_y', 'coord_SCs_x']].values])
-        _fit = fit_best_slice(get_mouse_contacts(_mo), extent_pts=_pts)
-        _uv, _vv, _grid = sample_region_grid(_fit)
-    except Exception as _e:
-        print(f'  border: M{_mo} skipped ({type(_e).__name__})'); continue
-    _uv, _vv = np.asarray(_uv), np.asarray(_vv)
-    assert _grid.shape == (len(_vv), len(_uv)), (_grid.shape, len(_vv), len(_uv))
-    _par, _mc = _grid == 2, np.isin(_grid, (3, 4))
-    _nb = np.zeros_like(_par)
-    _nb[1:, :] |= _mc[:-1, :]; _nb[:-1, :] |= _mc[1:, :]
-    _nb[:, 1:] |= _mc[:, :-1]; _nb[:, :-1] |= _mc[:, 1:]
-    _bi, _bj = np.where(_par & _nb)
-    # fewer than ~20 border pixels means the slice only grazes the boundary
-    # (M20 gives 4), which is too little to measure distance from
-    if len(_bi) < 20:
-        print(f'  border: M{_mo} has too little MEC-parasubiculum border in its slice '
-              f'({len(_bi)} points), skipped'); continue
-    _tree = cKDTree(np.c_[_uv[_bj], _vv[_bi]])
-    _pu, _pv = _fit['project'](_pts)
-    _d, _ = _tree.query(np.c_[_pu, _pv])
-    _sg = np.where(_g.brain_region.astype(str).str.startswith('ENTm'), 1.0, -1.0)
-    CB.loc[_g.index, 'dist'] = _sg * _d
-    print(f'  border: M{_mo} {len(_bi)} border points, {len(_g)} cells')
-CBv = CB.dropna(subset=['dist', 'excess'])
-ax = fig.add_subplot(g3[1])
-for side, col in ((CBv.dist < 0, '0.55'), (CBv.dist >= 0, 'k')):
-    x, y, e = binned(CBv[side], 'dist', 'excess', nbin=6 if col == '0.55' else 8)
-    ax.fill_between(x, y - e, y + e, color=col, alpha=.25, lw=0, edgecolor='none')
-    ax.plot(x, y, color=col, lw=1.8)
-ax.axvline(0, color='0.3', lw=.8, ls='--')
-ax.axhline(0, color='0.6', lw=.7, ls=':')
-ax.annotate('parasubiculum', (.02, .97), xycoords='axes fraction', fontsize=6.5,
-            color='0.45', va='top')
-ax.annotate('MEC', (.98, .97), xycoords='axes fraction', fontsize=6.5, ha='right', va='top')
-_m = CBv[CBv.dist >= 0]
-_rb = spearmanr(_m.dist, _m.excess)
-_wb, _pb = within_session(_m.assign(ml=_m.dist), 'ml', 'excess')
-_near = CBv[CBv.dist.abs() <= 250]
-_pn = mannwhitneyu(_near[_near.dist < 0].excess, _near[_near.dist >= 0].excess).pvalue
-ax.set_xlabel('distance from the MEC–parasubiculum border (µm)', fontsize=8)
-ax.set_ylabel('agreement above chance', fontsize=8)
-_lp(ax, 'F')
-ax.set_title(f'MEC side, pooled: rho = {_rb[0]:+.2f} (p = {_rb[1]:.0e}); within session '
-             f'{np.median(_wb):+.3f}, p = {_pb:.3g}\nwithin 250 µm of the border: '
-             f'parasubiculum {_near[_near.dist < 0].excess.mean():.3f} vs MEC '
-             f'{_near[_near.dist >= 0].excess.mean():.3f} (p = {_pn:.2g})',
-             fontsize=6.4, loc='left')
-ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
-print(f'  F: MEC side pooled rho {_rb[0]:+.3f} p {_rb[1]:.2g}; within {np.median(_wb):+.3f} '
-      f'p {_pb:.3g} n {len(_wb)}; near border PAR {_near[_near.dist < 0].excess.mean():.3f} '
-      f'(n={int((_near.dist < 0).sum())}) MEC {_near[_near.dist >= 0].excess.mean():.3f} '
-      f'(n={int((_near.dist >= 0).sum())}) p {_pn:.3g}; cells with distance: {len(CBv)}')
-
-# G: the within-session distributions side by side, which is the actual test
-gC = G[4].subgridspec(1, 3, wspace=.48, width_ratios=[1.1, .8, 1.25])
-ax = fig.add_subplot(gC[0])
-rng = np.random.default_rng(0)
-SUMM = [('M–L', 'ml', foll, 'r', True), ('D–V', 'dv', foll, 'r', True),
-        ('depth', 'depth', foll, 'r', True)]
-for i, (nm, axis, df, yv, rs) in enumerate(SUMM):
-    ws, p = within_session(df, axis, yv, restrict=rs)
-    ax.scatter(i + rng.uniform(-.16, .16, len(ws)), ws, s=13, color='0.45',
-               alpha=.8, lw=0, zorder=3)
-    ax.plot([i - .28, i + .28], [np.median(ws)] * 2, color='k', lw=2, zorder=4)
-    ax.annotate(f'p = {p:.3g}' if p >= .001 else f'p = {p:.1e}',
-                (i, .98), xycoords=('data', 'axes fraction'), ha='center', va='top',
-                fontsize=6.2, color='#a33' if p < .05 else '0.35')
-ax.axhline(0, color='0.6', lw=.8, ls=':')
-ax.set_xticks(range(len(SUMM)))
-ax.set_xticklabels([s[0] for s in SUMM], fontsize=7.5)
-ax.set_xlim(-.5, len(SUMM) - .5)
-ax.set_ylabel('within-session rho', fontsize=8)
-_lp(ax, 'G')
-ax.set_title(f'only M–L survives\n(M–L: {len(within_session(foll, "ml", "r")[0])} '
-             f'multi-shank sessions)', fontsize=7, loc='left')
-ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
 
-# ── H-K: controls and extensions, computed by fig4_controls.py ────────────────
+def panel_ml(ax, letter):
+    """The pooled mediolateral gradient in agreement ABOVE CHANCE (the quantity
+    the example probes and boxplots show), not raw agreement with the axis."""
+    # one point per shank (session x position to 50 um, >= MIN_SHANK_SP MEC cells
+    # with agreement), the shanks of one multi-shank session joined, so the
+    # within-session drop the statistic tests can be seen session by session
+    q = follx.dropna(subset=['excess']).assign(_sh=lambda d: (d.ml / 50).round() * 50)
+    sh = (q.groupby(['mouse', 'day', '_sh'])
+          .agg(n=('excess', 'size'), y=('excess', 'mean'), x=('ml', 'mean')).reset_index())
+    sh = sh[sh.n >= MIN_SHANK_SP]
+    n_multi = 0
+    for _, g in sh.groupby(['mouse', 'day']):
+        g = g.sort_values('x')
+        if len(g) > 1 and g.x.max() - g.x.min() >= MIN_SPAN_UM:
+            ax.plot(g.x, g.y, color='0.75', lw=.5, zorder=1)
+            n_multi += 1
+    ax.scatter(sh.x, sh.y, s=8, color='0.5', alpha=.7, lw=0, zorder=2)
+    print(f'  {letter}: {len(sh)} shank points, {n_multi} multi-shank sessions joined')
+    ax.set_xlim(2980, 3820)
+    ax.set_xticks([3000, 3200, 3400, 3600, 3800])
+    ax.axhline(0, color='0.6', lw=.7, ls=':')
+    _rp = spearmanr(follx.dropna(subset=['excess']).ml, follx.dropna(subset=['excess']).excess)
+    _ws, _p = within_session(follx, 'ml', 'excess')
+    _b, _pm, _nmo, _nse, _fit = mixed_ml(follx, 'excess')
+    # line, the mixed model's within-session slope (mouse random effect), as in D
+    draw_mixed(ax, _fit, sh.x.min(), sh.x.max(), 'k', band_alpha=.2)
+    ax.set_xlabel('medial–lateral (µm)', fontsize=8)
+    ax.set_ylabel('agreement above chance', fontsize=8)
+    _lp(ax, letter)
+    ax.set_title(f'MEC cells, all sessions: pooled rho = {_rp[0]:+.2f} (p = {_rp[1]:.0e})\n'
+                 f'within session, mouse as random effect: {_b:+.3f} per 100 µm, p = {_pm:.2g}',
+                 fontsize=6.6, loc='left')
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+    print(f'  {letter} (ML): pooled rho {_rp[0]:+.3f} p {_rp[1]:.2g}; within {np.median(_ws):+.3f} '
+          f'p {_p:.3g} n {len(_ws)}; MIXED (mouse) slope {_b:+.4f} per 100 um p {_pm:.3g} '
+          f'{_nmo} mice {_nse} sessions')
+
+
+def panel_border(ax, letter):
+    """Distance from the MEC-parasubiculum border. Probe placement differs a lot
+    between animals, which is why the pooled mediolateral coordinate is unsafe;
+    distance from an anatomical landmark aligns every session to the same one.
+    The border is taken from each animal's best-fit slice through the atlas:
+    every parasubiculum pixel with an MEC neighbour is a border point, and a
+    cell's distance is the SHORTEST distance from its projected position to any
+    border point, signed by the cell's own atlas label (MEC +, parasubiculum -).
+    Cells are at per-shank nominal mediolateral positions, so this is no finer
+    than the shank pitch."""
+    from scipy.spatial import cKDTree
+    CB = (C.merge(_EX, on=['mouse', 'day', 'cluster_id'], how='left')
+          .dropna(subset=['coord_SCs_x', 'coord_SCs_y', 'coord_SCs_z']))
+    CB = CB[CB.brain_region.astype(str).str.match(r'^(ENTm|PAR|PRE)')].copy()
+    CB['dist'] = np.nan
+    for _mo, _g in CB.groupby('mouse'):
+        try:
+            _pts = np.array([stereo_to_ccf(r_) for r_ in
+                             _g[['coord_SCs_z', 'coord_SCs_y', 'coord_SCs_x']].values])
+            _fit = fit_best_slice(get_mouse_contacts(_mo), extent_pts=_pts)
+            _uv, _vv, _grid = sample_region_grid(_fit)
+        except Exception as _e:
+            print(f'  border: M{_mo} skipped ({type(_e).__name__})'); continue
+        _uv, _vv = np.asarray(_uv), np.asarray(_vv)
+        assert _grid.shape == (len(_vv), len(_uv)), (_grid.shape, len(_vv), len(_uv))
+        _par, _mc = _grid == 2, np.isin(_grid, (3, 4))
+        _nb = np.zeros_like(_par)
+        _nb[1:, :] |= _mc[:-1, :]; _nb[:-1, :] |= _mc[1:, :]
+        _nb[:, 1:] |= _mc[:, :-1]; _nb[:, :-1] |= _mc[:, 1:]
+        _bi, _bj = np.where(_par & _nb)
+        # fewer than ~20 border pixels means the slice only grazes the boundary
+        # (M20 gives 4), which is too little to measure distance from
+        if len(_bi) < 20:
+            print(f'  border: M{_mo} has too little MEC-parasubiculum border in its slice '
+                  f'({len(_bi)} points), skipped'); continue
+        _tree = cKDTree(np.c_[_uv[_bj], _vv[_bi]])
+        _pu, _pv = _fit['project'](_pts)
+        _d, _ = _tree.query(np.c_[_pu, _pv])
+        _sg = np.where(_g.brain_region.astype(str).str.startswith('ENTm'), 1.0, -1.0)
+        CB.loc[_g.index, 'dist'] = _sg * _d
+        print(f'  border: M{_mo} {len(_bi)} border points, {len(_g)} cells')
+    CBv = CB.dropna(subset=['dist', 'excess'])
+    for side, col in ((CBv.dist < 0, '0.55'), (CBv.dist >= 0, 'k')):
+        x, y, e = binned(CBv[side], 'dist', 'excess', nbin=6 if col == '0.55' else 8)
+        ax.fill_between(x, y - e, y + e, color=col, alpha=.25, lw=0, edgecolor='none')
+        ax.plot(x, y, color=col, lw=1.8)
+    ax.axvline(0, color='0.3', lw=.8, ls='--')
+    ax.axhline(0, color='0.6', lw=.7, ls=':')
+    ax.annotate('parasubiculum', (.02, .97), xycoords='axes fraction', fontsize=6.5,
+                color='0.45', va='top')
+    ax.annotate('MEC', (.98, .97), xycoords='axes fraction', fontsize=6.5, ha='right', va='top')
+    _m = CBv[CBv.dist >= 0]
+    _rb = spearmanr(_m.dist, _m.excess)
+    _wb, _pb = within_session(_m.assign(ml=_m.dist), 'ml', 'excess')
+    _near = CBv[CBv.dist.abs() <= 250]
+    _pn = mannwhitneyu(_near[_near.dist < 0].excess, _near[_near.dist >= 0].excess).pvalue
+    ax.set_xlabel('distance from the MEC–parasubiculum border (µm)', fontsize=8)
+    ax.set_ylabel('agreement above chance', fontsize=8)
+    _lp(ax, letter)
+    ax.set_title(f'MEC side, pooled: rho = {_rb[0]:+.2f} (p = {_rb[1]:.0e}); within session '
+                 f'{np.median(_wb):+.3f}, p = {_pb:.3g}\nwithin 250 µm of the border: '
+                 f'parasubiculum {_near[_near.dist < 0].excess.mean():.3f} vs MEC '
+                 f'{_near[_near.dist >= 0].excess.mean():.3f} (p = {_pn:.2g})',
+                 fontsize=6.4, loc='left')
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+    print(f'  {letter} (border): MEC side pooled rho {_rb[0]:+.3f} p {_rb[1]:.2g}; within '
+          f'{np.median(_wb):+.3f} p {_pb:.3g} n {len(_wb)}; near border PAR '
+          f'{_near[_near.dist < 0].excess.mean():.3f} (n={int((_near.dist < 0).sum())}) MEC '
+          f'{_near[_near.dist >= 0].excess.mean():.3f} (n={int((_near.dist >= 0).sum())}) '
+          f'p {_pn:.3g}; cells with distance: {len(CBv)}')
+
+
+def panel_axes(ax, letter):
+    """The within-session distributions side by side, which is the actual test."""
+    rng = np.random.default_rng(0)
+    SUMM = [('M–L', 'ml'), ('D–V', 'dv')]
+    for i, (nm, axis) in enumerate(SUMM):
+        ws, p = within_session(foll, axis, 'r')
+        ax.scatter(i + rng.uniform(-.16, .16, len(ws)), ws, s=13, color='0.45',
+                   alpha=.8, lw=0, zorder=3)
+        ax.plot([i - .28, i + .28], [np.median(ws)] * 2, color='k', lw=2, zorder=4)
+        ax.annotate(f'p = {p:.3g}' if p >= .001 else f'p = {p:.1e}',
+                    (i, .98), xycoords=('data', 'axes fraction'), ha='center', va='top',
+                    fontsize=6.2, color='#a33' if p < .05 else '0.35')
+    ax.axhline(0, color='0.6', lw=.8, ls=':')
+    ax.set_xticks(range(len(SUMM)))
+    ax.set_xticklabels([s_[0] for s_ in SUMM], fontsize=7.5)
+    ax.set_xlim(-.5, len(SUMM) - .5)
+    ax.set_ylabel('within-session rho', fontsize=8)
+    _lp(ax, letter)
+    ax.set_title(f'only M–L survives\n(M–L: {N_ML_SESS} multi-shank sessions)', fontsize=7, loc='left')
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+
+
+# ── controls and extensions, computed by fig4_controls.py / fig4_factors.py ───
 import json as _json
 CTL = pd.read_csv(f'{PS}/fig4_controls_cells.csv')
-SUMM_ = _json.load(open(f'{PS}/fig4_controls_summary.json'))
 CM = CTL[CTL.mec]
+FAC = _json.load(open(f'{PS}/fig4_factors.json'))
 
 
 def _ws(df, y, min_cells=20):
@@ -1067,108 +1220,256 @@ def _ws(df, y, min_cells=20):
     return pd.Series(out)
 
 
-# H: the gradient against an axis built without the cell's own shank
-ax = fig.add_subplot(gC[1]); _lp(ax, 'H')
-a_, b_ = _ws(CM, 'r'), _ws(CM, 'r_lso')
-k_ = a_.index.intersection(b_.index)
-for kk in k_:
-    ax.plot([0, 1], [a_[kk], b_[kk]], color='0.75', lw=.6, zorder=1)
-for i, v in enumerate((a_[k_], b_[k_])):
-    ax.scatter(np.full(len(v), i), v, s=9, color='0.35', lw=0, zorder=2)
-    ax.plot([i - .22, i + .22], [np.median(v)] * 2, color='k', lw=2, zorder=3)
-    pv_ = wilcoxon(v).pvalue
-    ax.annotate(f'p = {pv_:.3f}', (i, .98), xycoords=('data', 'axes fraction'),
-                ha='center', va='top', fontsize=6.2, color='#a33' if pv_ < .05 else '0.35')
-ax.axhline(0, color='0.6', lw=.8, ls=':')
-ax.set_xticks([0, 1]); ax.set_xticklabels(['all\nshanks', 'other\nshanks'], fontsize=7)
-ax.set_xlim(-.5, 1.5)
-ax.set_ylabel('within-session rho\n(position vs agreement)', fontsize=8)
-ax.set_title('PC1 built without the\ncell\'s own shank', fontsize=7, loc='left')
-ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
+def panel_lso(ax, letter):
+    """The gradient against an axis built without the cell's own shank."""
+    _lp(ax, letter)
+    a_, b_ = _ws(CM, 'r'), _ws(CM, 'r_lso')
+    k_ = a_.index.intersection(b_.index)
+    for kk in k_:
+        ax.plot([0, 1], [a_[kk], b_[kk]], color='0.75', lw=.6, zorder=1)
+    for i, v in enumerate((a_[k_], b_[k_])):
+        ax.scatter(np.full(len(v), i), v, s=9, color='0.35', lw=0, zorder=2)
+        ax.plot([i - .22, i + .22], [np.median(v)] * 2, color='k', lw=2, zorder=3)
+        pv_ = wilcoxon(v).pvalue
+        ax.annotate(f'p = {pv_:.3f}', (i, .98), xycoords=('data', 'axes fraction'),
+                    ha='center', va='top', fontsize=6.2, color='#a33' if pv_ < .05 else '0.35')
+    ax.axhline(0, color='0.6', lw=.8, ls=':')
+    ax.set_xticks([0, 1]); ax.set_xticklabels(['all\nshanks', 'other\nshanks'], fontsize=7)
+    ax.set_xlim(-.5, 1.5)
+    ax.set_ylabel('within-session rho\n(position vs agreement)', fontsize=8)
+    ax.set_title('PC1 built without the\ncell\'s own shank', fontsize=7, loc='left')
+    ax.tick_params(labelsize=7); ax.spines[['top', 'right']].set_visible(False)
 
-# I: how much of the position effect survives the factors it covaries with
-# (fig4_factors.py). Lateral cells are less theta-modulated and carry less
-# spatial information, so part of the gradient is shared with those.
-FAC = _json.load(open(f'{PS}/fig4_factors.json'))
-ax = fig.add_subplot(gC[2]); _lp(ax, 'I')
-_st = list(FAC['ml_steps'].items())
-for i, (nm, v) in enumerate(_st):
-    ax.errorbar(v['b'], i, xerr=1.96 * v['se'], fmt='o', color='k' if v['p'] < .05 else '0.55',
-                ms=4, lw=1, capsize=0)
-    ax.annotate(f'p = {v["p"]:.2g}', (1.0, i), xycoords=('axes fraction', 'data'),
-                ha='right', va='center', fontsize=6.2, color='#a33' if v['p'] < .05 else '0.35')
-ax.axvline(0, color='0.6', lw=.8, ls=':')
-ax.set_yticks(range(len(_st))); ax.set_yticklabels([k for k, _ in _st], fontsize=6.5)
-ax.invert_yaxis()
-ax.set_xlabel('mediolateral coefficient\n(per SD lateral, 95% CI)', fontsize=7.5)
-ax.set_title(f"position in a mixed model, {FAC['n_cells']} MEC cells on shanks\n"
-             f"nested in {FAC['n_sess']} sessions, as more factors are added", fontsize=7, loc='left')
-ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
-_xl = ax.get_xlim(); ax.set_xlim(_xl[0], _xl[1] + .55 * (_xl[1] - _xl[0]))
 
-# J, K: every factor in one model (fig4_factors.py)
-gD = G[5].subgridspec(1, 2, wspace=.62, width_ratios=[1.0, 1.25])
-ax = fig.add_subplot(gD[0]); _lp(ax, 'J', dx=-.42)
-_lab = {r['factor']: r['label'] for r in FAC['factors']}
-_grp = {r['factor']: r['group'] for r in FAC['factors']}
-_ph = {r['factor']: r['p_holm'] for r in FAC['factors']}
-_TERMS = [('ml_z', 'ml', 'mediolateral'), ('dv_z', 'dv', 'dorsoventral'),
-          ('sup', 'layer', 'superficial (vs deep)'),
-          ('C(identity, Treatment("non-grid spatial"))[T.grid]', 'type', 'grid (vs non-grid spatial)'),
-          ('C(identity, Treatment("non-grid spatial"))[T.non-spatial]', 'type', 'non-spatial'),
-          ('C(identity, Treatment("non-grid spatial"))[T.putative interneuron]', 'type', 'interneuron'),
-          ('rate_z', 'rate', 'firing rate (log)'), ('wave_z', 'wave', 'waveform width'),
-          ('si_z', 'si', 'spatial information'), ('th_z', 'theta', 'theta modulation'),
-          ('gs_z', 'grid', 'grid score'), ('bs_z', 'border', 'border score'),
-          ('hd_z', 'hd', 'head-direction tuning'), ('spd_z', 'speed', 'speed tuning |r|')]
-_y, _ticks, _prev = 0, [], None
-for t, f_, lab in _TERMS:
-    if _prev is not None and _grp[f_] != _prev:
-        _y += .6
-    c = FAC['coef'][t]
-    col = 'k' if _ph[f_] < .05 else '0.55'
-    ax.errorbar(c['b'], _y, xerr=1.96 * c['se'], fmt='o', color=col, ms=3.8, lw=1, capsize=0)
-    _ticks.append((_y, lab)); _prev = _grp[f_]; _y += 1
-ax.axvline(0, color='0.6', lw=.8, ls=':')
-ax.set_yticks([a for a, _ in _ticks]); ax.set_yticklabels([b for _, b in _ticks], fontsize=6.5)
-ax.invert_yaxis()
-_g0 = {}
-for (yy, _), (t, f_, _) in zip(_ticks, _TERMS):
-    _g0.setdefault(_grp[f_], []).append(yy)
-for g_, ys in _g0.items():
-    ax.annotate(g_, (1.02, np.mean(ys)), xycoords=('axes fraction', 'data'), fontsize=6.5,
-                color='0.35', va='center', rotation=-90)
-ax.set_xlabel('coefficient on agreement above chance\n(per SD, or vs reference; 95% CI)', fontsize=7.5)
-ax.set_title('all factors in one model; black = factor significant\n(likelihood ratio, Holm)',
-             fontsize=7, loc='left')
-ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+def panel_steps(ax, letter):
+    """How much of the position effect survives the factors it covaries with.
+    Lateral cells are less theta-modulated and carry less spatial information,
+    so part of the gradient is shared with those."""
+    _lp(ax, letter)
+    _st = list(FAC['ml_steps'].items())
+    for i, (nm, v) in enumerate(_st):
+        ax.errorbar(v['b'], i, xerr=1.96 * v['se'], fmt='o', color='k' if v['p'] < .05 else '0.55',
+                    ms=4, lw=1, capsize=0)
+        ax.annotate(f'p = {v["p"]:.2g}', (1.0, i), xycoords=('axes fraction', 'data'),
+                    ha='right', va='center', fontsize=6.2, color='#a33' if v['p'] < .05 else '0.35')
+    ax.axvline(0, color='0.6', lw=.8, ls=':')
+    # fig4_factors.py names the base model after the figure it was first drawn in
+    _nm = {'Figure 4 model': 'identity, layer, rate'}
+    ax.set_yticks(range(len(_st))); ax.set_yticklabels([_nm.get(k, k) for k, _ in _st], fontsize=6.5)
+    ax.invert_yaxis()
+    ax.set_xlabel('mediolateral coefficient\n(per SD lateral, 95% CI)', fontsize=7.5)
+    ax.set_title(f"mediolateral position in the mixed model (shanks in sessions\n"
+                 f"in mice), as more factors are added", fontsize=7, loc='left')
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+    _xl = ax.get_xlim(); ax.set_xlim(_xl[0], _xl[1] + .55 * (_xl[1] - _xl[0]))
 
-ax = fig.add_subplot(gD[1]); _lp(ax, 'K', dx=-.36)
-# Ranked by dominance: each factor's added R^2 averaged over every subset of
-# the others, so variance that overlapping factors share (interneurons are
-# classed on rate and waveform, grid cells on grid score) is divided between
-# them rather than dropped, as a drop-one share would.
-_F = pd.DataFrame(FAC['factors']).sort_values('dominance', ascending=False).reset_index(drop=True)
-_tot = FAC['r2_within']
-_yy = np.arange(len(_F))
-ax.barh(_yy, 100 * _F.dominance / _tot, height=.62, color='0.3', lw=0)
-for i, r_ in _F.iterrows():
-    ax.annotate(('p < 1e-4' if r_.p_holm < 1e-4 else f'p = {r_.p_holm:.2g}'),
-                (100 * r_.dominance / _tot, i), xytext=(4, 0), textcoords='offset points',
-                va='center', fontsize=6, color='#a33' if r_.p_holm < .05 else '0.45')
-ax.set_yticks(_yy); ax.set_yticklabels(_F.label, fontsize=6.5); ax.invert_yaxis()
-ax.set_xlabel('share of explained variance (%, dominance analysis)', fontsize=7.5)
-_r2 = FAC['r2']
-ax.set_title(f"which factor matters (all {len(_F)}: {100 * _tot:.1f}% of within-session variance)",
-             fontsize=7, loc='left')
-ax.text(.98, .04, 'p: unique effect\n(likelihood ratio, Holm)', transform=ax.transAxes,
-        ha='right', va='bottom', fontsize=6, color='0.4')
-ax.set_xlim(0, 100 * _F.dominance.max() / _tot * 1.3)
-ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
 
-# Switch timing against position and agreement by region (former J, K) were
-# removed from the figure; both are still computed by fig4_controls.py.
+def panel_forest(ax, letter):
+    """Every factor in one model."""
+    _lp(ax, letter, dx=-.42)
+    _grp = {r['factor']: r['group'] for r in FAC['factors']}
+    _ph = {r['factor']: r['p_holm'] for r in FAC['factors']}
+    _TERMS = [('ml_z', 'ml', 'mediolateral'), ('dv_z', 'dv', 'dorsoventral'),
+              ('sup', 'layer', 'superficial (vs deep)'),
+              ('C(identity, Treatment("non-grid spatial"))[T.grid]', 'type', 'grid (vs non-grid spatial)'),
+              ('C(identity, Treatment("non-grid spatial"))[T.non-spatial]', 'type', 'non-spatial'),
+              ('C(identity, Treatment("non-grid spatial"))[T.putative interneuron]', 'type', 'interneuron'),
+              ('rate_z', 'rate', 'firing rate (log)'), ('wave_z', 'wave', 'waveform width'),
+              ('si_z', 'si', 'spatial information'), ('th_z', 'theta', 'theta modulation'),
+              ('gs_z', 'grid', 'grid score'), ('bs_z', 'border', 'border score'),
+              ('hd_z', 'hd', 'head-direction tuning'), ('spd_z', 'speed', 'speed tuning |r|')]
+    _y, _ticks, _prev = 0, [], None
+    for t, f_, lab in _TERMS:
+        if _prev is not None and _grp[f_] != _prev:
+            _y += .6
+        c = FAC['coef'][t]
+        col = 'k' if _ph[f_] < .05 else '0.55'
+        ax.errorbar(c['b'], _y, xerr=1.96 * c['se'], fmt='o', color=col, ms=3.8, lw=1, capsize=0)
+        _ticks.append((_y, lab)); _prev = _grp[f_]; _y += 1
+    ax.axvline(0, color='0.6', lw=.8, ls=':')
+    ax.set_yticks([a for a, _ in _ticks]); ax.set_yticklabels([b for _, b in _ticks], fontsize=6.5)
+    ax.invert_yaxis()
+    _g0 = {}
+    for (yy, _), (t, f_, _) in zip(_ticks, _TERMS):
+        _g0.setdefault(_grp[f_], []).append(yy)
+    for g_, ys in _g0.items():
+        ax.annotate(g_, (1.02, np.mean(ys)), xycoords=('axes fraction', 'data'), fontsize=6.5,
+                    color='0.35', va='center', rotation=-90)
+    ax.set_xlabel('coefficient on agreement above chance\n(per SD, or vs reference; 95% CI)', fontsize=7.5)
+    ax.set_title('all factors in one model; black = factor significant\n(likelihood ratio, Holm)',
+                 fontsize=7, loc='left')
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
 
-out = f'{FIG}/fig4_ml_following.pdf'
+
+def panel_dominance(ax, letter):
+    """Ranked by dominance: each factor's added R^2 averaged over every subset of
+    the others, so variance that overlapping factors share (interneurons are
+    classed on rate and waveform, grid cells on grid score) is divided between
+    them rather than dropped, as a drop-one share would."""
+    _lp(ax, letter, dx=-.36)
+    # firing rate is held in every model as a covariate and not ranked: a cell's
+    # labels come from its VR spikes, so rate sets how well agreement is measured
+    # (fig4_factors.COVARIATES). Shares are of the variance beyond it.
+    _F = pd.DataFrame(FAC['factors'])
+    _F = (_F[~_F.factor.isin(FAC['covariates'])]
+          .sort_values('dominance', ascending=False).reset_index(drop=True))
+    _tot = FAC['r2_within'] - FAC['r2_covariates']
+    _yy = np.arange(len(_F))
+    ax.barh(_yy, 100 * _F.dominance / _tot, height=.62, color='0.3', lw=0)
+    # 95% interval over a bootstrap of whole sessions (fig4_factors.dominance_boot)
+    ax.errorbar(100 * _F.dominance / _tot, _yy,
+                xerr=[100 * _F.dominance / _tot - _F.boot_lo, _F.boot_hi - 100 * _F.dominance / _tot],
+                fmt='none', ecolor='0.55', lw=.9, capsize=0)
+    for i, r_ in _F.iterrows():
+        ax.annotate(('p < 1e-4' if r_.p_holm < 1e-4 else f'p = {r_.p_holm:.2g}'),
+                    (r_.boot_hi, i), xytext=(4, 0), textcoords='offset points',
+                    va='center', fontsize=6, color='#a33' if r_.p_holm < .05 else '0.45')
+    ax.set_yticks(_yy); ax.set_yticklabels(_F.label, fontsize=6.5); ax.invert_yaxis()
+    ax.set_xlabel('share of explained variance (%, dominance analysis)', fontsize=7.5)
+    ax.set_title(f"which factor matters, beyond firing rate (held in every model)\n"
+                 f"the {len(_F)} explain {100 * _tot:.1f}% of within-session variance; rate alone "
+                 f"{100 * FAC['r2_covariates']:.1f}%", fontsize=7, loc='left')
+    ax.text(.98, .04, f'bars, 95% interval over {FAC["n_boot"]}\nbootstraps of sessions\n'
+            'p: unique effect\n(likelihood ratio, Holm)', transform=ax.transAxes,
+            ha='right', va='bottom', fontsize=6, color='0.4')
+    ax.set_xlim(0, _F.boot_hi.max() * 1.3)
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+
+
+# ══ FIGURE 4: the responsive subnetwork is medial, where grid cells are ══════
+# Merged 2026-11-01 from the old Figures 4 (where grid cells are) and 5 (where
+# the following is). Kept: the OF1 rate maps, the grid gradient on the
+# mediolateral axis and in layer, the two strongest examples (M25 D25, kept for
+# continuity with the M25 rate maps; M26 D19, balanced states and 13
+# transitions), drawn on the probe rather than on a best-fit slice, and the
+# gradient's tests and controls. The rest is Figure S9 below.
+fig = plt.figure(figsize=(14.2, 9.15))
+# sized so each rate-map slot is square (0.48 in): any taller and the maps,
+# drawn at equal aspect, float apart with gaps between the rows
+G = fig.add_gridspec(3, 1, height_ratios=[2.0, .01, .8], hspace=.15, left=.07, right=.97)
+# the two example sessions stacked beside the rate maps, so A reads straight
+# into the sessions that show the same gradient in following
+TOP = G[0].subgridspec(1, 2, width_ratios=[2.55, 1.9], wspace=.12)
+LEFT = TOP[0].subgridspec(1, 2, width_ratios=[.2, 2.1], wspace=.02)
+_sch = panel_ratemaps(LEFT[0], LEFT[1], 'A')
+_bx = [example_row(_cell, _letter, _mo, _dy, merge_mec=True) for (_letter, _mo, _dy), _cell in
+       zip([('B', 25, 25), ('C', 26, 19)], TOP[1].subgridspec(2, 1, hspace=.5))]
+# the region key at the top right of B, beside its boxplot strip
+_pb = _bx[0].get_position()
+region_legend(None, simple=True, anchor=(_pb.x1 + .012, _pb.y1 + .012))
+g3 = G[2].subgridspec(1, 2, wspace=.16, width_ratios=[4.2, 1.45])
+_axD = panel_composition(g3[0], 'D')
+# the schematic sits just left of the first column of rate maps; its slot is
+# narrower than the drawing, so it is placed by hand (the arena box spans .2-.8
+# of the axes width)
+_ps, _pm = _sch.get_position(), LEFT[1].get_position(fig)
+_w = 1.5 * _ps.width
+_sch.set_position([_pm.x0 - .84 * _w, _ps.y0, _w, _ps.height])
+panel_ml(fig.add_subplot(g3[1]), 'E')
+# what predicts following (old F) is its own supplement, Figure S10, below
+out = f'{FIG}/fig4_subnetwork_anatomy.pdf'
 plt.savefig(out, dpi=200, bbox_inches='tight')
 print(f'\nsaved {out}')
+plt.close(fig)
+
+# ══ FIGURE S9: two more example sessions for Figure 4 ════════════════════════
+# Cut on 2026-11-01 to the two examples alone, drawn as Figure 4B, C, with the
+# region key at the top right of the first, as there.
+fig = plt.figure(figsize=(14.2, 3.4))
+G = fig.add_gridspec(1, 2, wspace=.3, left=.07, right=.9)
+_bx = [example_row(_cell, _letter, _mo, _dy, merge_mec=True)
+       for (_letter, _mo, _dy), _cell in zip([('A', 28, 25), ('B', 29, 25)], G)]
+_pb = _bx[1].get_position()
+region_legend(None, simple=True, anchor=(_pb.x1 + .012, _pb.y1 + .03))
+out = f'{FIG}/fig4_supp_anatomy_more.pdf'
+plt.savefig(out, dpi=200, bbox_inches='tight')
+print(f'\nsaved {out}')
+plt.close(fig)
+
+# ══ FIGURE S10: what predicts following (Figure 4F until 2026-11-01) ═════════
+def panel_methods(ax, letter):
+    """The ranking three ways: dominance on every cell, dominance on cells
+    firing >= RATE_FLOOR Hz in the task, and permutation importance from
+    gradient-boosted trees (no linearity assumed, whole sessions held out)."""
+    _lp(ax, letter, dx=-.42)
+    _F = pd.DataFrame(FAC['factors'])
+    _F = (_F[~_F.factor.isin(FAC['covariates'])]
+          .sort_values('dominance', ascending=False).reset_index(drop=True))
+    _rf = FAC['rate_floor']
+    sh = dict(all=100 * _F.dominance / (FAC['r2_within'] - FAC['r2_covariates']),
+              floor=100 * _F.dominance_floor / (_rf['r2_within'] - _rf['r2_covariates']),
+              trees=100 * _F.perm_importance.clip(lower=0) / _F.perm_importance.clip(lower=0).sum())
+    sty = dict(all=('o', 'k', f'dominance, all {FAC["n_cells"]:,} cells'),
+               floor=('s', '0.55', f'dominance, cells >= {_rf["hz"]:.0f} Hz ({_rf["n_cells"]:,})'),
+               trees=('^', '#b8860b', 'boosted trees, permutation\n(whole sessions held out)'))
+    yy = np.arange(len(_F))
+    for j, (k, v) in enumerate(sh.items()):
+        mk, col, lab = sty[k]
+        ax.scatter(v, yy + (j - 1) * .22, marker=mk, s=14, color=col, lw=0, label=lab, zorder=3)
+    for i in yy:
+        ax.plot([min(sh[k][i] for k in sh), max(sh[k][i] for k in sh)], [i, i], color='0.85', lw=.8, zorder=1)
+    ax.set_yticks(yy); ax.set_yticklabels(_F.label, fontsize=6.5); ax.invert_yaxis()
+    ax.set_xlabel('share of explained variance (%)', fontsize=7.5)
+    ax.set_title('the ranking three ways', fontsize=7, loc='left')
+    ax.legend(fontsize=5.6, frameon=False, loc='lower right', handletextpad=.3)
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+    _rk = {k: v.rank(ascending=False).values for k, v in sh.items()}
+    from scipy.stats import spearmanr as _sp
+    print(f'  S10 ranking agreement: floor rho {_sp(_rk["all"], _rk["floor"])[0]:+.2f}, '
+          f'trees rho {_sp(_rk["all"], _rk["trees"])[0]:+.2f}')
+    print('  S10 bootstrap: ' + ', '.join(f'{r.label} median rank {r.boot_rank_med:.0f}, '
+                                          f'top in {100 * r.boot_p_top:.0f}%' for _, r in _F.iterrows()))
+
+
+def panel_varparts(ax, letter):
+    """Where the variance in agreement above chance lies, from the full mixed
+    model: mouse, session within mouse, shank within session, the twelve
+    measured cell properties together, and what is left (cell-to-cell)."""
+    _lp(ax, letter, dx=-.3)
+    R = FAC['r2']
+    parts = [('mouse', R['mouse'], '#6a51a3'), ('session', R['sess'], '#9e9ac8'),
+             ('shank', R['shank'], '#cbc9e2'), ('12 cell\nproperties', R['r2m'], '0.25'),
+             ('residual\n(cell to cell)', R['resid'], '0.88')]
+    for i, (lab, v, col) in enumerate(parts):
+        ax.bar(i, 100 * v, .7, color=col, lw=0)
+        ax.text(i, 100 * v + 1, f'{100 * v:.1f}%', ha='center', va='bottom', fontsize=6.2)
+    ax.set_xticks(range(len(parts))); ax.set_xticklabels([p_[0] for p_ in parts], fontsize=6.3)
+    ax.set_ylabel('share of variance in\nagreement above chance (%)', fontsize=7.5)
+    ax.set_title(f'where the variance lies: {FAC["n_mice"]} mice, {FAC["n_sess"]} sessions,\n'
+                 f'{FAC["n_shanks"]} shanks, {FAC["n_cells"]:,} cells', fontsize=7, loc='left')
+    ax.set_ylim(0, 100 * max(v for _, v, _ in parts) * 1.15)
+    ax.tick_params(labelsize=6.5); ax.spines[['top', 'right']].set_visible(False)
+    print('  S10 variance: ' + ', '.join(f'{l.replace(chr(10), " ")} {100 * v:.1f}%' for l, v, _ in parts))
+
+
+fig = plt.figure(figsize=(14.2, 8.2))
+G = fig.add_gridspec(2, 1, height_ratios=[1, 1], hspace=.42, left=.1, right=.97)
+g1 = G[0].subgridspec(1, 2, wspace=.55, width_ratios=[1.3, 1])
+g2 = G[1].subgridspec(1, 3, wspace=.75, width_ratios=[1.2, .9, 1.1])
+print('\nFigure S10:')
+panel_dominance(fig.add_subplot(g1[0]), 'A')
+panel_methods(fig.add_subplot(g1[1]), 'B')
+panel_forest(fig.add_subplot(g2[0]), 'C')
+panel_varparts(fig.add_subplot(g2[1]), 'D')
+panel_steps(fig.add_subplot(g2[2]), 'E')
+out = f'{FIG}/fig4_supp_factors.pdf'
+plt.savefig(out, dpi=200, bbox_inches='tight')
+print(f'\nsaved {out}')
+plt.close(fig)
+
+# ══ NUMBERS ONLY ═══════════════════════════════════════════════════════════
+# The text quotes results whose panels are no longer drawn: the best-fit slices,
+# grid fraction along the dorsoventral axis and by layer, distance from the
+# MEC-parasubiculum border, every factor's coefficient, the per-axis
+# within-session test, the other-shank control and the mixed-model steps. They
+# are drawn here on a figure that is never saved, so the rebuild log still
+# prints every number the text quotes.
+fig = plt.figure(figsize=(14.2, 14.0))
+G = fig.add_gridspec(3, 4, hspace=.5, wspace=.5)
+print('\nnumbers only (not drawn in any figure):')
+panel_grid_axis(fig.add_subplot(G[0, 0]), 'dv', 'dorsal–ventral (µm)', '-')
+panel_layer(fig.add_subplot(G[0, 1]), '-')
+panel_border(fig.add_subplot(G[0, 2]), '-')
+panel_axes(fig.add_subplot(G[1, 1]), '-')
+panel_lso(fig.add_subplot(G[1, 2]), '-')
+plt.close(fig)

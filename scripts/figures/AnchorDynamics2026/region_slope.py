@@ -48,7 +48,7 @@ from lfp_batch import LFP_ROOT, FS, vr_paths, clip_trials
 # dropping (25, 11 and 14 of 59 sessions); this analysis reads all 48 channel
 # groups per session, several times the I/O of the other LFP work here.
 # Behaviour and clusters still come from the local clark2025 copy via vr_paths.
-SD_ROOT = '/Volumes/datasetsSD/clark2025_lfp'
+SD_ROOT = '/Volumes/datasetsSD/Ephys_data/clark2025_lfp'
 if os.path.isdir(SD_ROOT):
     LFP_ROOT = SD_ROOT
     print(f'reading LFP from {LFP_ROOT}', flush=True)

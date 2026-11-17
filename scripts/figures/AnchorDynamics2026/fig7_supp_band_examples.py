@@ -56,6 +56,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lfp_batch import FS, LFP_ROOT, clip_trials, mec_groups, nap, vr_paths
 from spatial_manifolds.anchoring import ANCH_COLOR, NONANCH_COLOR
 
+
+def merged_or_shards(stem):
+    """The single-run output when present, else its worker shards (rebuild_paper
+    runs every step unsharded, so old shards beside it are stale)."""
+    if os.path.exists(stem + '.csv'):
+        return [stem + '.csv']
+    return sorted(glob.glob(stem + '_w*.csv'))
+
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['pdf.fonttype'] = 42
 
@@ -78,7 +86,7 @@ OUT = f'{FIG}/fig7_supp_band_examples.pdf'
 # sessions, 14,280 rows each); nothing enforces that, and a re-run of the shards
 # without a matching single-worker run would leave this supplement quietly
 # disagreeing with its parent figure.
-_shards = sorted(glob.glob(f'{ROOT}/data/lfp/spectrum_by_anchoring_w*.csv'))
+_shards = merged_or_shards(f'{ROOT}/data/lfp/spectrum_by_anchoring')
 if not _shards:
     sys.exit('no spectrum_by_anchoring_w*.csv -- run lfp_spectrum_pac.py first')
 _SP = pd.concat([pd.read_csv(f) for f in _shards], ignore_index=True)

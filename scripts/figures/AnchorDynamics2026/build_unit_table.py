@@ -72,7 +72,7 @@ warnings.filterwarnings('ignore')
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 import pynapple as nap
 from spatial_manifolds.anchoring import load_session_labels
-from spatial_manifolds.data.curation import curate_clusters
+from paper_units import curate
 
 ROOT = '/Users/harryclark/Documents/spatial-manifolds'
 SRC = '/Users/harryclark/Downloads/clark2025'
@@ -122,7 +122,7 @@ def session_waveforms(mo, dy):
          '_srt-kilosort4_clusters.npz')
     if not os.path.exists(p):
         return None
-    cur = curate_clusters(nap.load_file(p))
+    cur = curate(nap.load_file(p), mo, dy)
     md = cur.metadata
     keep = [w for w in WAVE if w in md.columns]
     out = md[keep].copy()
@@ -163,6 +163,11 @@ def session_speed_glm(mo, dy):
 
 
 PTT_THRESHOLD = 0.4e-3     # seconds; the narrow/broad boundary actually used
+# Below this the template metric failed rather than measured a spike: 43 units
+# read 0.01 ms, a third of one 30 kHz sample. They are left unmeasured (NaN),
+# so they keep their open-field class; with them, the mixture's separation
+# falls from 3.9 to 1.6 SD on the narrow side's log tail alone.
+PTT_MIN = 0.05e-3
 
 
 def interneuron_threshold(ptt_s, verbose=True):
@@ -217,7 +222,10 @@ def build():
                 acc.append(r)
     L = pd.concat(lab, ignore_index=True)
     W = pd.concat(wav, ignore_index=True)
-    sp = sorted(glob.glob(f'{PS}/of_speed_score*.csv'))
+    # the single-run file when present; worker files only stand in for it
+    # (globbing both counted every cell two or three times)
+    sp = ([f'{PS}/of_speed_score.csv'] if os.path.exists(f'{PS}/of_speed_score.csv')
+          else sorted(glob.glob(f'{PS}/of_speed_score_w*.csv')))
     if not sp:
         raise FileNotFoundError('run of_speed_score.py first')
     S = pd.concat([pd.read_csv(f) for f in sp], ignore_index=True)
@@ -243,6 +251,7 @@ def build():
     # The mixture is fitted for its separation index and its antimode, both of
     # which are reported, but the boundary applied is the fixed 0.4 ms -- see
     # interneuron_threshold for why a convention beats a refitted cut here.
+    U.loc[U.peak_to_trough_duration < PTT_MIN, 'peak_to_trough_duration'] = np.nan
     antimode, sep = interneuron_threshold(U.peak_to_trough_duration.values)
     U['narrow'] = U.peak_to_trough_duration < PTT_THRESHOLD
     rate_thr = U.firing_rate.quantile(.75)

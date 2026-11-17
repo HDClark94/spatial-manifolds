@@ -52,6 +52,14 @@ from scipy.stats import wilcoxon
 sys.path.insert(0, '/Users/harryclark/Documents/spatial-manifolds/src')
 from spatial_manifolds.anchoring import ANCH_COLOR, NONANCH_COLOR
 
+
+def merged_or_shards(stem):
+    """The single-run output when present, else its worker shards (rebuild_paper
+    runs every step unsharded, so old shards beside it are stale)."""
+    if os.path.exists(stem + '.csv'):
+        return [stem + '.csv']
+    return sorted(glob.glob(stem + '_w*.csv'))
+
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['pdf.fonttype'] = 42
 
@@ -77,10 +85,10 @@ def not_mains(f):
     return not any(lo <= f <= hi for lo, hi in LINE)
 
 S = pd.concat([pd.read_csv(f) for f in
-               sorted(glob.glob(f'{ROOT}/data/lfp/spectrum_by_anchoring_w*.csv'))],
+               merged_or_shards(f'{ROOT}/data/lfp/spectrum_by_anchoring')],
               ignore_index=True)
 P = pd.concat([pd.read_csv(f) for f in
-               sorted(glob.glob(f'{ROOT}/data/lfp/pac_by_anchoring_w*.csv'))],
+               merged_or_shards(f'{ROOT}/data/lfp/pac_by_anchoring')],
               ignore_index=True)
 # SUFFICIENT SWITCHING. A session contributes only if it has at least MIN_TRIALS
 # speed-matched trials in EACH state; with fewer, a per-state spectrum is an

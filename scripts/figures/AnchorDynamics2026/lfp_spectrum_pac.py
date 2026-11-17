@@ -15,7 +15,7 @@ Two questions the band analysis in Results §7 cannot answer as it stands.
    theta phase, and that coupling can change while band powers do not -- it is a
    statement about the TIMING of fast activity within the slow rhythm, not about
    how much of either there is. Tort's modulation index over 18 theta-phase bins,
-   for slow (30-55 Hz) and fast (60-100 Hz) gamma.
+   for slow (30-48 Hz) and fast (60-100 Hz) gamma.
 
 CONTROLS, all three load-bearing.
 
@@ -61,7 +61,9 @@ FMAX = 250.0
 N_PHASE_BINS = 18
 N_SURR = 20
 MAX_GROUPS = 8             # MEC channel groups per session, spread over depth
-GAMMA = [('slow_gamma', 30., 55.), ('fast_gamma', 60., 100.)]
+# slow gamma 30-48 Hz, as everywhere else in Figure 8 (was 30-55, which
+# also took in 50 Hz mains; changed 2026-11-01)
+GAMMA = [('slow_gamma', 30., 48.), ('fast_gamma', 60., 100.)]
 MIN_SAMP_PAC = int(20 * FS)   # 20 s of running per state before MI is trusted
 
 

@@ -70,6 +70,8 @@ VROOT = '/Volumes/INCR-NolanLab/ActiveProjects/Harry/EphysNeuropixelData/vr'
 # the lab volume mounted. Only a session whose frames are NOT cached needs it.
 CROPS_PATH = ('/Volumes/INCR-NolanLab/ActiveProjects/Chris/Cohort12/derivatives/'
               'labels/deeplabcut/all_eye_crops.csv')
+CROPS_LOCAL = ('/Users/harryclark/Documents/spatial-manifolds/data/eye_frames/'
+               'all_eye_crops.csv')     # copy of CROPS_PATH, taken 2026-10-31
 
 
 APPARATUS_SCALE = {'camera_and_IR_mouse.pdf': 1.10,
@@ -129,6 +131,8 @@ def _place_apparatus(pdf_path, boxes, tightbbox, figsize):
 
 
 def crops():
+    if os.path.exists(CROPS_LOCAL):
+        return pd.read_csv(CROPS_LOCAL)
     if not os.path.exists(CROPS_PATH):
         raise RuntimeError(f'{CROPS_PATH} not found -- is /Volumes/INCR-NolanLab '
                            'mounted? (only needed when frames are not cached)')
@@ -142,7 +146,14 @@ ZOOM = 46
 # sessions where the video is already cropped and needs a further offset
 # Solved from the data (dark-pupil centroid vs NWB centroid) and checked by eye.
 # Both come out near (-31, -31), so the eye_zone crop origin is effectively fixed.
-EYE_ZONE_OFFSET = {(28, 18): (-30.4, -31.4), (29, 17): (-31.0, -31.7)}
+EYE_ZONE_OFFSET = {(28, 18): (-30.4, -31.4), (29, 17): (-31.0, -31.7),
+                   # Figure S18's sessions: the eye_zone crop is NOT fixed after all.
+                   # Grid search for the offset putting the landmark ring on the
+                   # darkest disc over 40 frames, less that search's +3.5 px x bias
+                   # on the two sessions above; each checked by eye.
+                   (26, 18): (-21.5, -34.0), (28, 25): (-29.5, -32.0),
+                   (22, 38): (-53.5, -43.0), (27, 19): (-54.5, -80.0),
+                   (28, 19): (-30.5, -31.0)}
 
 
 TRIALS_CSV = ('/Users/harryclark/Documents/spatial-manifolds/data/eye_anchoring/'
@@ -247,8 +258,19 @@ def transition_segments(E, col='z_rad'):
     return out
 
 
+# Local copies taken by cache_eye_frames.py, so the lab volume is not needed:
+# the eye_zone videos whole (small), and for the full-frame videos (6 GB each)
+# the eye crop at SHOW_POS on every trial, in greyscale.
+EYE_LOCAL = '/Users/harryclark/Documents/spatial-manifolds/data/eye_frames'
+
+
+def archive_path(mo, dy):
+    return f'{EYE_LOCAL}/M{mo}D{dy}_crops.npz'
+
+
 def find_video(mo, dy):
-    for pat in (f'{VROOT}/M{mo}_D{dy}_*/*eye_zone.avi',
+    for pat in (f'{EYE_LOCAL}/video/M{mo}_D{dy}_*eye_zone.avi',
+                f'{VROOT}/M{mo}_D{dy}_*/*eye_zone.avi',
                 f'{VROOT}/M{mo}_D{dy}_*/sub-*video.avi'):
         g = glob.glob(pat)
         if g:
@@ -349,10 +371,8 @@ def trial_frames(S, u):
     return out
 
 
-def build(mo, dy):
-    S = load_session(mo, dy)
-    P = population(mo, dy)
-    blocks = state_blocks(mo, dy, S, P)
+def get_frames(mo, dy, want):
+    """Eye-video frames by index, cached per session; returns (store, ox, oy)."""
     CACHE = f'{FIG}/eye_frames_M{mo}D{dy}_trials.npz'
     vid = find_video(mo, dy)
     if vid is None and not os.path.exists(CACHE):
@@ -365,7 +385,7 @@ def build(mo, dy):
     else:
         ox, oy = 0.0, 0.0
         cx0 = cy0 = cw = ch = None
-        if not os.path.exists(CACHE):
+        if vid is not None:             # needed to add frames to a cache too
             C = crops()
             r = C[(C.mouse == mo) & (C.day == dy) &
                   (C.session.astype(str).str.lower() == 'vr')].iloc[0]
@@ -373,29 +393,18 @@ def build(mo, dy):
     print(f'M{mo}D{dy}: {os.path.basename(vid) if vid else "cached frames"} '
           f'({"pre-cropped" if zone else "full frame"})')
 
-    missing = [lab for k, lab in (('anch', 'anchored'), ('non', 'non-anchored'))
-               if blocks[k] is None]
-    if missing:
-        raise RuntimeError(
-            f'M{mo}D{dy} has no {" or ".join(missing)} trials under the gated '
-            f'classifier (frac_anch {np.nanmean(P["frac"]):.2f} across '
-            f'{len(P["trial"])} trials), so it cannot be a two-state example')
-
-    sel = {}
-    for k, lab in (('anch', 'anchored'), ('non', 'non-anchored')):
-        a, b, _, n = blocks[k]
-        u, prof = pick_trial(S, a, b)
-        if u is None:
-            raise RuntimeError(f'no complete trial in the {lab} block {a}-{b}')
-        sel[k] = dict(block=(a, b, n), trial=u, prof=prof, frames=trial_frames(S, u))
-        print(f'  {lab:13s} block trials {a}-{b} ({n}) -> trial {u}, '
-              f'radii {np.round(prof,1)}')
-
-    want = [f for k in sel for f in sel[k]['frames'] if f is not None]
     store = {}
     if os.path.exists(CACHE):
         z = np.load(CACHE); store = {int(k): z[k] for k in z.files}
     todo = [i for i in want if i not in store]
+    if todo and os.path.exists(archive_path(mo, dy)):
+        z = np.load(archive_path(mo, dy))
+        for i in todo:
+            if str(i) in z.files:
+                store[i] = cv2.cvtColor(z[str(i)], cv2.COLOR_GRAY2BGR)
+        if all(i in store for i in todo):
+            np.savez_compressed(CACHE, **{str(k): v for k, v in store.items()})
+        todo = [i for i in want if i not in store]
     if todo:
         if vid is None:
             raise RuntimeError(f'{len(todo)} frames missing from the cache and no '
@@ -416,6 +425,34 @@ def build(mo, dy):
     miss = [i for i in want if i not in store]
     if miss:
         raise RuntimeError(f'{len(miss)} frames unreadable; refusing to draw blanks')
+
+    return store, ox, oy
+
+
+def build(mo, dy):
+    S = load_session(mo, dy)
+    P = population(mo, dy)
+    blocks = state_blocks(mo, dy, S, P)
+    missing = [lab for k, lab in (('anch', 'anchored'), ('non', 'non-anchored'))
+               if blocks[k] is None]
+    if missing:
+        raise RuntimeError(
+            f'M{mo}D{dy} has no {" or ".join(missing)} trials under the gated '
+            f'classifier (frac_anch {np.nanmean(P["frac"]):.2f} across '
+            f'{len(P["trial"])} trials), so it cannot be a two-state example')
+
+    sel = {}
+    for k, lab in (('anch', 'anchored'), ('non', 'non-anchored')):
+        a, b, _, n = blocks[k]
+        u, prof = pick_trial(S, a, b)
+        if u is None:
+            raise RuntimeError(f'no complete trial in the {lab} block {a}-{b}')
+        sel[k] = dict(block=(a, b, n), trial=u, prof=prof, frames=trial_frames(S, u))
+        print(f'  {lab:13s} block trials {a}-{b} ({n}) -> trial {u}, '
+              f'radii {np.round(prof,1)}')
+
+    want = [f for k in sel for f in sel[k]['frames'] if f is not None]
+    store, ox, oy = get_frames(mo, dy, want)
 
     # ---- figure ----
     NB_MEAN = 25                 # position bins for the mean curve (8 cm)

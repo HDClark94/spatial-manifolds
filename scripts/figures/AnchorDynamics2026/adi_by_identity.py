@@ -87,9 +87,11 @@ def main():
         print(f'  {k:<22} n={len(v):3d}  ADI {v.mean():+.4f}  '
               f'p = {wilcoxon(v).pvalue:.3g}')
     P = R.dropna(subset=ORDER)
-    print(f'  paired on the {len(P)} sessions with all four classes, no pair '
-          f'differs (smallest p = '
-          f'{min(wilcoxon(P[a], P[b]).pvalue for a in ORDER for b in ORDER if a < b):.2f})')
+    from statsmodels.stats.multitest import multipletests
+    pp = [wilcoxon(P[a], P[b]).pvalue for a in ORDER for b in ORDER if a < b]
+    print(f'  paired on the {len(P)} sessions with all four classes: smallest p = '
+          f'{min(pp):.2f} uncorrected, {min(multipletests(pp, method="holm")[1]):.2f} '
+          f'Holm over the {len(pp)} pairs')
     print(f'wrote {OUT}')
 
 

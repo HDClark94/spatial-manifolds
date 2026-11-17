@@ -209,6 +209,8 @@ for k, (df, yv, nm, col, letter) in enumerate((
                    .uniform(-.13, .13, len(w)), w, s=11, color=c, alpha=.75,
                    lw=0, zorder=3)
         ax.plot([i - .26, i + .26], [np.median(w)] * 2, color='k', lw=2, zorder=4)
+        print(f'  {letter} {nm}, {lab.replace(chr(10), " ")}: median rho {np.median(w):+.3f}, '
+              f'p = {pw:.3g}, {len(w)} sessions')
         ax.annotate(f'p = {pw:.3g}\nn = {len(w)}', (i, .97),
                     xycoords=('data', 'axes fraction'), ha='center', va='top',
                     fontsize=5.9, color='#a33' if pw < .05 else '0.4',

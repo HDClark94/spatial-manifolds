@@ -373,13 +373,15 @@ for i, L in enumerate(LAYERS):
     a, n_ = PH['a'][i], PH['n'][i]
     m = np.isfinite(a) & np.isfinite(n_)
     d = np.degrees(np.angle(np.exp(1j * (a[m] - n_[m]))))
-    pv = wilcoxon(d).pvalue if m.sum() >= 5 else np.nan
+    # the reference layer is zero by construction: its "difference" is rounding
+    # noise, and a test on it can come out significant
+    pv = wilcoxon(d).pvalue if m.sum() >= 5 and L != REF_LAYER else np.nan
     print(f'    {L}: n={int(m.sum()):>3}  anchored '
           f'{np.degrees(np.angle(np.mean(np.exp(1j * a[m])))):+7.1f} deg  '
           f'non {np.degrees(np.angle(np.mean(np.exp(1j * n_[m])))):+7.1f}  '
           f'delta {np.degrees(np.angle(np.mean(np.exp(1j * np.radians(d))))):+5.1f}  '
           f'p = {pv:.3g} ({star(pv)})')
-    ax.text(i, .97, star(pv), fontsize=6.4, color='0.3', ha='center',
+    ax.text(i, .97, 'ref' if L == REF_LAYER else star(pv), fontsize=6.4, color='0.3', ha='center',
             va='top', transform=ax.get_xaxis_transform())
 ax.axhline(0, color='0.7', lw=.7, ls=':')
 ax.set_xticks(xs)
