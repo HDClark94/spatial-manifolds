@@ -1,0 +1,13 @@
+setup ready
+plotting helpers ready
+anchoring helper ready
+[w0 1/10] M20D14: 271 cells, 1419s
+[w0 2/10] M20D21: 117 cells, 2115s
+[w0 3/10] M21D16: 321 cells, 2544s
+[w0 4/10] M21D23: 360 cells, 3817s
+[w0 5/10] M25D16: 98 cells, 4137s
+[w0 6/10] M25D23: 218 cells, 4693s
+[w0 7/10] M26D16: 66 cells, 4914s
+[w0 8/10] M28D16: 145 cells, 5159s
+[w0 9/10] M28D25: 259 cells, 5758s
+[w0 10/10] M29D25: 352 cells, 6371s

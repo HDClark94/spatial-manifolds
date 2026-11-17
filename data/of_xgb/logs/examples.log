@@ -1,0 +1,5 @@
+M21D26 c160: P, 4.1 Hz, 0.34 bits/spike
+M27D18 c213: H, 4.2 Hz, 2.02 bits/spike
+M26D11 c225: S, 34.6 Hz, 0.09 bits/spike
+M21D24 c246: PHS, 4.7 Hz, 1.84 bits/spike
+wrote /Users/harryclark/Documents/spatial-manifolds/data/of_xgb/of_xgb_examples.npz

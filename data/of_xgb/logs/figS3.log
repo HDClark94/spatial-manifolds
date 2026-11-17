@@ -1,0 +1,38 @@
+41 sessions, 36 speed-matched
+  MEC cued, all trials (n=29): anchored 83.2% vs non 74.0%, p=0.00182
+  MEC uncued, all trials (n=29): anchored 67.1% vs non 37.2%, p=2.05e-07
+  MEC cued, matched (n=24): anchored 82.4% vs non 78.5%, p=0.27
+  MEC uncued, matched (n=24): anchored 66.3% vs non 40.4%, p=8.73e-05
+  VIS cued, all trials (n=10): anchored 93.6% vs non 88.7%, p=0.105
+  VIS uncued, all trials (n=10): anchored 76.4% vs non 49.3%, p=0.00195
+  VIS cued, matched (n=9): anchored 91.5% vs non 88.6%, p=0.281
+  VIS uncued, matched (n=9): anchored 76.1% vs non 55.2%, p=0.00391
+  SUB cued, all trials (n=8): anchored 89.4% vs non 83.4%, p=0.0234
+  SUB uncued, all trials (n=8): anchored 70.9% vs non 44.3%, p=0.00781
+  SUB cued, matched (n=7): anchored 93.9% vs non 87.8%, p=0.0625
+  SUB uncued, matched (n=7): anchored 69.5% vs non 43.4%, p=0.0156
+  CB cued, all trials (n=6): anchored 84.5% vs non 77.1%, p=0.156
+  CB uncued, all trials (n=6): anchored 47.0% vs non 28.1%, p=0.438
+  CB cued, matched (n=6): anchored 83.7% vs non 82.2%, p=0.625
+  CB uncued, matched (n=6): anchored 46.5% vs non 25.8%, p=0.125
+  MEC adi (n=29): +0.102, p=0.00599
+  VIS adi (n=10): +0.108, p=0.16
+  SUB adi (n=8): +0.140, p=0.0547
+  CB adi (n=6): +0.146, p=0.312
+  MEC m_adi (n=24): +0.137, p=0.00252
+  VIS m_adi (n=9): +0.132, p=0.359
+  SUB m_adi (n=7): +0.127, p=0.156
+  CB m_adi (n=6): +0.229, p=0.0625
+  MEC speed difference anchored - non: -0.76 -> -0.13 cm/s (|d| 2.92 -> 0.43)
+  VIS speed difference anchored - non: +0.49 -> -0.06 cm/s (|d| 2.51 -> 0.45)
+  SUB speed difference anchored - non: -0.57 -> -0.09 cm/s (|d| 2.05 -> 0.26)
+  CB speed difference anchored - non: -1.88 -> -0.19 cm/s (|d| 4.14 -> 0.30)
+  MEC XGBoost classes (9607 cells): P 11.5%, H 2.3%, S 9.3%, PH 27.8%, PS 7.8%, HS 2.4%, PHS 20.6%, none 18.4%
+  VIS XGBoost classes (1785 cells): P 5.3%, H 5.4%, S 16.4%, PH 21.2%, PS 6.1%, HS 5.0%, PHS 22.5%, none 18.2%
+  SUB XGBoost classes (747 cells): P 4.6%, H 3.6%, S 15.8%, PH 28.4%, PS 6.3%, HS 7.9%, PHS 23.2%, none 10.3%
+  CB XGBoost classes (396 cells): P 13.6%, H 1.5%, S 27.0%, PH 5.1%, PS 13.1%, HS 0.3%, PHS 3.5%, none 35.9%
+  MEC-VIS (19 sessions): within MEC 0.083, between 0.037, within VIS 0.035
+  MEC-SUB (10 sessions): within MEC 0.125, between 0.110, within SUB 0.115
+  MEC-CB (13 sessions): within MEC 0.053, between 0.042, within CB 0.066
+
+saved /Users/harryclark/Documents/spatial-manifolds/scripts/figures/AnchorDynamics2026/fig1_supp_regions.pdf

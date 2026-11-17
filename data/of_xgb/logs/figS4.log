@@ -1,0 +1,14 @@
+  MEC XGBoost classes (9607 cells): P 11.5%, H 2.3%, S 9.3%, PH 27.8%, PS 7.8%, HS 2.4%, PHS 20.6%, none 18.4%
+  VIS XGBoost classes (1753 cells): P 5.1%, H 5.5%, S 16.1%, PH 21.5%, PS 5.8%, HS 5.0%, PHS 22.9%, none 18.1%
+  SUB XGBoost classes (747 cells): P 4.6%, H 3.6%, S 15.8%, PH 28.4%, PS 6.3%, HS 7.9%, PHS 23.2%, none 10.3%
+  CB XGBoost classes (396 cells): P 13.6%, H 1.5%, S 27.0%, PH 5.1%, PS 13.1%, HS 0.3%, PHS 3.5%, none 35.9%
+  P: 1287 cells, median 0.033 bits/spike
+  H: 351 cells, median 0.019 bits/spike
+  S: 1401 cells, median 0.018 bits/spike
+  PH: 3276 cells, median 0.101 bits/spike
+  PS: 948 cells, median 0.036 bits/spike
+  HS: 376 cells, median 0.033 bits/spike
+  PHS: 2565 cells, median 0.093 bits/spike
+  walkthrough P -> PH: p = 0.0010
+  walkthrough PH -> PHS: p = 0.0010
+saved /Users/harryclark/Documents/spatial-manifolds/scripts/figures/AnchorDynamics2026/fig1_supp_of_decomp.pdf

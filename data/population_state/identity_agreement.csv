@@ -1,519 +1,523 @@
 mouse,day,a,b,excess
-20,14,grid,grid,-0.020164334671255963
-20,14,grid,non-grid spatial,0.06525612886154879
-20,14,grid,non-spatial,0.04510466362704805
-20,14,grid,putative interneuron,0.06842346097281785
-20,14,non-grid spatial,grid,0.06525612886154879
-20,14,non-grid spatial,non-grid spatial,0.060532714653491165
-20,14,non-grid spatial,non-spatial,0.04332694290329339
-20,14,non-grid spatial,putative interneuron,0.05590136180609643
-20,14,non-spatial,grid,0.04510466362704805
-20,14,non-spatial,non-grid spatial,0.0433269429032934
-20,14,non-spatial,non-spatial,0.03104808402361054
-20,14,non-spatial,putative interneuron,0.03972400351138597
-20,14,putative interneuron,grid,0.06842346097281786
-20,14,putative interneuron,non-grid spatial,0.05590136180609643
-20,14,putative interneuron,non-spatial,0.03972400351138597
-20,14,putative interneuron,putative interneuron,0.09113076816949232
-20,16,grid,grid,0.038078793500026895
-20,16,grid,non-grid spatial,0.003131786832654881
-20,16,grid,non-spatial,-0.0029807101925209056
-20,16,grid,putative interneuron,-0.0028317053635529697
-20,16,non-grid spatial,grid,0.0031317868326548814
-20,16,non-grid spatial,non-grid spatial,0.008752771935823288
-20,16,non-grid spatial,non-spatial,0.0062480252587838936
-20,16,non-grid spatial,putative interneuron,0.012506522990153526
-20,16,non-spatial,grid,-0.0029807101925209056
-20,16,non-spatial,non-grid spatial,0.0062480252587838936
-20,16,non-spatial,non-spatial,-0.005515840293113902
-20,16,non-spatial,putative interneuron,0.003370993274292128
-20,16,putative interneuron,grid,-0.0028317053635529723
-20,16,putative interneuron,non-grid spatial,0.012506522990153526
-20,16,putative interneuron,non-spatial,0.003370993274292128
-20,16,putative interneuron,putative interneuron,-0.003092745299656875
-20,21,grid,grid,0.047304850998162964
-20,21,grid,non-grid spatial,-0.0009628996240053044
-20,21,grid,non-spatial,0.005851012290624191
-20,21,grid,putative interneuron,0.02913306226767998
-20,21,non-grid spatial,grid,-0.0009628996240053006
-20,21,non-grid spatial,non-grid spatial,0.007616045625565672
-20,21,non-grid spatial,non-spatial,0.013786690976644953
-20,21,non-grid spatial,putative interneuron,-0.009472604975135359
-20,21,non-spatial,grid,0.005851012290624188
-20,21,non-spatial,non-grid spatial,0.013786690976644953
-20,21,non-spatial,non-spatial,0.01664879569077625
-20,21,non-spatial,putative interneuron,-0.000976686653194659
-20,21,putative interneuron,grid,0.029133062267679973
-20,21,putative interneuron,non-grid spatial,-0.00947260497513536
-20,21,putative interneuron,non-spatial,-0.0009766866531946599
-20,21,putative interneuron,putative interneuron,0.11839013895033615
-20,23,non-grid spatial,non-grid spatial,0.011084384231537656
-20,23,non-grid spatial,non-spatial,0.014863403269105088
-20,23,non-grid spatial,putative interneuron,0.017123029437817835
-20,23,non-spatial,non-grid spatial,0.014863403269105091
-20,23,non-spatial,non-spatial,0.009001796920280069
-20,23,non-spatial,putative interneuron,0.02196200391232235
-20,23,putative interneuron,non-grid spatial,0.01712302943781783
-20,23,putative interneuron,non-spatial,0.021962003912322354
-20,23,putative interneuron,putative interneuron,0.057293055280079885
-20,24,grid,grid,0.15474611514754355
-20,24,grid,non-grid spatial,0.056668911080700726
-20,24,grid,non-spatial,0.005093309841385353
-20,24,grid,putative interneuron,0.1106074894266865
-20,24,non-grid spatial,grid,0.05666891108070072
-20,24,non-grid spatial,non-grid spatial,0.013599256452343694
-20,24,non-grid spatial,non-spatial,-0.002733908165647698
-20,24,non-grid spatial,putative interneuron,0.0030549268303919704
-20,24,non-spatial,grid,0.0050933098413853545
-20,24,non-spatial,non-grid spatial,-0.002733908165647697
-20,24,non-spatial,non-spatial,-0.0162815070535791
-20,24,non-spatial,putative interneuron,-0.00850317402356007
-20,24,putative interneuron,grid,0.1106074894266865
-20,24,putative interneuron,non-grid spatial,0.0030549268303919695
-20,24,putative interneuron,non-spatial,-0.008503174023560073
-20,24,putative interneuron,putative interneuron,0.012577980894950486
-21,15,grid,grid,0.18000998305094806
-21,15,grid,non-grid spatial,0.04713872777446347
-21,15,grid,non-spatial,0.058667234032580236
-21,15,grid,putative interneuron,0.1471478847840126
-21,15,non-grid spatial,grid,0.04713872777446346
-21,15,non-grid spatial,non-grid spatial,0.027094423628839646
-21,15,non-grid spatial,non-spatial,0.0312754146763157
-21,15,non-grid spatial,putative interneuron,0.0585290414344527
-21,15,non-spatial,grid,0.058667234032580236
-21,15,non-spatial,non-grid spatial,0.0312754146763157
-21,15,non-spatial,non-spatial,0.030529396445899252
-21,15,non-spatial,putative interneuron,0.09742683866922866
-21,15,putative interneuron,grid,0.1471478847840126
-21,15,putative interneuron,non-grid spatial,0.0585290414344527
-21,15,putative interneuron,non-spatial,0.09742683866922867
-21,15,putative interneuron,putative interneuron,0.15585909466210396
-21,16,grid,grid,0.1678165962052264
-21,16,grid,non-grid spatial,0.09067065255978211
-21,16,grid,non-spatial,0.06723291125156879
-21,16,grid,putative interneuron,0.17224563740841703
-21,16,non-grid spatial,grid,0.09067065255978211
-21,16,non-grid spatial,non-grid spatial,0.04637898652054814
-21,16,non-grid spatial,non-spatial,0.042786772021205656
-21,16,non-grid spatial,putative interneuron,0.08010699271137423
-21,16,non-spatial,grid,0.06723291125156879
-21,16,non-spatial,non-grid spatial,0.042786772021205656
-21,16,non-spatial,non-spatial,0.03511253359053297
-21,16,non-spatial,putative interneuron,0.0700911604712303
-21,16,putative interneuron,grid,0.17224563740841703
-21,16,putative interneuron,non-grid spatial,0.08010699271137423
-21,16,putative interneuron,non-spatial,0.07009116047123029
-21,16,putative interneuron,putative interneuron,0.12293319840010347
-21,17,grid,grid,-0.01244518699493025
-21,17,grid,non-grid spatial,0.015356093607786822
-21,17,grid,non-spatial,0.024872051333898654
-21,17,grid,putative interneuron,0.04254018887364723
-21,17,non-grid spatial,grid,0.01535609360778682
-21,17,non-grid spatial,non-grid spatial,0.025578984928573575
-21,17,non-grid spatial,non-spatial,0.033313968866552586
-21,17,non-grid spatial,putative interneuron,0.059819185677215156
-21,17,non-spatial,grid,0.024872051333898654
-21,17,non-spatial,non-grid spatial,0.033313968866552586
-21,17,non-spatial,non-spatial,0.03220877870991094
-21,17,non-spatial,putative interneuron,0.10180468907206278
-21,17,putative interneuron,grid,0.042540188873647224
-21,17,putative interneuron,non-grid spatial,0.059819185677215156
-21,17,putative interneuron,non-spatial,0.1018046890720628
-21,17,putative interneuron,putative interneuron,0.17014187312938164
-21,18,grid,grid,-0.09783723249274077
-21,18,grid,non-grid spatial,0.02101284371157749
-21,18,grid,non-spatial,0.017192662459689253
-21,18,grid,putative interneuron,0.010372588175415188
-21,18,non-grid spatial,grid,0.02101284371157749
-21,18,non-grid spatial,non-grid spatial,0.03949949277420492
-21,18,non-grid spatial,non-spatial,0.025454435611014566
-21,18,non-grid spatial,putative interneuron,0.04397180933256352
-21,18,non-spatial,grid,0.017192662459689253
-21,18,non-spatial,non-grid spatial,0.025454435611014566
-21,18,non-spatial,non-spatial,0.032136563501992024
-21,18,non-spatial,putative interneuron,0.025988930690457955
-21,18,putative interneuron,grid,0.010372588175415188
-21,18,putative interneuron,non-grid spatial,0.04397180933256352
-21,18,putative interneuron,non-spatial,0.02598893069045796
-21,18,putative interneuron,putative interneuron,0.023374529907281852
-21,19,grid,grid,0.11696119433520918
-21,19,grid,non-grid spatial,0.08448593987674825
-21,19,grid,non-spatial,0.15185519039694761
-21,19,grid,putative interneuron,0.12593722870170174
-21,19,non-grid spatial,grid,0.08448593987674823
-21,19,non-grid spatial,non-grid spatial,0.03917476790212004
-21,19,non-grid spatial,non-spatial,0.06528922849374846
-21,19,non-grid spatial,putative interneuron,0.05295910899259289
-21,19,non-spatial,grid,0.15185519039694761
-21,19,non-spatial,non-grid spatial,0.06528922849374846
-21,19,non-spatial,non-spatial,0.11233287950846427
-21,19,non-spatial,putative interneuron,0.0683456062502591
-21,19,putative interneuron,grid,0.12593722870170174
-21,19,putative interneuron,non-grid spatial,0.05295910899259289
-21,19,putative interneuron,non-spatial,0.0683456062502591
-21,19,putative interneuron,putative interneuron,0.07563282315118298
-21,20,grid,grid,-0.004729256681223831
-21,20,grid,non-grid spatial,0.017510694726991193
-21,20,grid,non-spatial,0.0013003189608726982
-21,20,grid,putative interneuron,0.1315545851641119
-21,20,non-grid spatial,grid,0.017510694726991193
-21,20,non-grid spatial,non-grid spatial,0.019017358004242927
-21,20,non-grid spatial,non-spatial,0.022083468227276547
-21,20,non-grid spatial,putative interneuron,0.06402370874852875
-21,20,non-spatial,grid,0.0013003189608727025
-21,20,non-spatial,non-grid spatial,0.02208346822727655
-21,20,non-spatial,non-spatial,0.017865045785133527
-21,20,non-spatial,putative interneuron,0.05943231222199388
-21,20,putative interneuron,grid,0.13155458516411186
-21,20,putative interneuron,non-grid spatial,0.06402370874852875
-21,20,putative interneuron,non-spatial,0.059432312221993876
-21,20,putative interneuron,putative interneuron,0.21956229750564754
-21,21,grid,grid,0.009292570368461314
-21,21,grid,non-grid spatial,0.021672577222219516
-21,21,grid,non-spatial,0.005885900764955742
-21,21,grid,putative interneuron,0.036883646884868074
-21,21,non-grid spatial,grid,0.021672577222219516
-21,21,non-grid spatial,non-grid spatial,0.041324936980506634
-21,21,non-grid spatial,non-spatial,0.005786605617868047
-21,21,non-grid spatial,putative interneuron,0.06988710679277946
-21,21,non-spatial,grid,0.00588590076495574
-21,21,non-spatial,non-grid spatial,0.005786605617868045
-21,21,non-spatial,non-spatial,-0.03837426310509654
-21,21,non-spatial,putative interneuron,0.02899348972767588
-21,21,putative interneuron,grid,0.036883646884868074
-21,21,putative interneuron,non-grid spatial,0.06988710679277946
-21,21,putative interneuron,non-spatial,0.028993489727675875
-21,21,putative interneuron,putative interneuron,0.1527312258919305
-21,22,grid,grid,0.009234482754531917
-21,22,grid,non-grid spatial,0.04031110472401904
-21,22,grid,non-spatial,0.03674359511683374
-21,22,grid,putative interneuron,-0.004360118021098444
-21,22,non-grid spatial,grid,0.04031110472401904
-21,22,non-grid spatial,non-grid spatial,0.025659187650673293
-21,22,non-grid spatial,non-spatial,0.018057007841266293
-21,22,non-grid spatial,putative interneuron,0.018143991223939775
-21,22,non-spatial,grid,0.03674359511683374
-21,22,non-spatial,non-grid spatial,0.018057007841266293
-21,22,non-spatial,non-spatial,0.01988749833939789
-21,22,non-spatial,putative interneuron,0.02736207851313535
-21,22,putative interneuron,grid,-0.00436011802109844
-21,22,putative interneuron,non-grid spatial,0.018143991223939775
-21,22,putative interneuron,non-spatial,0.02736207851313534
-21,22,putative interneuron,putative interneuron,0.1164059574799269
-21,23,non-grid spatial,non-grid spatial,0.024895873130039405
-21,23,non-grid spatial,non-spatial,0.01655695179456164
-21,23,non-grid spatial,putative interneuron,0.044964719481194244
-21,23,non-spatial,non-grid spatial,0.01655695179456164
-21,23,non-spatial,non-spatial,0.01068452296963245
-21,23,non-spatial,putative interneuron,0.021981861437250894
-21,23,putative interneuron,non-grid spatial,0.04496471948119425
-21,23,putative interneuron,non-spatial,0.0219818614372509
-21,23,putative interneuron,putative interneuron,0.07402558235127024
-21,24,grid,grid,0.056529084993617286
-21,24,grid,non-grid spatial,0.009205486388838691
-21,24,grid,non-spatial,0.03848033985561208
-21,24,grid,putative interneuron,0.0596651951275983
-21,24,non-grid spatial,grid,0.009205486388838693
-21,24,non-grid spatial,non-grid spatial,0.01503971228863583
-21,24,non-grid spatial,non-spatial,0.003457371291946576
-21,24,non-grid spatial,putative interneuron,0.03340127670523309
-21,24,non-spatial,grid,0.038480339855612083
-21,24,non-spatial,non-grid spatial,0.0034573712919465744
-21,24,non-spatial,non-spatial,-0.006480263756065148
-21,24,non-spatial,putative interneuron,0.002761132800556898
-21,24,putative interneuron,grid,0.05966519512759829
-21,24,putative interneuron,non-grid spatial,0.03340127670523309
-21,24,putative interneuron,non-spatial,0.0027611328005568954
-21,24,putative interneuron,putative interneuron,0.10143169111978266
-21,25,grid,grid,-0.07919944381131212
-21,25,grid,non-grid spatial,-0.004520897141542182
-21,25,grid,non-spatial,-0.0017782616553504785
-21,25,grid,putative interneuron,-0.02713325371610088
-21,25,non-grid spatial,grid,-0.004520897141542181
-21,25,non-grid spatial,non-grid spatial,0.01465765518855405
-21,25,non-grid spatial,non-spatial,0.008672505749603513
-21,25,non-grid spatial,putative interneuron,0.01369650247470688
-21,25,non-spatial,grid,-0.0017782616553504767
-21,25,non-spatial,non-grid spatial,0.008672505749603513
-21,25,non-spatial,non-spatial,-0.010332463737446873
-21,25,non-spatial,putative interneuron,0.00548615912514382
-21,25,putative interneuron,grid,-0.02713325371610088
-21,25,putative interneuron,non-grid spatial,0.01369650247470688
-21,25,putative interneuron,non-spatial,0.00548615912514382
-21,25,putative interneuron,putative interneuron,0.005873939189478393
-21,26,grid,grid,0.02364385177631395
-21,26,grid,non-grid spatial,0.02630194934565429
-21,26,grid,non-spatial,0.03102172419481087
-21,26,grid,putative interneuron,0.06700249204539271
-21,26,non-grid spatial,grid,0.026301949345654288
-21,26,non-grid spatial,non-grid spatial,0.033612113426777036
-21,26,non-grid spatial,non-spatial,0.009241709534883336
-21,26,non-grid spatial,putative interneuron,0.06758167059089976
-21,26,non-spatial,grid,0.03102172419481088
-21,26,non-spatial,non-grid spatial,0.009241709534883331
-21,26,non-spatial,non-spatial,0.06473675244073723
-21,26,non-spatial,putative interneuron,0.0536075672250245
-21,26,putative interneuron,grid,0.0670024920453927
-21,26,putative interneuron,non-grid spatial,0.06758167059089976
-21,26,putative interneuron,non-spatial,0.05360756722502449
-21,26,putative interneuron,putative interneuron,0.13191180040740572
-25,17,grid,grid,0.1755114424750425
-25,17,grid,non-grid spatial,0.06180323940804783
-25,17,grid,non-spatial,0.04547381932638597
-25,17,grid,putative interneuron,-0.07695332294973734
-25,17,non-grid spatial,grid,0.06180323940804783
-25,17,non-grid spatial,non-grid spatial,0.055216971992721874
-25,17,non-grid spatial,non-spatial,0.055318048185165496
-25,17,non-grid spatial,putative interneuron,-0.027682891288277958
-25,17,non-spatial,grid,0.04547381932638596
-25,17,non-spatial,non-grid spatial,0.0553180481851655
-25,17,non-spatial,non-spatial,0.04079933366070013
-25,17,non-spatial,putative interneuron,-0.007344359757592282
-25,17,putative interneuron,grid,-0.07695332294973734
-25,17,putative interneuron,non-grid spatial,-0.02768289128827795
-25,17,putative interneuron,non-spatial,-0.007344359757592282
-25,17,putative interneuron,putative interneuron,-0.29403383818900836
-25,18,grid,grid,0.10816059828378134
-25,18,grid,non-grid spatial,0.08175115820168405
-25,18,grid,non-spatial,0.05071125241608801
-25,18,grid,putative interneuron,0.08200148043079948
-25,18,non-grid spatial,grid,0.08175115820168405
-25,18,non-grid spatial,non-grid spatial,0.07836972921618195
-25,18,non-grid spatial,non-spatial,0.05316282501048138
-25,18,non-grid spatial,putative interneuron,0.08657431392565026
-25,18,non-spatial,grid,0.05071125241608801
-25,18,non-spatial,non-grid spatial,0.05316282501048138
-25,18,non-spatial,non-spatial,0.049001215799676014
-25,18,non-spatial,putative interneuron,0.04999356734149878
-25,18,putative interneuron,grid,0.0820014804307995
-25,18,putative interneuron,non-grid spatial,0.08657431392565025
-25,18,putative interneuron,non-spatial,0.04999356734149878
-25,18,putative interneuron,putative interneuron,0.10697286975598101
-25,23,grid,grid,0.16789250859166932
-25,23,grid,non-grid spatial,0.07042252432237371
-25,23,grid,non-spatial,0.07190137750881972
-25,23,grid,putative interneuron,0.11959380051532086
-25,23,non-grid spatial,grid,0.07042252432237371
-25,23,non-grid spatial,non-grid spatial,0.05047006989648089
-25,23,non-grid spatial,non-spatial,0.04525131102206902
-25,23,non-grid spatial,putative interneuron,0.06330883901836216
-25,23,non-spatial,grid,0.07190137750881972
-25,23,non-spatial,non-grid spatial,0.04525131102206902
-25,23,non-spatial,non-spatial,0.03785194892919094
-25,23,non-spatial,putative interneuron,0.046208133888820294
-25,23,putative interneuron,grid,0.11959380051532083
-25,23,putative interneuron,non-grid spatial,0.06330883901836216
-25,23,putative interneuron,non-spatial,0.046208133888820294
-25,23,putative interneuron,putative interneuron,0.09766628558346066
-25,24,grid,grid,0.34311633410996556
-25,24,grid,non-grid spatial,0.3021198669282252
-25,24,grid,non-spatial,0.09595073144801726
-25,24,grid,putative interneuron,0.2060668873295889
-25,24,non-grid spatial,grid,0.3021198669282252
-25,24,non-grid spatial,non-grid spatial,0.25578019538765323
-25,24,non-grid spatial,non-spatial,0.10484859832315938
-25,24,non-grid spatial,putative interneuron,0.20879878626875137
-25,24,non-spatial,grid,0.09595073144801726
-25,24,non-spatial,non-grid spatial,0.10484859832315939
-25,24,non-spatial,non-spatial,0.0017529438354461097
-25,24,non-spatial,putative interneuron,0.11925728985053144
-25,24,putative interneuron,grid,0.20606688732958894
-25,24,putative interneuron,non-grid spatial,0.20879878626875137
-25,24,putative interneuron,non-spatial,0.11925728985053144
-25,24,putative interneuron,putative interneuron,0.16619661225420654
-25,25,grid,grid,0.4734309743043325
-25,25,grid,non-grid spatial,0.18681999528755647
-25,25,grid,non-spatial,0.07203386575314882
-25,25,grid,putative interneuron,0.4884696924675899
-25,25,non-grid spatial,grid,0.18681999528755652
-25,25,non-grid spatial,non-grid spatial,0.07009760923769197
-25,25,non-grid spatial,non-spatial,0.03664935862972928
-25,25,non-grid spatial,putative interneuron,0.19787064324430076
-25,25,non-spatial,grid,0.07203386575314882
-25,25,non-spatial,non-grid spatial,0.03664935862972927
-25,25,non-spatial,non-spatial,0.03876661282694594
-25,25,non-spatial,putative interneuron,0.11240069701907204
-25,25,putative interneuron,grid,0.4884696924675899
-25,25,putative interneuron,non-grid spatial,0.19787064324430073
-25,25,putative interneuron,non-spatial,0.11240069701907204
-25,25,putative interneuron,putative interneuron,0.5032950680870325
-26,12,non-grid spatial,non-grid spatial,0.03450453887117781
-26,12,non-grid spatial,non-spatial,0.02895044213558046
-26,12,non-grid spatial,putative interneuron,0.05061700536411455
-26,12,non-spatial,non-grid spatial,0.02895044213558046
-26,12,non-spatial,non-spatial,0.01968451570826618
-26,12,non-spatial,putative interneuron,0.04724478459143103
-26,12,putative interneuron,non-grid spatial,0.05061700536411455
-26,12,putative interneuron,non-spatial,0.04724478459143105
-26,12,putative interneuron,putative interneuron,0.07529281212972028
-26,18,grid,grid,0.24318393345189054
-26,18,grid,non-grid spatial,0.2450406182793944
-26,18,grid,non-spatial,0.08841530366378156
-26,18,grid,putative interneuron,0.2702629517950993
-26,18,non-grid spatial,grid,0.2450406182793944
-26,18,non-grid spatial,non-grid spatial,0.22460370728481507
-26,18,non-grid spatial,non-spatial,0.08818530399373903
-26,18,non-grid spatial,putative interneuron,0.2570547672105353
-26,18,non-spatial,grid,0.08841530366378157
-26,18,non-spatial,non-grid spatial,0.08818530399373901
-26,18,non-spatial,non-spatial,0.03817282728676077
-26,18,non-spatial,putative interneuron,0.09865381271281949
-26,18,putative interneuron,grid,0.2702629517950993
-26,18,putative interneuron,non-grid spatial,0.2570547672105353
-26,18,putative interneuron,non-spatial,0.09865381271281949
-26,18,putative interneuron,putative interneuron,0.29652807625590993
-26,19,grid,grid,0.15216225580610213
-26,19,grid,non-grid spatial,0.0860018009765419
-26,19,grid,non-spatial,0.03024571205627975
-26,19,grid,putative interneuron,0.12049673835619042
-26,19,non-grid spatial,grid,0.0860018009765419
-26,19,non-grid spatial,non-grid spatial,0.05208200491160015
-26,19,non-grid spatial,non-spatial,0.020519170005951392
-26,19,non-grid spatial,putative interneuron,0.07077511854101982
-26,19,non-spatial,grid,0.03024571205627975
-26,19,non-spatial,non-grid spatial,0.02051917000595139
-26,19,non-spatial,non-spatial,0.0009645700968254092
-26,19,non-spatial,putative interneuron,0.021683302615613683
-26,19,putative interneuron,grid,0.1204967383561904
-26,19,putative interneuron,non-grid spatial,0.07077511854101982
-26,19,putative interneuron,non-spatial,0.021683302615613687
-26,19,putative interneuron,putative interneuron,0.08164528602495406
-27,19,non-grid spatial,non-grid spatial,0.010050713596628211
-27,19,non-grid spatial,non-spatial,0.013355195499643603
-27,19,non-grid spatial,putative interneuron,0.015660551759280005
-27,19,non-spatial,non-grid spatial,0.013355195499643605
-27,19,non-spatial,non-spatial,-0.011655267839644327
-27,19,non-spatial,putative interneuron,0.003924862958841551
-27,19,putative interneuron,non-grid spatial,0.015660551759280005
-27,19,putative interneuron,non-spatial,0.0039248629588415455
-27,19,putative interneuron,putative interneuron,0.010485469452867076
-27,23,grid,grid,0.06758749220642714
-27,23,grid,non-grid spatial,0.0631337203644587
-27,23,grid,non-spatial,0.10344806358308448
-27,23,grid,putative interneuron,0.08234080923760037
-27,23,non-grid spatial,grid,0.0631337203644587
-27,23,non-grid spatial,non-grid spatial,0.04449789441996804
-27,23,non-grid spatial,non-spatial,0.06590431554763342
-27,23,non-grid spatial,putative interneuron,0.06815112015704318
-27,23,non-spatial,grid,0.10344806358308448
-27,23,non-spatial,non-grid spatial,0.06590431554763342
-27,23,non-spatial,non-spatial,0.03125497345164059
-27,23,non-spatial,putative interneuron,0.10245135162747401
-27,23,putative interneuron,grid,0.08234080923760037
-27,23,putative interneuron,non-grid spatial,0.06815112015704318
-27,23,putative interneuron,non-spatial,0.10245135162747401
-27,23,putative interneuron,putative interneuron,0.1149143961776597
-28,16,grid,grid,0.09647298110485515
-28,16,grid,non-grid spatial,0.05589833676000902
-28,16,grid,non-spatial,0.060885847644355895
-28,16,grid,putative interneuron,0.01732144061825145
-28,16,non-grid spatial,grid,0.05589833676000902
-28,16,non-grid spatial,non-grid spatial,0.11686607054442102
-28,16,non-grid spatial,non-spatial,0.10840720962168382
-28,16,non-grid spatial,putative interneuron,0.13592044666277656
-28,16,non-spatial,grid,0.060885847644355895
-28,16,non-spatial,non-grid spatial,0.1084072096216838
-28,16,non-spatial,non-spatial,0.09510897387355685
-28,16,non-spatial,putative interneuron,0.12207817177288276
-28,16,putative interneuron,grid,0.017321440618251444
-28,16,putative interneuron,non-grid spatial,0.13592044666277656
-28,16,putative interneuron,non-spatial,0.12207817177288277
-28,16,putative interneuron,putative interneuron,0.15675111233887168
-28,17,grid,grid,0.43554263222440925
-28,17,grid,non-grid spatial,0.25391985552593677
-28,17,grid,non-spatial,0.11756736346224647
-28,17,grid,putative interneuron,0.37536271708825575
-28,17,non-grid spatial,grid,0.2539198555259367
-28,17,non-grid spatial,non-grid spatial,0.16490591193540857
-28,17,non-grid spatial,non-spatial,0.10424085669871248
-28,17,non-grid spatial,putative interneuron,0.23382450037743713
-28,17,non-spatial,grid,0.11756736346224647
-28,17,non-spatial,non-grid spatial,0.10424085669871248
-28,17,non-spatial,non-spatial,0.013742068664875777
-28,17,non-spatial,putative interneuron,0.13906421308939557
-28,17,putative interneuron,grid,0.3753627170882557
-28,17,putative interneuron,non-grid spatial,0.23382450037743713
-28,17,putative interneuron,non-spatial,0.1390642130893956
-28,17,putative interneuron,putative interneuron,0.3215561340832639
-28,19,grid,grid,0.18783986900071983
-28,19,grid,non-grid spatial,0.12473309778501504
-28,19,grid,non-spatial,0.13799721030328005
-28,19,grid,putative interneuron,0.11570669310647491
-28,19,non-grid spatial,grid,0.12473309778501507
-28,19,non-grid spatial,non-grid spatial,0.09243255296291003
-28,19,non-grid spatial,non-spatial,0.07906193681333772
-28,19,non-grid spatial,putative interneuron,0.10299780592275622
-28,19,non-spatial,grid,0.13799721030328005
-28,19,non-spatial,non-grid spatial,0.07906193681333773
-28,19,non-spatial,non-spatial,-0.07151776428176226
-28,19,non-spatial,putative interneuron,0.06997663536936541
-28,19,putative interneuron,grid,0.11570669310647494
-28,19,putative interneuron,non-grid spatial,0.10299780592275623
-28,19,putative interneuron,non-spatial,0.06997663536936542
-28,19,putative interneuron,putative interneuron,0.11952924115661913
-28,20,non-grid spatial,non-grid spatial,0.054762319789134366
-28,20,non-grid spatial,non-spatial,0.06644400118869191
-28,20,non-grid spatial,putative interneuron,0.09798936722720238
-28,20,non-spatial,non-grid spatial,0.06644400118869191
-28,20,non-spatial,non-spatial,0.09473135735248385
-28,20,non-spatial,putative interneuron,0.09913069486960471
-28,20,putative interneuron,non-grid spatial,0.09798936722720236
-28,20,putative interneuron,non-spatial,0.0991306948696047
-28,20,putative interneuron,putative interneuron,0.18703876516678844
-28,21,grid,grid,-0.021613337251381023
-28,21,grid,non-grid spatial,0.0017318658825165238
-28,21,grid,non-spatial,-0.038065692697988686
-28,21,non-grid spatial,grid,0.0017318658825165186
-28,21,non-grid spatial,non-grid spatial,0.01749567744282463
-28,21,non-grid spatial,non-spatial,-0.0010673840329605234
-28,21,non-spatial,grid,-0.0380656926979887
-28,21,non-spatial,non-grid spatial,-0.0010673840329605225
-28,21,non-spatial,non-spatial,-0.014208659838850776
-28,23,grid,grid,0.15984288238997604
-28,23,grid,non-grid spatial,0.1137513441458145
-28,23,grid,non-spatial,0.05349754397177528
-28,23,grid,putative interneuron,0.14474325974397184
-28,23,non-grid spatial,grid,0.1137513441458145
-28,23,non-grid spatial,non-grid spatial,0.08252852013760492
-28,23,non-grid spatial,non-spatial,0.062081870636064525
-28,23,non-grid spatial,putative interneuron,0.1005518793691044
-28,23,non-spatial,grid,0.05349754397177528
-28,23,non-spatial,non-grid spatial,0.06208187063606453
-28,23,non-spatial,non-spatial,0.05067588292340221
-28,23,non-spatial,putative interneuron,0.0910459897634085
-28,23,putative interneuron,grid,0.14474325974397184
-28,23,putative interneuron,non-grid spatial,0.1005518793691044
-28,23,putative interneuron,non-spatial,0.09104598976340851
-28,23,putative interneuron,putative interneuron,0.0998557640156558
-28,25,grid,grid,0.0908537736004266
-28,25,grid,non-grid spatial,0.06861414860245975
-28,25,grid,non-spatial,0.029738663159517113
-28,25,grid,putative interneuron,0.09145527643270034
-28,25,non-grid spatial,grid,0.06861414860245975
-28,25,non-grid spatial,non-grid spatial,0.051330710248741654
-28,25,non-grid spatial,non-spatial,0.038564769397461854
-28,25,non-grid spatial,putative interneuron,0.08947011774068915
-28,25,non-spatial,grid,0.02973866315951711
-28,25,non-spatial,non-grid spatial,0.038564769397461854
-28,25,non-spatial,non-spatial,0.035968756909061636
-28,25,non-spatial,putative interneuron,0.10719971044117525
-28,25,putative interneuron,grid,0.09145527643270034
-28,25,putative interneuron,non-grid spatial,0.08947011774068915
-28,25,putative interneuron,non-spatial,0.10719971044117527
-28,25,putative interneuron,putative interneuron,0.20636180557759826
-29,16,grid,grid,0.19420141288510417
-29,16,grid,non-grid spatial,0.08716732139514975
-29,16,grid,non-spatial,0.039263461424359575
-29,16,grid,putative interneuron,0.14435597970124484
-29,16,non-grid spatial,grid,0.08716732139514975
-29,16,non-grid spatial,non-grid spatial,0.04318549025458694
-29,16,non-grid spatial,non-spatial,0.008638778004769384
-29,16,non-grid spatial,putative interneuron,0.06559560499810012
-29,16,non-spatial,grid,0.03926346142435959
-29,16,non-spatial,non-grid spatial,0.008638778004769384
-29,16,non-spatial,non-spatial,-0.04147226670131714
-29,16,non-spatial,putative interneuron,0.04556210049174776
-29,16,putative interneuron,grid,0.14435597970124484
-29,16,putative interneuron,non-grid spatial,0.06559560499810012
-29,16,putative interneuron,non-spatial,0.045562100491747755
-29,16,putative interneuron,putative interneuron,0.020827128722175757
+20,14,grid,grid,-0.0531605186787657
+20,14,grid,non-grid spatial,0.06275748781818022
+20,14,grid,non-spatial,0.04389348279615721
+20,14,grid,putative interneuron,0.06009449900710682
+20,14,non-grid spatial,grid,0.06275748781818022
+20,14,non-grid spatial,non-grid spatial,0.062235687966592505
+20,14,non-grid spatial,non-spatial,0.04563537739668359
+20,14,non-grid spatial,putative interneuron,0.05822738903812252
+20,14,non-spatial,grid,0.04389348279615721
+20,14,non-spatial,non-grid spatial,0.04563537739668359
+20,14,non-spatial,non-spatial,0.033754205015828403
+20,14,non-spatial,putative interneuron,0.039784747284708634
+20,14,putative interneuron,grid,0.06009449900710681
+20,14,putative interneuron,non-grid spatial,0.05822738903812254
+20,14,putative interneuron,non-spatial,0.039784747284708634
+20,14,putative interneuron,putative interneuron,0.06426230524812941
+20,21,grid,grid,0.047211850622997556
+20,21,grid,non-grid spatial,-0.0033256971517993195
+20,21,grid,non-spatial,0.0004494485442828023
+20,21,grid,putative interneuron,0.03523997988769157
+20,21,non-grid spatial,grid,-0.003325697151799319
+20,21,non-grid spatial,non-grid spatial,0.005712481679368292
+20,21,non-grid spatial,non-spatial,0.013792141419565862
+20,21,non-grid spatial,putative interneuron,-0.009405451605050545
+20,21,non-spatial,grid,0.00044944854428280077
+20,21,non-spatial,non-grid spatial,0.013792141419565862
+20,21,non-spatial,non-spatial,0.016775641181325605
+20,21,non-spatial,putative interneuron,-0.0015502307075353358
+20,21,putative interneuron,grid,0.035239979887691564
+20,21,putative interneuron,non-grid spatial,-0.009405451605050541
+20,21,putative interneuron,non-spatial,-0.0015502307075353368
+20,21,putative interneuron,putative interneuron,0.10905637171952745
+20,23,non-grid spatial,non-grid spatial,0.011448628804338995
+20,23,non-grid spatial,non-spatial,0.014708624037789133
+20,23,non-grid spatial,putative interneuron,0.01733660719851489
+20,23,non-spatial,non-grid spatial,0.014708624037789136
+20,23,non-spatial,non-spatial,0.012829728413019296
+20,23,non-spatial,putative interneuron,0.022614728541048904
+20,23,putative interneuron,non-grid spatial,0.017336607198514882
+20,23,putative interneuron,non-spatial,0.022614728541048908
+20,23,putative interneuron,putative interneuron,0.056136070034704395
+20,24,grid,grid,0.09616365727025947
+20,24,grid,non-grid spatial,0.057216944898445386
+20,24,grid,non-spatial,0.01652273213306216
+20,24,grid,putative interneuron,0.10667435934197936
+20,24,non-grid spatial,grid,0.05721694489844538
+20,24,non-grid spatial,non-grid spatial,0.015022268709144202
+20,24,non-grid spatial,non-spatial,-0.0020349754755281937
+20,24,non-grid spatial,putative interneuron,0.001872890503677053
+20,24,non-spatial,grid,0.01652273213306216
+20,24,non-spatial,non-grid spatial,-0.002034975475528193
+20,24,non-spatial,non-spatial,-0.012193132688110328
+20,24,non-spatial,putative interneuron,-0.008255133283999596
+20,24,putative interneuron,grid,0.10667435934197936
+20,24,putative interneuron,non-grid spatial,0.0018728905036770522
+20,24,putative interneuron,non-spatial,-0.008255133283999598
+20,24,putative interneuron,putative interneuron,0.016716647172484687
+21,15,grid,grid,0.1798159576357974
+21,15,grid,non-grid spatial,0.04967680040544618
+21,15,grid,non-spatial,0.059290267530520295
+21,15,grid,putative interneuron,0.1326034472377478
+21,15,non-grid spatial,grid,0.04967680040544617
+21,15,non-grid spatial,non-grid spatial,0.02757307603448315
+21,15,non-grid spatial,non-spatial,0.02991145619593572
+21,15,non-grid spatial,putative interneuron,0.05561703401875768
+21,15,non-spatial,grid,0.059290267530520295
+21,15,non-spatial,non-grid spatial,0.02991145619593572
+21,15,non-spatial,non-spatial,0.03122666218254643
+21,15,non-spatial,putative interneuron,0.09298069060537514
+21,15,putative interneuron,grid,0.1326034472377478
+21,15,putative interneuron,non-grid spatial,0.05561703401875768
+21,15,putative interneuron,non-spatial,0.09298069060537513
+21,15,putative interneuron,putative interneuron,0.15403343941717298
+21,16,grid,grid,0.16605275547075302
+21,16,grid,non-grid spatial,0.09155256747638567
+21,16,grid,non-spatial,0.059667595360180826
+21,16,grid,putative interneuron,0.17311467967562186
+21,16,non-grid spatial,grid,0.09155256747638567
+21,16,non-grid spatial,non-grid spatial,0.04608966323759177
+21,16,non-grid spatial,non-spatial,0.04059480103193741
+21,16,non-grid spatial,putative interneuron,0.08585529740797566
+21,16,non-spatial,grid,0.059667595360180826
+21,16,non-spatial,non-grid spatial,0.04059480103193741
+21,16,non-spatial,non-spatial,0.021000659212310827
+21,16,non-spatial,putative interneuron,0.06957693487847895
+21,16,putative interneuron,grid,0.17311467967562183
+21,16,putative interneuron,non-grid spatial,0.08585529740797565
+21,16,putative interneuron,non-spatial,0.06957693487847895
+21,16,putative interneuron,putative interneuron,0.14715724327456156
+21,17,grid,grid,-0.02390968364940855
+21,17,grid,non-grid spatial,0.013368352068237607
+21,17,grid,non-spatial,0.025504727690228896
+21,17,grid,putative interneuron,0.017208171162043356
+21,17,non-grid spatial,grid,0.013368352068237605
+21,17,non-grid spatial,non-grid spatial,0.025068338324425423
+21,17,non-grid spatial,non-spatial,0.03334163491509305
+21,17,non-grid spatial,putative interneuron,0.0455473432567492
+21,17,non-spatial,grid,0.025504727690228896
+21,17,non-spatial,non-grid spatial,0.03334163491509305
+21,17,non-spatial,non-spatial,0.03207720663335684
+21,17,non-spatial,putative interneuron,0.07311082332220112
+21,17,putative interneuron,grid,0.01720817116204336
+21,17,putative interneuron,non-grid spatial,0.0455473432567492
+21,17,putative interneuron,non-spatial,0.07311082332220112
+21,17,putative interneuron,putative interneuron,0.07426160801288573
+21,18,grid,grid,-0.11254378764569498
+21,18,grid,non-grid spatial,0.026080794480675334
+21,18,grid,non-spatial,0.018430959470426056
+21,18,grid,putative interneuron,0.02318003213567981
+21,18,non-grid spatial,grid,0.026080794480675334
+21,18,non-grid spatial,non-grid spatial,0.03975887443834186
+21,18,non-grid spatial,non-spatial,0.025109823143885972
+21,18,non-grid spatial,putative interneuron,0.04455304171337586
+21,18,non-spatial,grid,0.018430959470426056
+21,18,non-spatial,non-grid spatial,0.025109823143885972
+21,18,non-spatial,non-spatial,0.029400772097246328
+21,18,non-spatial,putative interneuron,0.022055049819237893
+21,18,putative interneuron,grid,0.02318003213567981
+21,18,putative interneuron,non-grid spatial,0.04455304171337586
+21,18,putative interneuron,non-spatial,0.0220550498192379
+21,18,putative interneuron,putative interneuron,-0.01826224835242448
+21,19,grid,grid,0.14964945839467864
+21,19,grid,non-grid spatial,0.08502936288058256
+21,19,grid,non-spatial,0.1575099361077587
+21,19,grid,putative interneuron,0.12814254858331908
+21,19,non-grid spatial,grid,0.08502936288058253
+21,19,non-grid spatial,non-grid spatial,0.03844964376320265
+21,19,non-grid spatial,non-spatial,0.06530474475092067
+21,19,non-grid spatial,putative interneuron,0.057072336315277084
+21,19,non-spatial,grid,0.1575099361077587
+21,19,non-spatial,non-grid spatial,0.06530474475092067
+21,19,non-spatial,non-spatial,0.12084598103322139
+21,19,non-spatial,putative interneuron,0.08006403706116945
+21,19,putative interneuron,grid,0.12814254858331905
+21,19,putative interneuron,non-grid spatial,0.057072336315277084
+21,19,putative interneuron,non-spatial,0.08006403706116945
+21,19,putative interneuron,putative interneuron,0.0813077769282882
+21,20,grid,grid,0.048026465162403296
+21,20,grid,non-grid spatial,0.014759756207110527
+21,20,grid,non-spatial,0.015199996898456376
+21,20,grid,putative interneuron,0.06783812608985575
+21,20,non-grid spatial,grid,0.014759756207110527
+21,20,non-grid spatial,non-grid spatial,0.01969983991201218
+21,20,non-grid spatial,non-spatial,0.02275993353376361
+21,20,non-grid spatial,putative interneuron,0.03975353640215199
+21,20,non-spatial,grid,0.015199996898456383
+21,20,non-spatial,non-grid spatial,0.022759933533763606
+21,20,non-spatial,non-spatial,0.01018469919944438
+21,20,non-spatial,putative interneuron,0.043580780185559304
+21,20,putative interneuron,grid,0.06783812608985573
+21,20,putative interneuron,non-grid spatial,0.03975353640215199
+21,20,putative interneuron,non-spatial,0.043580780185559304
+21,20,putative interneuron,putative interneuron,0.06975801950007895
+21,21,grid,grid,0.00917575630433137
+21,21,grid,non-grid spatial,0.02115779666514562
+21,21,grid,non-spatial,0.009290009684354868
+21,21,grid,putative interneuron,0.03415241013521358
+21,21,non-grid spatial,grid,0.021157796665145615
+21,21,non-grid spatial,non-grid spatial,0.04123328637930903
+21,21,non-grid spatial,non-spatial,0.004531059904459779
+21,21,non-grid spatial,putative interneuron,0.07276363367943744
+21,21,non-spatial,grid,0.009290009684354866
+21,21,non-spatial,non-grid spatial,0.004531059904459779
+21,21,non-spatial,non-spatial,-0.03341868180758388
+21,21,non-spatial,putative interneuron,0.016707657717246704
+21,21,putative interneuron,grid,0.03415241013521357
+21,21,putative interneuron,non-grid spatial,0.07276363367943744
+21,21,putative interneuron,non-spatial,0.016707657717246693
+21,21,putative interneuron,putative interneuron,0.1649778129544742
+21,22,grid,grid,0.012103605135196954
+21,22,grid,non-grid spatial,0.0377984980576904
+21,22,grid,non-spatial,0.03536922306963285
+21,22,grid,putative interneuron,-0.008689822949435613
+21,22,non-grid spatial,grid,0.0377984980576904
+21,22,non-grid spatial,non-grid spatial,0.025862823165874935
+21,22,non-grid spatial,non-spatial,0.01865683359949568
+21,22,non-grid spatial,putative interneuron,0.015636429773766402
+21,22,non-spatial,grid,0.03536922306963285
+21,22,non-spatial,non-grid spatial,0.01865683359949568
+21,22,non-spatial,non-spatial,0.01999336815057168
+21,22,non-spatial,putative interneuron,0.029234277417919983
+21,22,putative interneuron,grid,-0.008689822949435612
+21,22,putative interneuron,non-grid spatial,0.015636429773766402
+21,22,putative interneuron,non-spatial,0.029234277417919976
+21,22,putative interneuron,putative interneuron,0.1284479530812986
+21,23,non-grid spatial,non-grid spatial,0.024710247415278726
+21,23,non-grid spatial,non-spatial,0.018688989921481422
+21,23,non-grid spatial,putative interneuron,0.04478291528868362
+21,23,non-spatial,non-grid spatial,0.018688989921481422
+21,23,non-spatial,non-spatial,0.0135763427905971
+21,23,non-spatial,putative interneuron,0.016370963705511124
+21,23,putative interneuron,non-grid spatial,0.044782915288683625
+21,23,putative interneuron,non-spatial,0.016370963705511124
+21,23,putative interneuron,putative interneuron,0.07785271567358622
+21,24,grid,grid,0.06453317986552908
+21,24,grid,non-grid spatial,0.00856772197104508
+21,24,grid,non-spatial,0.03464162556232022
+21,24,grid,putative interneuron,0.02930944423557435
+21,24,non-grid spatial,grid,0.008567721971045078
+21,24,non-grid spatial,non-grid spatial,0.017107364867178173
+21,24,non-grid spatial,non-spatial,0.009321816512389072
+21,24,non-grid spatial,putative interneuron,0.029585055744017826
+21,24,non-spatial,grid,0.03464162556232022
+21,24,non-spatial,non-grid spatial,0.009321816512389072
+21,24,non-spatial,non-spatial,-0.00246189846937605
+21,24,non-spatial,putative interneuron,0.013790501278543976
+21,24,putative interneuron,grid,0.029309444235574356
+21,24,putative interneuron,non-grid spatial,0.029585055744017826
+21,24,putative interneuron,non-spatial,0.013790501278543976
+21,24,putative interneuron,putative interneuron,0.036239766022873064
+21,25,grid,grid,0.00995594563327986
+21,25,grid,non-grid spatial,0.00824489336464267
+21,25,grid,non-spatial,0.011230302808423779
+21,25,grid,putative interneuron,-0.04370948120144087
+21,25,non-grid spatial,grid,0.008244893364642668
+21,25,non-grid spatial,non-grid spatial,0.011512131562261864
+21,25,non-grid spatial,non-spatial,0.006487278613617722
+21,25,non-grid spatial,putative interneuron,0.011854173210833097
+21,25,non-spatial,grid,0.01123030280842378
+21,25,non-spatial,non-grid spatial,0.00648727861361772
+21,25,non-spatial,non-spatial,-0.0061787696833424215
+21,25,non-spatial,putative interneuron,-0.004278646840563185
+21,25,putative interneuron,grid,-0.04370948120144087
+21,25,putative interneuron,non-grid spatial,0.011854173210833097
+21,25,putative interneuron,non-spatial,-0.00427864684056318
+21,25,putative interneuron,putative interneuron,0.023113575719676496
+21,26,grid,grid,0.021965163858734316
+21,26,grid,non-grid spatial,0.026746992008628314
+21,26,grid,non-spatial,0.019748859228488236
+21,26,grid,putative interneuron,0.05796446135914899
+21,26,non-grid spatial,grid,0.026746992008628317
+21,26,non-grid spatial,non-grid spatial,0.03357686517519861
+21,26,non-grid spatial,non-spatial,0.003422224246958442
+21,26,non-grid spatial,putative interneuron,0.0626518793331
+21,26,non-spatial,grid,0.01974885922848824
+21,26,non-spatial,non-grid spatial,0.0034222242469584413
+21,26,non-spatial,non-spatial,0.11273124131921472
+21,26,non-spatial,putative interneuron,0.06181772157558491
+21,26,putative interneuron,grid,0.05796446135914899
+21,26,putative interneuron,non-grid spatial,0.0626518793331
+21,26,putative interneuron,non-spatial,0.06181772157558491
+21,26,putative interneuron,putative interneuron,0.12952223805709917
+22,38,non-grid spatial,non-grid spatial,0.16931745569150547
+22,38,non-grid spatial,putative interneuron,0.04118390020058992
+22,38,putative interneuron,non-grid spatial,0.04118390020058991
+22,38,putative interneuron,putative interneuron,0.08221758901692687
+25,16,grid,grid,-0.14893206067695403
+25,16,grid,non-grid spatial,0.0006924760233701231
+25,16,grid,non-spatial,0.0041596819498346
+25,16,grid,putative interneuron,-0.017225513663785278
+25,16,non-grid spatial,grid,0.0006924760233701223
+25,16,non-grid spatial,non-grid spatial,0.010816409351895654
+25,16,non-grid spatial,non-spatial,0.026398349379695568
+25,16,non-grid spatial,putative interneuron,-0.006901050035209315
+25,16,non-spatial,grid,0.0041596819498346035
+25,16,non-spatial,non-grid spatial,0.026398349379695565
+25,16,non-spatial,non-spatial,0.008452583266730325
+25,16,non-spatial,putative interneuron,-0.0575721286531056
+25,16,putative interneuron,grid,-0.01722551366378528
+25,16,putative interneuron,non-grid spatial,-0.006901050035209315
+25,16,putative interneuron,non-spatial,-0.057572128653105605
+25,16,putative interneuron,putative interneuron,0.13564467607474834
+25,17,grid,grid,0.19501197139907325
+25,17,grid,non-grid spatial,0.05608191814075087
+25,17,grid,non-spatial,0.037126727991816245
+25,17,grid,putative interneuron,-0.03266273159621486
+25,17,non-grid spatial,grid,0.056081918140750885
+25,17,non-grid spatial,non-grid spatial,0.05430960854432738
+25,17,non-grid spatial,non-spatial,0.04984714135028651
+25,17,non-grid spatial,putative interneuron,0.042534859804477666
+25,17,non-spatial,grid,0.037126727991816245
+25,17,non-spatial,non-grid spatial,0.04984714135028651
+25,17,non-spatial,non-spatial,0.0345996711611271
+25,17,non-spatial,putative interneuron,0.033122965082871096
+25,17,putative interneuron,grid,-0.032662731596214856
+25,17,putative interneuron,non-grid spatial,0.042534859804477666
+25,17,putative interneuron,non-spatial,0.033122965082871096
+25,17,putative interneuron,putative interneuron,-0.08843730743025804
+25,18,grid,grid,0.10937106931138832
+25,18,grid,non-grid spatial,0.08561550822154812
+25,18,grid,non-spatial,0.04704871020237796
+25,18,grid,putative interneuron,0.09169387864043371
+25,18,non-grid spatial,grid,0.08561550822154812
+25,18,non-grid spatial,non-grid spatial,0.07962535247604882
+25,18,non-grid spatial,non-spatial,0.04712244199561366
+25,18,non-grid spatial,putative interneuron,0.09462578547811998
+25,18,non-spatial,grid,0.04704871020237796
+25,18,non-spatial,non-grid spatial,0.04712244199561367
+25,18,non-spatial,non-spatial,0.03809555497378275
+25,18,non-spatial,putative interneuron,0.053532218637432315
+25,18,putative interneuron,grid,0.09169387864043371
+25,18,putative interneuron,non-grid spatial,0.09462578547811998
+25,18,putative interneuron,non-spatial,0.053532218637432294
+25,18,putative interneuron,putative interneuron,0.14248039420501796
+25,23,grid,grid,0.16679017854599795
+25,23,grid,non-grid spatial,0.0718828332345799
+25,23,grid,non-spatial,0.0736767435843447
+25,23,grid,putative interneuron,0.11380306266176256
+25,23,non-grid spatial,grid,0.0718828332345799
+25,23,non-grid spatial,non-grid spatial,0.050498796890103045
+25,23,non-grid spatial,non-spatial,0.04814171567203221
+25,23,non-grid spatial,putative interneuron,0.054577721417101946
+25,23,non-spatial,grid,0.0736767435843447
+25,23,non-spatial,non-grid spatial,0.04814171567203221
+25,23,non-spatial,non-spatial,0.04361062363278868
+25,23,non-spatial,putative interneuron,0.038546142717675654
+25,23,putative interneuron,grid,0.11380306266176256
+25,23,putative interneuron,non-grid spatial,0.054577721417101946
+25,23,putative interneuron,non-spatial,0.038546142717675654
+25,23,putative interneuron,putative interneuron,0.047951826950281204
+25,24,grid,grid,0.3446549781827918
+25,24,grid,non-grid spatial,0.2983284524448733
+25,24,grid,non-spatial,0.09480126417340404
+25,24,grid,putative interneuron,0.2129045904603226
+25,24,non-grid spatial,grid,0.2983284524448733
+25,24,non-grid spatial,non-grid spatial,0.2590382507552368
+25,24,non-grid spatial,non-spatial,0.10401221648407231
+25,24,non-grid spatial,putative interneuron,0.20696891747384846
+25,24,non-spatial,grid,0.09480126417340404
+25,24,non-spatial,non-grid spatial,0.10401221648407233
+25,24,non-spatial,non-spatial,0.01994098784604386
+25,24,non-spatial,putative interneuron,0.1060983797913164
+25,24,putative interneuron,grid,0.21290459046032265
+25,24,putative interneuron,non-grid spatial,0.20696891747384846
+25,24,putative interneuron,non-spatial,0.10609837979131638
+25,24,putative interneuron,putative interneuron,0.16085266305616375
+25,25,grid,grid,0.47562858571695305
+25,25,grid,non-grid spatial,0.26407712158798874
+25,25,grid,non-spatial,0.06963869211067768
+25,25,grid,putative interneuron,0.49080995878341566
+25,25,non-grid spatial,grid,0.26407712158798874
+25,25,non-grid spatial,non-grid spatial,0.12970833105784102
+25,25,non-grid spatial,non-spatial,0.04204490524558649
+25,25,non-grid spatial,putative interneuron,0.2758026496323931
+25,25,non-spatial,grid,0.06963869211067766
+25,25,non-spatial,non-grid spatial,0.04204490524558648
+25,25,non-spatial,non-spatial,-0.05834191614564948
+25,25,non-spatial,putative interneuron,0.09497167269185254
+25,25,putative interneuron,grid,0.49080995878341566
+25,25,putative interneuron,non-grid spatial,0.2758026496323931
+25,25,putative interneuron,non-spatial,0.09497167269185253
+25,25,putative interneuron,putative interneuron,0.593532315143041
+26,12,non-grid spatial,non-grid spatial,0.03721017472060258
+26,12,non-grid spatial,non-spatial,0.03335134389353842
+26,12,non-grid spatial,putative interneuron,0.0421259953692506
+26,12,non-spatial,non-grid spatial,0.03335134389353842
+26,12,non-spatial,non-spatial,0.01442737282287373
+26,12,non-spatial,putative interneuron,0.03617301126217723
+26,12,putative interneuron,non-grid spatial,0.04212599536925059
+26,12,putative interneuron,non-spatial,0.036173011262177236
+26,12,putative interneuron,putative interneuron,0.04109590128431254
+26,18,grid,grid,0.19740778249638674
+26,18,grid,non-grid spatial,0.2263459652579874
+26,18,grid,non-spatial,0.0899827564256885
+26,18,grid,putative interneuron,0.22881967200630735
+26,18,non-grid spatial,grid,0.22634596525798736
+26,18,non-grid spatial,non-grid spatial,0.2363361170046485
+26,18,non-grid spatial,non-spatial,0.09922854572052534
+26,18,non-grid spatial,putative interneuron,0.2478967475440383
+26,18,non-spatial,grid,0.08998275642568851
+26,18,non-spatial,non-grid spatial,0.09922854572052534
+26,18,non-spatial,non-spatial,0.026901736781920607
+26,18,non-spatial,putative interneuron,0.10463411988666804
+26,18,putative interneuron,grid,0.2288196720063073
+26,18,putative interneuron,non-grid spatial,0.24789674754403834
+26,18,putative interneuron,non-spatial,0.10463411988666804
+26,18,putative interneuron,putative interneuron,0.2590360742709397
+26,19,grid,grid,0.14947728935834878
+26,19,grid,non-grid spatial,0.08684800235325993
+26,19,grid,non-spatial,0.027997715432726583
+26,19,grid,putative interneuron,0.12261998445110099
+26,19,non-grid spatial,grid,0.08684800235325993
+26,19,non-grid spatial,non-grid spatial,0.052462789870835476
+26,19,non-grid spatial,non-spatial,0.02188972111122952
+26,19,non-grid spatial,putative interneuron,0.07186332682422109
+26,19,non-spatial,grid,0.02799771543272659
+26,19,non-spatial,non-grid spatial,0.02188972111122952
+26,19,non-spatial,non-spatial,0.0011173863497205845
+26,19,non-spatial,putative interneuron,0.021840083807708726
+26,19,putative interneuron,grid,0.12261998445110099
+26,19,putative interneuron,non-grid spatial,0.07186332682422109
+26,19,putative interneuron,non-spatial,0.021840083807708726
+26,19,putative interneuron,putative interneuron,0.09648870603453458
+27,19,non-grid spatial,non-grid spatial,0.01051122257942961
+27,19,non-grid spatial,non-spatial,0.02056176067940904
+27,19,non-grid spatial,putative interneuron,0.015781751274073292
+27,19,non-spatial,non-grid spatial,0.020561760679409048
+27,19,non-spatial,non-spatial,0.0002899610206615324
+27,19,non-spatial,putative interneuron,0.011350746251889057
+27,19,putative interneuron,non-grid spatial,0.015781751274073292
+27,19,putative interneuron,non-spatial,0.011350746251889053
+27,19,putative interneuron,putative interneuron,0.015327791519591719
+27,23,grid,grid,0.07000795325075082
+27,23,grid,non-grid spatial,0.06651003875841809
+27,23,grid,non-spatial,0.10322051506168671
+27,23,grid,putative interneuron,0.10413717925206481
+27,23,non-grid spatial,grid,0.0665100387584181
+27,23,non-grid spatial,non-grid spatial,0.04485604898428657
+27,23,non-grid spatial,non-spatial,0.061985454214323665
+27,23,non-grid spatial,putative interneuron,0.07387587617666148
+27,23,non-spatial,grid,0.10322051506168671
+27,23,non-spatial,non-grid spatial,0.06198545421432368
+27,23,non-spatial,non-spatial,0.012619750200891544
+27,23,non-spatial,putative interneuron,0.11094456558629445
+27,23,putative interneuron,grid,0.10413717925206484
+27,23,putative interneuron,non-grid spatial,0.07387587617666147
+27,23,putative interneuron,non-spatial,0.11094456558629442
+27,23,putative interneuron,putative interneuron,0.12218856341536279
+28,16,grid,grid,0.10261499482315492
+28,16,grid,non-grid spatial,0.05434990882380399
+28,16,grid,non-spatial,0.05666705154049407
+28,16,grid,putative interneuron,0.049647024653905726
+28,16,non-grid spatial,grid,0.054349908823804007
+28,16,non-grid spatial,non-grid spatial,0.1163246800289011
+28,16,non-grid spatial,non-spatial,0.10728169506917133
+28,16,non-grid spatial,putative interneuron,0.13900769285117698
+28,16,non-spatial,grid,0.05666705154049408
+28,16,non-spatial,non-grid spatial,0.1072816950691713
+28,16,non-spatial,non-spatial,0.09648158716721836
+28,16,non-spatial,putative interneuron,0.11314773931201184
+28,16,putative interneuron,grid,0.049647024653905726
+28,16,putative interneuron,non-grid spatial,0.13900769285117698
+28,16,putative interneuron,non-spatial,0.11314773931201184
+28,16,putative interneuron,putative interneuron,0.15769923762852586
+28,17,grid,grid,0.4809371740646001
+28,17,grid,non-grid spatial,0.2513651140588151
+28,17,grid,non-spatial,0.1587096708261433
+28,17,grid,putative interneuron,0.365930789490457
+28,17,non-grid spatial,grid,0.25136511405881506
+28,17,non-grid spatial,non-grid spatial,0.17042534324889203
+28,17,non-grid spatial,non-spatial,0.11229472621880404
+28,17,non-grid spatial,putative interneuron,0.23688996993269837
+28,17,non-spatial,grid,0.1587096708261433
+28,17,non-spatial,non-grid spatial,0.11229472621880404
+28,17,non-spatial,non-spatial,0.050958903505178246
+28,17,non-spatial,putative interneuron,0.14220028308019494
+28,17,putative interneuron,grid,0.3659307894904569
+28,17,putative interneuron,non-grid spatial,0.23688996993269837
+28,17,putative interneuron,non-spatial,0.14220028308019494
+28,17,putative interneuron,putative interneuron,0.3452646990359628
+28,18,non-grid spatial,non-grid spatial,0.20622644613739116
+28,18,non-grid spatial,non-spatial,0.10404761392253323
+28,18,non-grid spatial,putative interneuron,0.2525056913660245
+28,18,non-spatial,non-grid spatial,0.10404761392253323
+28,18,non-spatial,non-spatial,0.06869721939016607
+28,18,non-spatial,putative interneuron,0.13068036637612898
+28,18,putative interneuron,non-grid spatial,0.25250569136602447
+28,18,putative interneuron,non-spatial,0.13068036637612898
+28,18,putative interneuron,putative interneuron,0.2625505792553326
+28,19,grid,grid,0.19132977669401735
+28,19,grid,non-grid spatial,0.1217870236814934
+28,19,grid,non-spatial,0.0612762719114956
+28,19,grid,putative interneuron,0.12622960762800442
+28,19,non-grid spatial,grid,0.1217870236814934
+28,19,non-grid spatial,non-grid spatial,0.09072284123303798
+28,19,non-grid spatial,non-spatial,0.05324236599098482
+28,19,non-grid spatial,putative interneuron,0.10401874805724466
+28,19,non-spatial,grid,0.0612762719114956
+28,19,non-spatial,non-grid spatial,0.05324236599098482
+28,19,non-spatial,non-spatial,0.012991472052666635
+28,19,non-spatial,putative interneuron,0.05110328906884834
+28,19,putative interneuron,grid,0.1262296076280044
+28,19,putative interneuron,non-grid spatial,0.10401874805724465
+28,19,putative interneuron,non-spatial,0.05110328906884835
+28,19,putative interneuron,putative interneuron,0.12405522197627275
+28,21,grid,grid,-0.040286343044277105
+28,21,grid,non-grid spatial,-0.0007898803598641651
+28,21,grid,putative interneuron,0.0006184951211118442
+28,21,non-grid spatial,grid,-0.000789880359864153
+28,21,non-grid spatial,non-grid spatial,0.021719195728949457
+28,21,non-grid spatial,putative interneuron,-0.08323738551166272
+28,21,putative interneuron,grid,0.0006184951211118221
+28,21,putative interneuron,non-grid spatial,-0.08323738551166272
+28,21,putative interneuron,putative interneuron,0.30894866506390345
+28,23,grid,grid,0.15729716855138862
+28,23,grid,non-grid spatial,0.11488977375683604
+28,23,grid,non-spatial,0.057302927410540605
+28,23,grid,putative interneuron,0.14042739873648283
+28,23,non-grid spatial,grid,0.11488977375683604
+28,23,non-grid spatial,non-grid spatial,0.0840681094234087
+28,23,non-grid spatial,non-spatial,0.061096525954716464
+28,23,non-grid spatial,putative interneuron,0.10409607117932664
+28,23,non-spatial,grid,0.057302927410540605
+28,23,non-spatial,non-grid spatial,0.061096525954716464
+28,23,non-spatial,non-spatial,0.0474901187550254
+28,23,non-spatial,putative interneuron,0.08400478002787119
+28,23,putative interneuron,grid,0.14042739873648283
+28,23,putative interneuron,non-grid spatial,0.10409607117932664
+28,23,putative interneuron,non-spatial,0.0840047800278712
+28,23,putative interneuron,putative interneuron,0.12160686726412111
+28,25,grid,grid,0.08094418219488354
+28,25,grid,non-grid spatial,0.058623538919046474
+28,25,grid,non-spatial,0.012370876801289666
+28,25,grid,putative interneuron,0.08978858045633457
+28,25,non-grid spatial,grid,0.058623538919046474
+28,25,non-grid spatial,non-grid spatial,0.052622792199697316
+28,25,non-grid spatial,non-spatial,0.03609455148787879
+28,25,non-grid spatial,putative interneuron,0.09785255638644488
+28,25,non-spatial,grid,0.012370876801289671
+28,25,non-spatial,non-grid spatial,0.036094551487878795
+28,25,non-spatial,non-spatial,0.014707014081372607
+28,25,non-spatial,putative interneuron,0.06539875260965954
+28,25,putative interneuron,grid,0.08978858045633459
+28,25,putative interneuron,non-grid spatial,0.09785255638644488
+28,25,putative interneuron,non-spatial,0.06539875260965954
+28,25,putative interneuron,putative interneuron,0.19114157629177425
+29,16,grid,grid,0.14414615699121122
+29,16,grid,non-grid spatial,0.08322210929893029
+29,16,grid,non-spatial,0.02614836729972014
+29,16,grid,putative interneuron,0.13021486408158803
+29,16,non-grid spatial,grid,0.08322210929893029
+29,16,non-grid spatial,non-grid spatial,0.03705452394683544
+29,16,non-grid spatial,non-spatial,0.009456069077748465
+29,16,non-grid spatial,putative interneuron,0.06174513874258289
+29,16,non-spatial,grid,0.026148367299720143
+29,16,non-spatial,non-grid spatial,0.009456069077748472
+29,16,non-spatial,non-spatial,-0.030009120518601325
+29,16,non-spatial,putative interneuron,0.03077639156293057
+29,16,putative interneuron,grid,0.13021486408158803
+29,16,putative interneuron,non-grid spatial,0.06174513874258289
+29,16,putative interneuron,non-spatial,0.030776391562930574
+29,16,putative interneuron,putative interneuron,0.08470795170688217
