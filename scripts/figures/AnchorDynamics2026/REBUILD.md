@@ -27,7 +27,10 @@ recordings, and what to do when something goes wrong.
 
 Disk: the repository is a few GB because it carries the intermediate results.
 Copying clark2025 locally is faster than reading it over the network, but
-either works.
+either works. On Harry's machine both datasets and the atlas now live on one
+SD card under `/Volumes/datasetsSD/` (clark2025 moved there 2026-11-18, off a
+nearly full boot volume), so every step that opens a session needs the card
+mounted.
 
 ### Things that are *not* in clark2025, and are in the repository instead
 

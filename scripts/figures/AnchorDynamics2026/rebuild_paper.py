@@ -56,7 +56,7 @@ LOGS = os.path.join(HERE, 'rebuild_logs')
 # replaces these (or whatever a previous configure set) with the new ones.
 ORIGINAL = {
     'repo': '/Users/harryclark/Documents/spatial-manifolds',
-    'clark2025': '/Users/harryclark/Downloads/clark2025',
+    'clark2025': '/Volumes/datasetsSD/Ephys_data/clark2025',
     'lfp': '/Volumes/datasetsSD/clark2025_lfp',
     'lfp_alt': '/Volumes/INCR-NolanLab/ActiveProjects/Wolf/harry/data/clark2025_lfp',
     'atlas': '/Users/harryclark/.brainglobe/allen_mouse_10um_v1.2',
